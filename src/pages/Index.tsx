@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '@/components/layout/Header';
 import BottomNav from '@/components/layout/BottomNav';
 import CreateBidModal from '@/components/bids/CreateBidModal';
@@ -6,9 +6,11 @@ import OpportunityFeed from '@/components/ferreteria/OpportunityFeed';
 import BidFormModal from '@/components/ferreteria/BidFormModal';
 import BidComparisonModal from '@/components/bids/BidComparisonModal';
 import { mockBidRequests, mockHardwareStores, BidRequest } from '@/lib/mockData';
+import { useSessionContext } from '@/components/auth/SessionContext';
 import { Gavel, Store, ClipboardList, User, Plus, MapPin, Calendar, ArrowRight, Package } from 'lucide-react';
 
 const Index = () => {
+  const { profile, signOut } = useSessionContext();
   const [role, setRole] = useState<'engineer' | 'hardware'>('engineer');
   const [activeTab, setActiveTab] = useState<string>('bids');
   const [bidRequests, setBidRequests] = useState<BidRequest[]>(mockBidRequests);
@@ -21,6 +23,13 @@ const Index = () => {
   // Estados para comparar ofertas como ingeniero
   const [selectedRequestForComparison, setSelectedRequestForComparison] = useState<BidRequest | null>(null);
   const [isComparisonModalOpen, setIsComparisonModalOpen] = useState(false);
+
+  // Set initial role from user profile if available
+  useEffect(() => {
+    if (profile?.user_type) {
+      setRole(profile.user_type);
+    }
+  }, [profile]);
 
   const handlePublishBid = (newRequest: BidRequest) => {
     setBidRequests([newRequest, ...bidRequests]);
@@ -76,13 +85,15 @@ const Index = () => {
                 <h2 className="text-base font-bold text-slate-900">Subastas Activas</h2>
                 <p className="text-xs text-slate-500">Solicitudes de cotización en Santo Domingo Este</p>
               </div>
-              <button 
-                onClick={() => setIsCreateModalOpen(true)}
-                className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-md shadow-amber-500/10 transition-all min-h-[40px] active:scale-95"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Cotizar</span>
-              </button>
+              {role === 'engineer' && (
+                <button 
+                  onClick={() => setIsCreateModalOpen(true)}
+                  className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-md shadow-amber-500/10 transition-all min-h-[40px] active:scale-95"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Cotizar</span>
+                </button>
+              )}
             </div>
 
             <div className="space-y-3">
@@ -137,7 +148,7 @@ const Index = () => {
                         {req.budgetLimit ? `RD$ ${req.budgetLimit.toLocaleString()}` : 'A cotizar'}
                       </p>
                     </div>
-                    {req.status !== 'completed' && (
+                    {req.status !== 'completed' && role === 'engineer' && (
                       <button 
                         onClick={() => handleOpenComparisonModal(req)}
                         className="text-amber-600 hover:text-amber-700 text-xs font-bold flex items-center gap-1 min-h-[36px]"
@@ -217,11 +228,14 @@ const Index = () => {
               </div>
               <div>
                 <h3 className="font-bold text-slate-900 text-sm">
-                  {role === 'engineer' ? 'Constructora SDE S.R.L.' : 'Ferretería El Progreso SDE'}
+                  {profile?.full_name || (role === 'engineer' ? 'Constructora SDE S.R.L.' : 'Ferretería El Progreso SDE')}
                 </h3>
                 <p className="text-xs text-slate-500">
                   {role === 'engineer' ? 'Comprador Profesional' : 'Vendedor Verificado'}
                 </p>
+                {profile?.document_id && (
+                  <p className="text-[10px] text-slate-400 mt-0.5">Doc: {profile.document_id}</p>
+                )}
               </div>
             </div>
 
@@ -235,7 +249,10 @@ const Index = () => {
               <button className="w-full text-left px-3 py-2.5 text-xs text-slate-700 hover:bg-slate-50 rounded-lg transition-colors min-h-[44px]">
                 Métodos de Pago
               </button>
-              <button className="w-full text-left px-3 py-2.5 text-xs text-red-600 hover:bg-red-50 rounded-lg transition-colors min-h-[44px] font-medium">
+              <button 
+                onClick={signOut}
+                className="w-full text-left px-3 py-2.5 text-xs text-red-600 hover:bg-red-50 rounded-lg transition-colors min-h-[44px] font-medium"
+              >
                 Cerrar Sesión
               </button>
             </div>
