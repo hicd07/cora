@@ -83,7 +83,7 @@ const Index = () => {
                     <div>
                       <p className="text-[10px] text-slate-400 uppercase tracking-wider">Presupuesto Máx.</p>
                       <p className="text-sm font-extrabold text-slate-900">
-                        {req.budgetLimit ? `RD$ ${req.budgetLimit.toLocaleString()}` : 'Abierto'}
+                        {req.budgetLimit ? `RD$ ${req.budgetLimit.toLocaleString()}` : 'A cotizar'}
                       </p>
                     </div>
                     <button className="text-amber-600 hover:text-amber-700 text-xs font-bold flex items-center gap-1 min-h-[36px]">
