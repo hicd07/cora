@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { X, HardHat, Calendar, MapPin, DollarSign, FileText, Info } from 'lucide-react';
+import { X, HardHat, Calendar, MapPin, DollarSign, FileText, Info, Plus, Trash2 } from 'lucide-react';
 import { showSuccess, showLoading, dismissToast } from '@/utils/toast';
-import { BidRequest } from '@/lib/mockData';
+import { BidRequest, QuoteItem } from '@/lib/mockData';
 
 interface CreateBidModalProps {
   isOpen: boolean;
@@ -26,15 +26,13 @@ const SECTORS = [
   'El Almirante'
 ];
 
-const UNITS = ['Fundas', 'Varillas', 'Metros Cúbicos', 'Unidades', 'Pies', 'Cajas'];
+const UNITS = ['Fundas', 'Varillas', 'Metros Cúbicos', 'Unidades', 'Pies', 'Cajas', 'Quintales'];
 
 export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose, onPublish }) => {
   if (!isOpen) return null;
 
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState(CATEGORIES[0].id);
-  const [quantity, setQuantity] = useState('');
-  const [unit, setUnit] = useState(UNITS[0]);
   const [sector, setSector] = useState(SECTORS[0]);
   const [address, setAddress] = useState('');
   const [budget, setBudget] = useState('');
@@ -42,25 +40,56 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose,
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Estado para la lista dinámica de materiales
+  const [items, setItems] = useState<QuoteItem[]>([
+    { name: '', quantity: 1, unit: UNITS[0] }
+  ]);
+
+  const handleAddItem = () => {
+    setItems([...items, { name: '', quantity: 1, unit: UNITS[0] }]);
+  };
+
+  const handleRemoveItem = (index: number) => {
+    if (items.length > 1) {
+      setItems(items.filter((_, i) => i !== index));
+    }
+  };
+
+  const handleItemChange = (index: number, field: keyof QuoteItem, value: any) => {
+    const newItems = [...items];
+    newItems[index] = {
+      ...newItems[index],
+      [field]: field === 'quantity' ? parseFloat(value) || 0 : value
+    };
+    setItems(newItems);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !quantity || !address) return;
+    
+    // Validaciones básicas
+    if (!title || !address) return;
+    const validItems = items.filter(item => item.name.trim() !== '' && item.quantity > 0);
+    if (validItems.length === 0) {
+      alert('Por favor, añade al menos un material válido.');
+      return;
+    }
 
     setIsSubmitting(true);
     const toastId = showLoading('Buscando ferreterías aliadas en SDE...');
 
-    // Simulación de envío en tiempo real y geolocalización de ferreterías
     setTimeout(() => {
       dismissToast(toastId);
       
       const newRequest: BidRequest = {
         id: `req-${Date.now()}`,
-        title: `${quantity} ${unit} de ${title}`,
+        title: title,
         category,
         deliveryAddress: `${address}, ${sector}`,
         sector,
         status: 'active',
-        itemsCount: 1,
+        items: validItems,
+        itemsCount: validItems.length,
         budgetLimit: budget ? parseFloat(budget) : undefined,
         createdAt: new Date().toISOString(),
         expiresAt: new Date(Date.now() + parseInt(expiresIn) * 60 * 60 * 1000).toISOString(),
@@ -69,12 +98,12 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose,
 
       onPublish(newRequest);
       setIsSubmitting(false);
-      showSuccess('¡Requerimiento publicado! Notificando a 8 ferreterías en SDE en tiempo real.');
+      showSuccess(`¡Solicitud publicada! Notificando a ferreterías en ${sector} en tiempo real.`);
       onClose();
       
       // Reset form
       setTitle('');
-      setQuantity('');
+      setItems([{ name: '', quantity: 1, unit: UNITS[0] }]);
       setAddress('');
       setBudget('');
       setNotes('');
@@ -92,8 +121,8 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose,
               <HardHat className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 text-base">Publicar Requerimiento</h3>
-              <p className="text-[10px] text-slate-500">Cotizaciones rápidas en SDE</p>
+              <h3 className="font-bold text-slate-900 text-base">Solicitar Cotización</h3>
+              <p className="text-[10px] text-slate-500">Múltiples materiales en un solo pedido</p>
             </div>
           </div>
           <button 
@@ -108,22 +137,22 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose,
         {/* Formulario */}
         <form onSubmit={handleSubmit} className="p-6 space-y-5 flex-1 pb-10">
           
-          {/* Material / Título */}
+          {/* Título de la Cotización */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700 block">¿Qué material necesitas?</label>
+            <label className="text-xs font-bold text-slate-700 block">Nombre de la Obra / Proyecto</label>
             <input
               type="text"
               required
-              placeholder="Ej: Cemento Gris Portland, Varillas de 3/8..."
+              placeholder="Ej: Vaciado de Techo - Segunda Planta"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full px-4 py-3 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
             />
           </div>
 
-          {/* Categoría */}
+          {/* Categoría Principal */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700 block">Categoría</label>
+            <label className="text-xs font-bold text-slate-700 block">Categoría Principal</label>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
@@ -135,31 +164,67 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose,
             </select>
           </div>
 
-          {/* Cantidad y Unidad */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700 block">Cantidad</label>
-              <input
-                type="number"
-                required
-                min="1"
-                placeholder="Ej: 50"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                className="w-full px-4 py-3 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700 block">Unidad</label>
-              <select
-                value={unit}
-                onChange={(e) => setUnit(e.target.value)}
-                className="w-full px-4 py-3 text-sm rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
+          {/* LISTA DINÁMICA DE MATERIALES */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-700 block">Lista de Materiales</label>
+              <button
+                type="button"
+                onClick={handleAddItem}
+                className="text-xs font-bold text-amber-600 hover:text-amber-700 flex items-center gap-1 py-1 px-2 rounded-lg hover:bg-amber-50 transition-colors"
               >
-                {UNITS.map((u) => (
-                  <option key={u} value={u}>{u}</option>
-                ))}
-              </select>
+                <Plus className="w-3.5 h-3.5" />
+                Añadir Material
+              </button>
+            </div>
+
+            <div className="space-y-2.5 max-h-[240px] overflow-y-auto pr-1">
+              {items.map((item, index) => (
+                <div key={index} className="flex gap-2 items-center bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      required
+                      placeholder="Material (ej: Cemento Gris)"
+                      value={item.name}
+                      onChange={(e) => handleItemChange(index, 'name', e.target.value)}
+                      className="w-full px-2.5 py-2 text-xs rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
+                    />
+                  </div>
+                  <div className="w-16">
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      placeholder="Cant."
+                      value={item.quantity || ''}
+                      onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                      className="w-full px-2 py-2 text-xs rounded-lg border border-slate-200 bg-white text-center focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
+                    />
+                  </div>
+                  <div className="w-24">
+                    <select
+                      value={item.unit}
+                      onChange={(e) => handleItemChange(index, 'unit', e.target.value)}
+                      className="w-full px-2 py-2 text-xs rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
+                    >
+                      {UNITS.map((u) => (
+                        <option key={u} value={u}>{u}</option>
+                      ))}
+                    </select>
+                  </div>
+                  {items.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveItem(index)}
+                      className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors"
+                      aria-label="Eliminar material"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
 

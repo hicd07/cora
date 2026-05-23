@@ -3,7 +3,7 @@ import Header from '@/components/layout/Header';
 import BottomNav from '@/components/layout/BottomNav';
 import CreateBidModal from '@/components/bids/CreateBidModal';
 import { mockBidRequests, mockHardwareStores, BidRequest } from '@/lib/mockData';
-import { Gavel, Store, ClipboardList, User, Plus, MapPin, Calendar, ArrowRight } from 'lucide-react';
+import { Gavel, Store, ClipboardList, User, Plus, MapPin, Calendar, ArrowRight, Package } from 'lucide-react';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState<string>('bids');
@@ -23,14 +23,14 @@ const Index = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-base font-bold text-slate-900">Subastas Activas</h2>
-                <p className="text-xs text-slate-500">Solicitudes de materiales en Santo Domingo Este</p>
+                <p className="text-xs text-slate-500">Solicitudes de cotización en Santo Domingo Este</p>
               </div>
               <button 
                 onClick={() => setIsCreateModalOpen(true)}
                 className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-md shadow-amber-500/10 transition-all min-h-[40px] active:scale-95"
               >
                 <Plus className="w-4 h-4" />
-                <span>Crear</span>
+                <span>Cotizar</span>
               </button>
             </div>
 
@@ -46,9 +46,27 @@ const Index = () => {
                     </span>
                   </div>
                   
-                  <h3 className="font-bold text-slate-900 text-sm mb-2 line-clamp-2">
+                  <h3 className="font-bold text-slate-900 text-sm mb-1">
                     {req.title}
                   </h3>
+
+                  {/* Desglose de Materiales */}
+                  <div className="my-3 bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-1.5">
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                      <Package className="w-3 h-3 text-amber-500" />
+                      Materiales Solicitados ({req.itemsCount})
+                    </p>
+                    <ul className="space-y-1">
+                      {req.items?.map((item, idx) => (
+                        <li key={idx} className="text-xs text-slate-700 flex justify-between items-center">
+                          <span className="font-medium">{item.name}</span>
+                          <span className="text-slate-500 font-semibold bg-white px-1.5 py-0.5 rounded border border-slate-100 text-[10px]">
+                            {item.quantity} {item.unit}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
 
                   <div className="space-y-1.5 text-xs text-slate-500 mb-3">
                     <div className="flex items-center gap-1.5">

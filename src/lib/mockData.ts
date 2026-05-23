@@ -1,10 +1,17 @@
+export interface QuoteItem {
+  name: string;
+  quantity: number;
+  unit: string;
+}
+
 export interface BidRequest {
   id: string;
-  title: string;
+  title: string; // Nombre del proyecto o solicitud
   category: string;
   deliveryAddress: string;
-  sector: string; // e.g., Alma Rosa I, Ensanche Ozama
+  sector: string;
   status: 'active' | 'closed' | 'completed';
+  items: QuoteItem[];
   itemsCount: number;
   budgetLimit?: number;
   createdAt: string;
@@ -25,38 +32,53 @@ export interface HardwareStore {
 export const mockBidRequests: BidRequest[] = [
   {
     id: 'req-1',
-    title: '50 Fundas de Cemento Gris Portland',
+    title: 'Vaciado de Techo - Segunda Planta',
     category: 'Cemento y Agregados',
     deliveryAddress: 'Calle Club de Leones #45, Alma Rosa I',
     sector: 'Alma Rosa I',
     status: 'active',
-    itemsCount: 1,
-    budgetLimit: 25000,
+    items: [
+      { name: 'Cemento Gris Portland', quantity: 50, unit: 'Fundas' },
+      { name: 'Arena Itabo', quantity: 4, unit: 'Metros Cúbicos' },
+      { name: 'Grava de 3/4', quantity: 6, unit: 'Metros Cúbicos' }
+    ],
+    itemsCount: 3,
+    budgetLimit: 45000,
     createdAt: '2023-10-25T10:00:00Z',
     expiresAt: '2023-10-26T18:00:00Z',
     bidsCount: 3,
   },
   {
     id: 'req-2',
-    title: 'Varillas de acero de 3/8 y Alambre de amarre',
+    title: 'Estructura de Columnas y Amarre',
     category: 'Metales y Estructuras',
     deliveryAddress: 'Av. San Vicente de Paul, Ensanche Ozama',
     sector: 'Ensanche Ozama',
     status: 'active',
-    itemsCount: 4,
-    budgetLimit: 45000,
+    items: [
+      { name: 'Varillas de acero de 3/8', quantity: 80, unit: 'Varillas' },
+      { name: 'Alambre de amarre dulce', quantity: 2, unit: 'Cajas' },
+      { name: 'Clavos de acero de 2.5 pulgadas', quantity: 15, unit: 'Unidades' }
+    ],
+    itemsCount: 3,
+    budgetLimit: 35000,
     createdAt: '2023-10-25T11:30:00Z',
     expiresAt: '2023-10-27T12:00:00Z',
     bidsCount: 1,
   },
   {
     id: 'req-3',
-    title: 'Tuberías PVC de 2 pulgadas y codos de presión',
+    title: 'Instalación Sanitaria Baño Principal',
     category: 'Plomería',
     deliveryAddress: 'Calle Costa Rica, Lucerna',
     sector: 'Lucerna',
     status: 'closed',
-    itemsCount: 12,
+    items: [
+      { name: 'Tuberías PVC de 2 pulgadas', quantity: 12, unit: 'Unidades' },
+      { name: 'Codos de presión PVC 90°', quantity: 8, unit: 'Unidades' },
+      { name: 'Pegamento PVC líquido', quantity: 2, unit: 'Unidades' }
+    ],
+    itemsCount: 3,
     budgetLimit: 12000,
     createdAt: '2023-10-24T08:00:00Z',
     expiresAt: '2023-10-24T18:00:00Z',
