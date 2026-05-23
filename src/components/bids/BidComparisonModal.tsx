@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Check, ShoppingBag, ArrowRight, Store, Info, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { X, Check, ShoppingBag, ArrowRight, Store, Info, AlertCircle, CheckCircle2, PhoneCall } from 'lucide-react';
 import { BidRequest, mockBidsForRequest1, HardwareBid } from '@/lib/mockData';
 import { showSuccess } from '@/utils/toast';
 
@@ -250,14 +250,14 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
               </div>
             </div>
 
-            {/* Botón de Acción */}
+            {/* Botón de Acción Actualizado */}
             <button
               type="button"
               onClick={handleConfirmMixedOrder}
               className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold rounded-xl shadow-md shadow-amber-500/10 transition-all flex items-center justify-center gap-2 min-h-[48px]"
             >
-              <ShoppingBag className="w-4 h-4" />
-              Confirmar Pedido Mixto
+              <PhoneCall className="w-4 h-4" />
+              Contactar proveedores
             </button>
 
           </div>
