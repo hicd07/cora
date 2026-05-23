@@ -29,6 +29,20 @@ export interface HardwareStore {
   isVerified: boolean;
 }
 
+export interface ItemOffer {
+  itemName: string;
+  unitPrice: number;
+  isAvailable: boolean;
+}
+
+export interface HardwareBid {
+  storeId: string;
+  storeName: string;
+  rating: number;
+  deliveryTime: string;
+  offers: ItemOffer[];
+}
+
 export const mockBidRequests: BidRequest[] = [
   {
     id: 'req-1',
@@ -113,5 +127,42 @@ export const mockHardwareStores: HardwareStore[] = [
     sector: 'Ensanche Ozama',
     deliveryCoverage: ['Ensanche Ozama', 'Alma Rosa I'],
     isVerified: false,
+  }
+];
+
+// Ofertas simuladas de ferreterías para la subasta 'req-1'
+export const mockBidsForRequest1: HardwareBid[] = [
+  {
+    storeId: 'store-1',
+    storeName: 'Ferretería El Progreso SDE',
+    rating: 4.8,
+    deliveryTime: 'Inmediato (1-2 horas)',
+    offers: [
+      { itemName: 'Cemento Gris Portland', unitPrice: 480, isAvailable: true },
+      { itemName: 'Arena Itabo', unitPrice: 1800, isAvailable: true },
+      { itemName: 'Grava de 3/4', unitPrice: 2100, isAvailable: true }
+    ]
+  },
+  {
+    storeId: 'store-2',
+    storeName: 'Mega Ferretería Oriental',
+    rating: 4.5,
+    deliveryTime: 'Mismo día (4-6 horas)',
+    offers: [
+      { itemName: 'Cemento Gris Portland', unitPrice: 465, isAvailable: true },
+      { itemName: 'Arena Itabo', unitPrice: 1950, isAvailable: true },
+      { itemName: 'Grava de 3/4', unitPrice: 1900, isAvailable: true }
+    ]
+  },
+  {
+    storeId: 'store-3',
+    storeName: 'Ferretería Express Ozama',
+    rating: 4.2,
+    deliveryTime: 'Siguiente día (24 horas)',
+    offers: [
+      { itemName: 'Cemento Gris Portland', unitPrice: 490, isAvailable: true },
+      { itemName: 'Arena Itabo', unitPrice: 1750, isAvailable: true },
+      { itemName: 'Grava de 3/4', unitPrice: 2200, isAvailable: false } // No disponible
+    ]
   }
 ];

@@ -4,6 +4,7 @@ import BottomNav from '@/components/layout/BottomNav';
 import CreateBidModal from '@/components/bids/CreateBidModal';
 import OpportunityFeed from '@/components/ferreteria/OpportunityFeed';
 import BidFormModal from '@/components/ferreteria/BidFormModal';
+import BidComparisonModal from '@/components/bids/BidComparisonModal';
 import { mockBidRequests, mockHardwareStores, BidRequest } from '@/lib/mockData';
 import { Gavel, Store, ClipboardList, User, Plus, MapPin, Calendar, ArrowRight, Package } from 'lucide-react';
 
@@ -17,6 +18,10 @@ const Index = () => {
   const [selectedRequestForBid, setSelectedRequestForBid] = useState<BidRequest | null>(null);
   const [isBidModalOpen, setIsBidModalOpen] = useState(false);
 
+  // Estados para comparar ofertas como ingeniero
+  const [selectedRequestForComparison, setSelectedRequestForComparison] = useState<BidRequest | null>(null);
+  const [isComparisonModalOpen, setIsComparisonModalOpen] = useState(false);
+
   const handlePublishBid = (newRequest: BidRequest) => {
     setBidRequests([newRequest, ...bidRequests]);
   };
@@ -26,11 +31,26 @@ const Index = () => {
     setIsBidModalOpen(true);
   };
 
+  const handleOpenComparisonModal = (request: BidRequest) => {
+    setSelectedRequestForComparison(request);
+    setIsComparisonModalOpen(true);
+  };
+
   const handleSubmitBid = (requestId: string) => {
     setBidRequests(prev => 
       prev.map(req => 
         req.id === requestId 
           ? { ...req, bidsCount: req.bidsCount + 1 } 
+          : req
+      )
+    );
+  };
+
+  const handleCompleteOrder = (requestId: string) => {
+    setBidRequests(prev => 
+      prev.map(req => 
+        req.id === requestId 
+          ? { ...req, status: 'completed' } 
           : req
       )
     );
@@ -72,8 +92,8 @@ const Index = () => {
                     <span className="bg-amber-50 text-amber-700 text-[10px] font-semibold px-2.5 py-1 rounded-full">
                       {req.category}
                     </span>
-                    <span className="text-xs font-bold text-emerald-600">
-                      {req.bidsCount} ofertas
+                    <span className={`text-xs font-bold ${req.status === 'completed' ? 'text-blue-600' : 'text-emerald-600'}`}>
+                      {req.status === 'completed' ? 'Compra Finalizada' : `${req.bidsCount} ofertas`}
                     </span>
                   </div>
                   
@@ -117,10 +137,15 @@ const Index = () => {
                         {req.budgetLimit ? `RD$ ${req.budgetLimit.toLocaleString()}` : 'A cotizar'}
                       </p>
                     </div>
-                    <button className="text-amber-600 hover:text-amber-700 text-xs font-bold flex items-center gap-1 min-h-[36px]">
-                      <span>Ver detalles</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
+                    {req.status !== 'completed' && (
+                      <button 
+                        onClick={() => handleOpenComparisonModal(req)}
+                        className="text-amber-600 hover:text-amber-700 text-xs font-bold flex items-center gap-1 min-h-[36px]"
+                      >
+                        <span>Ver detalles</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -251,6 +276,14 @@ const Index = () => {
           onClose={() => setIsBidModalOpen(false)}
           request={selectedRequestForBid}
           onSubmitBid={handleSubmitBid}
+        />
+
+        {/* Tablero de Comparación y Selección de Ítems (Ingeniero) */}
+        <BidComparisonModal
+          isOpen={isComparisonModalOpen}
+          onClose={() => setIsComparisonModalOpen(false)}
+          request={selectedRequestForComparison}
+          onCompleteOrder={handleCompleteOrder}
         />
         
       </div>
