@@ -1,11 +1,18 @@
 import React, { useState } from 'react';
 import Header from '@/components/layout/Header';
 import BottomNav from '@/components/layout/BottomNav';
-import { mockBidRequests, mockHardwareStores } from '@/lib/mockData';
+import CreateBidModal from '@/components/bids/CreateBidModal';
+import { mockBidRequests, mockHardwareStores, BidRequest } from '@/lib/mockData';
 import { Gavel, Store, ClipboardList, User, Plus, MapPin, Calendar, ArrowRight } from 'lucide-react';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState<string>('bids');
+  const [bidRequests, setBidRequests] = useState<BidRequest[]>(mockBidRequests);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  const handlePublishBid = (newRequest: BidRequest) => {
+    setBidRequests([newRequest, ...bidRequests]);
+  };
 
   // Renderizado condicional simple según la pestaña activa
   const renderContent = () => {
@@ -18,14 +25,17 @@ const Index = () => {
                 <h2 className="text-base font-bold text-slate-900">Subastas Activas</h2>
                 <p className="text-xs text-slate-500">Solicitudes de materiales en Santo Domingo Este</p>
               </div>
-              <button className="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1 shadow-sm transition-colors min-h-[36px]">
-                <Plus className="w-3.5 h-3.5" />
+              <button 
+                onClick={() => setIsCreateModalOpen(true)}
+                className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-md shadow-amber-500/10 transition-all min-h-[40px] active:scale-95"
+              >
+                <Plus className="w-4 h-4" />
                 <span>Crear</span>
               </button>
             </div>
 
             <div className="space-y-3">
-              {mockBidRequests.map((req) => (
+              {bidRequests.map((req) => (
                 <div key={req.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
                   <div className="flex justify-between items-start gap-2 mb-2">
                     <span className="bg-amber-50 text-amber-700 text-[10px] font-semibold px-2.5 py-1 rounded-full">
@@ -43,7 +53,7 @@ const Index = () => {
                   <div className="space-y-1.5 text-xs text-slate-500 mb-3">
                     <div className="flex items-center gap-1.5">
                       <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span className="truncate">{req.sector}, SDE</span>
+                      <span className="truncate">{req.deliveryAddress}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -55,7 +65,7 @@ const Index = () => {
                     <div>
                       <p className="text-[10px] text-slate-400 uppercase tracking-wider">Presupuesto Máx.</p>
                       <p className="text-sm font-extrabold text-slate-900">
-                        RD$ {req.budgetLimit?.toLocaleString()}
+                        {req.budgetLimit ? `RD$ ${req.budgetLimit.toLocaleString()}` : 'Abierto'}
                       </p>
                     </div>
                     <button className="text-amber-600 hover:text-amber-700 text-xs font-bold flex items-center gap-1 min-h-[36px]">
@@ -174,6 +184,13 @@ const Index = () => {
 
         {/* Navegación Inferior */}
         <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
+
+        {/* Modal de Creación de Requerimiento */}
+        <CreateBidModal 
+          isOpen={isCreateModalOpen} 
+          onClose={() => setIsCreateModalOpen(false)} 
+          onPublish={handlePublishBid}
+        />
         
       </div>
     </div>
