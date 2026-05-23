@@ -3,7 +3,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
-import { useNavigate } from 'react-router-dom';
 
 interface SessionContextType {
   session: Session | null;
@@ -18,11 +17,7 @@ const SessionContext = createContext<SessionContextType>({
 });
 
 export const useSession = () => {
-  const context = useContext(SessionContext);
-  if (!context) {
-    throw new Error('useSession must be used within SessionContextProvider');
-  }
-  return context;
+  return useContext(SessionContext);
 };
 
 interface SessionContextProviderProps {
@@ -33,27 +28,25 @@ export const SessionContextProvider: React.FC<SessionContextProviderProps> = ({ 
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
 
   useEffect(() => {
-    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
-
-      if (event === 'INITIAL_SESSION') {
-        // Initial load - no redirect needed
-      } else if (event === 'SIGNED_IN') {
-        navigate('/');
-      } else if (event === 'SIGNED_OUT') {
-        navigate('/login');
-      }
     });
 
-    return () => {
-      data.subscription.unsubscribe();
-    };
-  }, [navigate]);
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   return (
     <SessionContext.Provider value={{ session, user, loading }}>
