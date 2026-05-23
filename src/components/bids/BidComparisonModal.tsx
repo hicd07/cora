@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Check, ShoppingBag, ArrowRight, Store, Info, AlertCircle, CheckCircle2, PhoneCall } from 'lucide-react';
+import { X, Check, ShoppingBag, Store, Info, CheckCircle2, Phone, MessageSquare } from 'lucide-react';
 import { BidRequest, mockBidsForRequest1, HardwareBid } from '@/lib/mockData';
 import { showSuccess } from '@/utils/toast';
 
@@ -9,6 +9,13 @@ interface BidComparisonModalProps {
   request: BidRequest | null;
   onCompleteOrder: (requestId: string) => void;
 }
+
+// Datos de contacto simulados para las ferreterías de SDE
+const STORE_CONTACTS: Record<string, { phone: string; whatsapp: string }> = {
+  'store-1': { phone: '+18095550123', whatsapp: '18095550123' },
+  'store-2': { phone: '+18295550456', whatsapp: '18295550456' },
+  'store-3': { phone: '+18495550789', whatsapp: '18495550789' },
+};
 
 export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, onClose, request, onCompleteOrder }) => {
   if (!isOpen || !request) return null;
@@ -32,11 +39,9 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
   ];
 
   // Estado para almacenar la selección de ferretería por cada ítem
-  // Clave: nombre del ítem, Valor: storeId seleccionado
   const [selections, setSelections] = useState<Record<string, string>>(() => {
     const initial: Record<string, string> = {};
     request.items.forEach(item => {
-      // Seleccionar por defecto la primera ferretería que tenga disponible el ítem
       const availableBid = bids.find(b => b.offers.find(o => o.itemName === item.name)?.isAvailable);
       if (availableBid) {
         initial[item.name] = availableBid.storeId;
@@ -250,13 +255,13 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
               </div>
             </div>
 
-            {/* Botón de Acción Actualizado */}
+            {/* Botón de Acción */}
             <button
               type="button"
               onClick={handleConfirmMixedOrder}
               className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold rounded-xl shadow-md shadow-amber-500/10 transition-all flex items-center justify-center gap-2 min-h-[48px]"
             >
-              <PhoneCall className="w-4 h-4" />
+              <ShoppingBag className="w-4 h-4" />
               Contactar proveedores
             </button>
 
@@ -283,6 +288,8 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
                 {bids.map(bid => {
                   const data = storeTotals[bid.storeId];
                   if (!data || data.items.length === 0) return null;
+
+                  const contact = STORE_CONTACTS[bid.storeId] || { phone: '+18095550100', whatsapp: '18095550100' };
 
                   return (
                     <div key={bid.storeId} className="border border-slate-100 rounded-2xl p-4 space-y-3 bg-white shadow-sm">
@@ -311,6 +318,26 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
                       <div className="pt-2 flex justify-between items-center text-[11px] font-bold text-slate-700 bg-slate-50 px-2.5 py-1.5 rounded-lg">
                         <span>Subtotal Orden</span>
                         <span>RD$ {data.subtotal.toLocaleString()}</span>
+                      </div>
+
+                      {/* Botones de Contacto Directo */}
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        <a
+                          href={`tel:${contact.phone}`}
+                          className="flex items-center justify-center gap-1.5 py-2 text-[11px] font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors min-h-[36px]"
+                        >
+                          <Phone className="w-3.5 h-3.5 text-slate-500" />
+                          Llamar
+                        </a>
+                        <a
+                          href={`https://wa.me/${contact.whatsapp}?text=Hola,%20me%20gustaría%20coordinar%20la%20entrega%20del%20pedido%20de%20ConstruBid.`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center gap-1.5 py-2 text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors min-h-[36px]"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          WhatsApp
+                        </a>
                       </div>
                     </div>
                   );
