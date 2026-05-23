@@ -2,20 +2,51 @@ import React, { useState } from 'react';
 import Header from '@/components/layout/Header';
 import BottomNav from '@/components/layout/BottomNav';
 import CreateBidModal from '@/components/bids/CreateBidModal';
+import OpportunityFeed from '@/components/ferreteria/OpportunityFeed';
+import BidFormModal from '@/components/ferreteria/BidFormModal';
 import { mockBidRequests, mockHardwareStores, BidRequest } from '@/lib/mockData';
 import { Gavel, Store, ClipboardList, User, Plus, MapPin, Calendar, ArrowRight, Package } from 'lucide-react';
 
 const Index = () => {
+  const [role, setRole] = useState<'engineer' | 'hardware'>('engineer');
   const [activeTab, setActiveTab] = useState<string>('bids');
   const [bidRequests, setBidRequests] = useState<BidRequest[]>(mockBidRequests);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  
+  // Estados para cotizar como ferretería
+  const [selectedRequestForBid, setSelectedRequestForBid] = useState<BidRequest | null>(null);
+  const [isBidModalOpen, setIsBidModalOpen] = useState(false);
 
   const handlePublishBid = (newRequest: BidRequest) => {
     setBidRequests([newRequest, ...bidRequests]);
   };
 
-  // Renderizado condicional simple según la pestaña activa
+  const handleOpenBidModal = (request: BidRequest) => {
+    setSelectedRequestForBid(request);
+    setIsBidModalOpen(true);
+  };
+
+  const handleSubmitBid = (requestId: string) => {
+    setBidRequests(prev => 
+      prev.map(req => 
+        req.id === requestId 
+          ? { ...req, bidsCount: req.bidsCount + 1 } 
+          : req
+      )
+    );
+  };
+
+  // Renderizado condicional simple según la pestaña activa y el rol
   const renderContent = () => {
+    if (role === 'hardware' && activeTab === 'bids') {
+      return (
+        <OpportunityFeed 
+          requests={bidRequests} 
+          onOpenBidModal={handleOpenBidModal} 
+        />
+      );
+    }
+
     switch (activeTab) {
       case 'bids':
         return (
@@ -157,11 +188,15 @@ const Index = () => {
           <div className="bg-white rounded-2xl border border-slate-100 p-4 space-y-4">
             <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
               <div className="w-12 h-12 bg-amber-100 text-amber-800 rounded-full flex items-center justify-center font-bold text-lg">
-                C
+                {role === 'engineer' ? 'I' : 'F'}
               </div>
               <div>
-                <h3 className="font-bold text-slate-900 text-sm">Constructora SDE S.R.L.</h3>
-                <p className="text-xs text-slate-500">Comprador Profesional</p>
+                <h3 className="font-bold text-slate-900 text-sm">
+                  {role === 'engineer' ? 'Constructora SDE S.R.L.' : 'Ferretería El Progreso SDE'}
+                </h3>
+                <p className="text-xs text-slate-500">
+                  {role === 'engineer' ? 'Comprador Profesional' : 'Vendedor Verificado'}
+                </p>
               </div>
             </div>
 
@@ -192,8 +227,8 @@ const Index = () => {
       {/* Contenedor Mobile-First Estricto */}
       <div className="w-full max-w-md bg-slate-50 min-h-screen flex flex-col relative shadow-2xl border-x border-slate-100">
         
-        {/* Header */}
-        <Header />
+        {/* Header con Selector de Rol */}
+        <Header role={role} setRole={setRole} />
 
         {/* Contenido Principal con scroll */}
         <main className="flex-1 p-4 pb-24 overflow-y-auto">
@@ -203,11 +238,19 @@ const Index = () => {
         {/* Navegación Inferior */}
         <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
 
-        {/* Modal de Creación de Requerimiento */}
+        {/* Modal de Creación de Requerimiento (Ingeniero) */}
         <CreateBidModal 
           isOpen={isCreateModalOpen} 
           onClose={() => setIsCreateModalOpen(false)} 
           onPublish={handlePublishBid}
+        />
+
+        {/* Modal de Cotización Detallada (Ferretería) */}
+        <BidFormModal
+          isOpen={isBidModalOpen}
+          onClose={() => setIsBidModalOpen(false)}
+          request={selectedRequestForBid}
+          onSubmitBid={handleSubmitBid}
         />
         
       </div>
