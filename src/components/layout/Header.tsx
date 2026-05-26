@@ -2,7 +2,12 @@ import React from 'react';
 import { Bell, HardHat, Store } from 'lucide-react';
 import { useSessionContext } from '@/components/auth/SessionContext';
 
-export const Header: React.FC = () => {
+interface HeaderProps {
+  role: 'engineer' | 'hardware';
+  setRole: (role: 'engineer' | 'hardware') => void;
+}
+
+export const Header: React.FC<HeaderProps> = ({ role, setRole }) => {
   const { profile } = useSessionContext();
   const isProvider = profile?.user_type === 'hardware';
 
@@ -18,8 +23,8 @@ export const Header: React.FC = () => {
             <p className="text-[10px] text-slate-500 font-medium">B2B Marketplace • SDE</p>
           </div>
         </div>
-
-        <button
+        
+        <button 
           className="relative p-2 text-slate-600 hover:text-slate-900 rounded-full hover:bg-slate-50 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
           aria-label="Notificaciones"
         >
@@ -28,15 +33,31 @@ export const Header: React.FC = () => {
         </button>
       </div>
 
+      {/* Selector de Rol Interactivo - Solo visible/activo para proveedores */}
       {isProvider ? (
-        <div className="bg-blue-50 border border-blue-100 px-3 py-2 rounded-xl flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <Store className="w-4 h-4 text-blue-600" />
-            <span className="text-xs font-bold text-blue-800">Modo Ferretería Activo</span>
-          </div>
-          <span className="text-[9px] font-bold text-blue-700 bg-white px-2 py-0.5 rounded-full border border-blue-100">
-            Proveedor
-          </span>
+        <div className="grid grid-cols-2 bg-slate-100 p-1 rounded-xl">
+          <button
+            onClick={() => setRole('engineer')}
+            className={`flex items-center justify-center gap-1.5 py-2 text-xs font-bold rounded-lg transition-all ${
+              role === 'engineer'
+                ? 'bg-white text-amber-600 shadow-sm'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <HardHat className="w-3.5 h-3.5" />
+            Modo Ingeniero
+          </button>
+          <button
+            onClick={() => setRole('hardware')}
+            className={`flex items-center justify-center gap-1.5 py-2 text-xs font-bold rounded-lg transition-all ${
+              role === 'hardware'
+                ? 'bg-white text-amber-600 shadow-sm'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Store className="w-3.5 h-3.5" />
+            Modo Ferretería
+          </button>
         </div>
       ) : (
         <div className="bg-amber-50 border border-amber-100 px-3 py-2 rounded-xl flex items-center justify-between">
@@ -45,7 +66,7 @@ export const Header: React.FC = () => {
             <span className="text-xs font-bold text-amber-800">Modo Ingeniero Activo</span>
           </div>
           <span className="text-[9px] font-bold text-amber-600 bg-white px-2 py-0.5 rounded-full border border-amber-100">
-            Cliente
+            Comprador
           </span>
         </div>
       )}

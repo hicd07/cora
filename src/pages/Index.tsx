@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '@/components/layout/Header';
 import BottomNav from '@/components/layout/BottomNav';
 import CreateBidModal from '@/components/bids/CreateBidModal';
@@ -9,15 +9,15 @@ import ProviderProfileModal from '@/components/ferreteria/ProviderProfileModal';
 import StoreDetailModal from '@/components/ferreteria/StoreDetailModal';
 import { mockBidRequests, mockHardwareStores, BidRequest } from '@/lib/mockData';
 import { useSessionContext } from '@/components/auth/SessionContext';
-import { ClipboardList, Plus, MapPin, Calendar, ArrowRight, Package, Settings, Eye, EyeOff } from 'lucide-react';
+import { Gavel, Store, ClipboardList, User, Plus, MapPin, Calendar, ArrowRight, Package, Settings, Eye, EyeOff } from 'lucide-react';
 
 const Index = () => {
   const { profile, signOut } = useSessionContext();
-  const role = profile?.user_type === 'hardware' ? 'hardware' : 'engineer';
+  const [role, setRole] = useState<'engineer' | 'hardware'>('engineer');
   const [activeTab, setActiveTab] = useState<string>('bids');
   const [bidRequests, setBidRequests] = useState<BidRequest[]>(mockBidRequests);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-
+  
   // Estados para cotizar como ferretería
   const [selectedRequestForBid, setSelectedRequestForBid] = useState<BidRequest | null>(null);
   const [isBidModalOpen, setIsBidModalOpen] = useState(false);
@@ -33,14 +33,14 @@ const Index = () => {
   const [selectedStore, setSelectedStore] = useState<any | null>(null);
   const [isStoreDetailOpen, setIsStoreDetailOpen] = useState(false);
 
+  // Set initial role from user profile if available
   useEffect(() => {
-    if (role === 'hardware' && !['bids', 'account'].includes(activeTab)) {
-      setActiveTab('bids');
+    if (profile?.user_type) {
+      setRole(profile.user_type);
     }
-  }, [role, activeTab]);
+  }, [profile]);
 
   const handlePublishBid = (newRequest: BidRequest) => {
-
     setBidRequests([newRequest, ...bidRequests]);
   };
 
@@ -308,7 +308,7 @@ const Index = () => {
 
             <div className="space-y-1">
               {profile?.user_type === 'hardware' && (
-                <button
+                <button 
                   onClick={() => setIsProfileModalOpen(true)}
                   className="w-full text-left px-3 py-2.5 text-xs text-amber-700 hover:bg-amber-50 rounded-lg transition-colors min-h-[44px] font-bold flex items-center gap-2"
                 >
@@ -319,24 +319,19 @@ const Index = () => {
               <button className="w-full text-left px-3 py-2.5 text-xs text-slate-700 hover:bg-slate-50 rounded-lg transition-colors min-h-[44px]">
                 Mi Perfil de Empresa
               </button>
-              {role === 'engineer' && (
-                <>
-                  <button className="w-full text-left px-3 py-2.5 text-xs text-slate-700 hover:bg-slate-50 rounded-lg transition-colors min-h-[44px]">
-                    Historial de Subastas
-                  </button>
-                  <button className="w-full text-left px-3 py-2.5 text-xs text-slate-700 hover:bg-slate-50 rounded-lg transition-colors min-h-[44px]">
-                    Métodos de Pago
-                  </button>
-                </>
-              )}
-              <button
+              <button className="w-full text-left px-3 py-2.5 text-xs text-slate-700 hover:bg-slate-50 rounded-lg transition-colors min-h-[44px]">
+                Historial de Subastas
+              </button>
+              <button className="w-full text-left px-3 py-2.5 text-xs text-slate-700 hover:bg-slate-50 rounded-lg transition-colors min-h-[44px]">
+                Métodos de Pago
+              </button>
+              <button 
                 onClick={signOut}
                 className="w-full text-left px-3 py-2.5 text-xs text-red-600 hover:bg-red-50 rounded-lg transition-colors min-h-[44px] font-medium"
               >
                 Cerrar Sesión
               </button>
             </div>
-
           </div>
         );
 
@@ -350,8 +345,8 @@ const Index = () => {
       {/* Contenedor Mobile-First Estricto */}
       <div className="w-full max-w-md bg-slate-50 min-h-screen flex flex-col relative shadow-2xl border-x border-slate-100">
         
-        {/* Header contextual según el tipo de usuario */}
-        <Header />
+        {/* Header con Selector de Rol */}
+        <Header role={role} setRole={setRole} />
 
         {/* Contenido Principal con scroll */}
         <main className="flex-1 p-4 pb-24 overflow-y-auto">
@@ -359,7 +354,7 @@ const Index = () => {
         </main>
 
         {/* Navegación Inferior */}
-        <BottomNav role={role} activeTab={activeTab} setActiveTab={setActiveTab} />
+        <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
 
         {/* Modal de Creación de Requerimiento (Ingeniero) */}
         <CreateBidModal 
