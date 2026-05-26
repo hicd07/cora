@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Header from '@/components/layout/Header';
 import BottomNav from '@/components/layout/BottomNav';
 import CreateBidModal from '@/components/bids/CreateBidModal';
@@ -13,7 +13,8 @@ import { Gavel, Store, ClipboardList, User, Plus, MapPin, Calendar, ArrowRight, 
 
 const Index = () => {
   const { profile, signOut } = useSessionContext();
-  const [role, setRole] = useState<'engineer' | 'hardware'>('engineer');
+  const role = profile?.user_type === 'hardware' ? 'hardware' : 'engineer';
+
   const [activeTab, setActiveTab] = useState<string>('bids');
   const [bidRequests, setBidRequests] = useState<BidRequest[]>(mockBidRequests);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -33,14 +34,8 @@ const Index = () => {
   const [selectedStore, setSelectedStore] = useState<any | null>(null);
   const [isStoreDetailOpen, setIsStoreDetailOpen] = useState(false);
 
-  // Set initial role from user profile if available
-  useEffect(() => {
-    if (profile?.user_type) {
-      setRole(profile.user_type);
-    }
-  }, [profile]);
-
   const handlePublishBid = (newRequest: BidRequest) => {
+
     setBidRequests([newRequest, ...bidRequests]);
   };
 
@@ -345,8 +340,8 @@ const Index = () => {
       {/* Contenedor Mobile-First Estricto */}
       <div className="w-full max-w-md bg-slate-50 min-h-screen flex flex-col relative shadow-2xl border-x border-slate-100">
         
-        {/* Header con Selector de Rol */}
-        <Header role={role} setRole={setRole} />
+        {/* Header según el tipo de usuario */}
+        <Header />
 
         {/* Contenido Principal con scroll */}
         <main className="flex-1 p-4 pb-24 overflow-y-auto">
