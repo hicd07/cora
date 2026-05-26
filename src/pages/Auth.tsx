@@ -234,7 +234,7 @@ export const Auth: React.FC = () => {
                     <div>
                         <p className="section-label">
                         </p>
-                        <h1 className="font-display text-xl font-semibold text-foreground">PIDO</h1>
+                        <h1 className="font-display font-semibold text-foreground text-[32px]">PIDO</h1>
                     </div>
                     <Button
                         variant="outline"
@@ -265,7 +265,7 @@ export const Auth: React.FC = () => {
                                     </div>
                                     <span className="data-chip data-chip-accent">
                                         <Sparkles className="h-3.5 w-3.5" />Bienvenida guiada
-                                                          </span>
+                                                                                                  </span>
                                 </div>
                                 <h2
                                     className="font-display mt-6 max-w-xl text-3xl font-semibold leading-tight text-foreground md:text-5xl">
@@ -273,19 +273,19 @@ export const Auth: React.FC = () => {
                                 </h2>
                                 <p
                                     className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground md:text-base">PIDO organiza solicitudes, ofertas y decisiones comerciales en un flujo simple. Primero te damos contexto, luego puedes entrar directo a tu cuenta o crear una nueva.
-                                                    </p>
+                                                                                        </p>
                                 {!isOnboarding ? (<div className="mt-6 flex flex-col gap-3 sm:flex-row">
                                     <Button
                                         type="button"
                                         onClick={() => setIsSignUp(true)}
                                         className="justify-center rounded-full px-6">
                                         <UserPlus className="h-4 w-4" />Comenzar registro
-                                                            </Button>
+                                                                                                    </Button>
                                     <button
                                         type="button"
                                         onClick={() => setIsSignUp(false)}
                                         className="inline-flex items-center justify-center gap-2 rounded-full border border-[hsl(var(--foreground)/0.1)] bg-[hsl(var(--surface-1)/0.86)] px-5 py-3 text-sm font-semibold text-foreground transition-all duration-200 hover:-translate-y-0.5 hover:border-[hsl(var(--primary)/0.28)] hover:bg-[hsl(var(--surface-1))]">Ir directo al login
-                                                              <ArrowRight className="h-4 w-4" />
+                                                                                                      <ArrowRight className="h-4 w-4" />
                                     </button>
                                 </div>) : null}
                             </div>
@@ -353,7 +353,7 @@ export const Auth: React.FC = () => {
                                 onClick={() => setIsSignUp(false)}
                                 className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary transition-opacity hover:opacity-80">
                                 <LogIn className="h-4 w-4" />Ir al login directamente
-                                                </button>) : null}
+                                                                                </button>) : null}
                         </div>
                         <div className="space-y-6 px-6 py-6 md:px-7 md:py-7">
                             {!isOnboarding ? (<form onSubmit={handleAuth} className="space-y-5">
@@ -398,9 +398,9 @@ export const Auth: React.FC = () => {
                                     {loading ? (<span
                                         className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />) : isSignUp ? (<>
                                         <UserPlus className="h-4 w-4" />Crear cuenta y continuar
-                                                              </>) : (<>
+                                                                                                      </>) : (<>
                                         <LogIn className="h-4 w-4" />Entrar a PIDO
-                                                              </>)}
+                                                                                                      </>)}
                                 </Button>
                                 <div className="text-center">
                                     <button
@@ -414,7 +414,7 @@ export const Auth: React.FC = () => {
                                 <div>
                                     <span className="data-chip data-chip-accent">Paso 3 · Configuración</span>
                                     <p className="mt-3 text-sm leading-relaxed text-muted-foreground">Configura tu identidad comercial o profesional para empezar con la experiencia completa.
-                                                            </p>
+                                                                                                    </p>
                                 </div>
                                 <div className="space-y-1.5">
                                     <label className="section-label block">Nombre o razón social</label>
@@ -489,7 +489,7 @@ export const Auth: React.FC = () => {
                                 <div className="panel-muted p-4">
                                     <p className="section-label">Importante</p>
                                     <p className="mt-2 text-sm leading-relaxed text-muted-foreground">Después del registro podrás completar sector, cobertura y visibilidad desde tu cuenta. Ya no precargamos datos ficticios en el perfil inicial.
-                                                            </p>
+                                                                                                    </p>
                                 </div>
                                 <Button
                                     type="submit"
