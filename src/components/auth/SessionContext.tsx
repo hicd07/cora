@@ -53,8 +53,21 @@ const isProfileCompleted = (profile: Partial<Profile> | null | undefined) => {
   );
 };
 
-export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const buildFallbackProfile = (userId: string, localProfile?: Profile | null): Profile => ({
+  id: userId,
+  full_name: localProfile?.full_name ?? null,
+  document_id: localProfile?.document_id ?? null,
+  user_type: localProfile?.user_type ?? null,
+  onboarded: localProfile?.onboarded ?? isProfileCompleted(localProfile),
+  store_name: localProfile?.store_name ?? null,
+  sector: localProfile?.sector ?? 'Alma Rosa I',
+  delivery_coverage: localProfile?.delivery_coverage ?? ['Alma Rosa I', 'Alma Rosa II'],
+  is_public: localProfile?.is_public ?? true,
+  rating: localProfile?.rating ?? 5.0,
+  reviews_count: localProfile?.reviews_count ?? 0,
+});
 
+export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -62,20 +75,7 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
 
   const fetchProfile = async (userId: string) => {
     const localProfile = getLocalProfile(userId);
-
-    const fallbackProfile: Profile = {
-      id: userId,
-      full_name: localProfile?.full_name ?? null,
-      document_id: localProfile?.document_id ?? null,
-      user_type: localProfile?.user_type ?? null,
-      onboarded: localProfile?.onboarded ?? isProfileCompleted(localProfile),
-      store_name: localProfile?.store_name ?? null,
-      sector: localProfile?.sector ?? 'Alma Rosa I',
-      delivery_coverage: localProfile?.delivery_coverage ?? ['Alma Rosa I', 'Alma Rosa II'],
-      is_public: localProfile?.is_public ?? true,
-      rating: localProfile?.rating ?? 5.0,
-      reviews_count: localProfile?.reviews_count ?? 0,
-    };
+    const fallbackProfile = buildFallbackProfile(userId, localProfile);
 
     const { data, error } = await supabase
       .from('profiles')
@@ -138,36 +138,34 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
       onboarded: completedProfile.onboarded || isProfileCompleted(completedProfile),
     };
 
-    saveLocalProfile(user.id, updatedProfile);
-    setProfile(updatedProfile);
-
     const { error } = await supabase
       .from('profiles')
-      .upsert({
-        id: user.id,
-        full_name: updatedProfile.full_name,
-        document_id: updatedProfile.document_id,
-        user_type: updatedProfile.user_type,
-        onboarded: updatedProfile.onboarded,
-        store_name: updatedProfile.store_name,
-        sector: updatedProfile.sector,
-        delivery_coverage: updatedProfile.delivery_coverage,
-        is_public: updatedProfile.is_public,
-        rating: updatedProfile.rating,
-        reviews_count: updatedProfile.reviews_count,
-        updated_at: new Date().toISOString(),
-      });
+      .upsert(
+        {
+          id: user.id,
+          full_name: updatedProfile.full_name,
+          document_id: updatedProfile.document_id,
+          user_type: updatedProfile.user_type,
+          onboarded: updatedProfile.onboarded,
+          store_name: updatedProfile.store_name,
+          sector: updatedProfile.sector,
+          delivery_coverage: updatedProfile.delivery_coverage,
+          is_public: updatedProfile.is_public,
+          rating: updatedProfile.rating,
+          reviews_count: updatedProfile.reviews_count,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'id' }
+      )
+      .select()
+      .single();
 
     if (error) {
-      const isMissingProfilesTable =
-        error.code === 'PGRST205' ||
-        error.message.toLowerCase().includes('profiles') ||
-        error.message.toLowerCase().includes('404');
-
-      if (!isMissingProfilesTable) {
-        throw error;
-      }
+      throw error;
     }
+
+    saveLocalProfile(user.id, updatedProfile);
+    setProfile(updatedProfile);
   };
 
   const signOut = async () => {
