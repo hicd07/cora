@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import {
+    ArrowRight,
     FileText,
     HardHat,
     Lock,
@@ -9,6 +10,7 @@ import {
     Mail,
     Moon,
     ShieldCheck,
+    Sparkles,
     Store,
     SunMedium,
     Truck,
@@ -207,25 +209,63 @@ export const Auth: React.FC = () => {
                 </div>
                 <div className="grid flex-1 gap-4 md:grid-cols-[1.05fr_0.95fr]">
                     <section className="app-shell relative overflow-hidden p-6 md:p-8">
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,hsl(var(--primary)/0.18),transparent_34%),radial-gradient(circle_at_bottom_right,hsl(var(--primary)/0.12),transparent_30%)]" />
                         <div
                             className="panel-strong absolute inset-x-6 top-6 h-28 rounded-[2rem] border-primary/15 bg-[hsl(var(--primary)/0.08)] blur-2xl md:inset-x-8" />
+                        <div className="absolute right-6 top-8 hidden h-24 w-24 rounded-full border border-[hsl(var(--primary)/0.18)] bg-[hsl(var(--surface-1)/0.55)] blur-[2px] md:block motion-safe:animate-[float_7s_ease-in-out_infinite]" />
+                        <div className="absolute bottom-10 left-8 hidden h-16 w-16 rounded-full border border-[hsl(var(--foreground)/0.08)] bg-[hsl(var(--surface-1)/0.7)] md:block motion-safe:animate-[float_9s_ease-in-out_infinite]" />
                         <div className="relative z-10 flex h-full flex-col justify-between gap-6">
-                            <div>
-                                <span className="data-chip data-chip-accent bg-[#ff9500]">MARKETPLACE B2B · SDE</span>
+                            <div className="motion-safe:animate-[fade-up_500ms_ease-out]">
+                                <div className="flex items-center gap-3">
+                                    <div className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-[1.4rem] border border-[hsl(var(--foreground)/0.08)] bg-[hsl(var(--surface-1))] shadow-[0_18px_32px_-24px_hsl(var(--foreground)/0.3)]">
+                                        <div className="absolute inset-[4px] rounded-[1.05rem] bg-[hsl(var(--primary)/0.08)]" />
+                                        <AppLogo variant="symbol" context="header" size={30} className="relative" />
+                                    </div>
+                                    <span className="data-chip data-chip-accent">
+                                        <Sparkles className="h-3.5 w-3.5" />
+                                        Bienvenida
+                                    </span>
+                                </div>
                                 <h2
-                                    className="font-display mt-4 max-w-sm text-3xl font-semibold leading-tight text-foreground md:text-4xl">
-                                    {isOnboarding ? "Tu operación empieza con un perfil claro." : isSignUp ? "Crea una cuenta y publica más rápido." : "Vuelve a tu panel de compras y ofertas."}
+                                    className="font-display mt-6 max-w-md text-3xl font-semibold leading-tight text-foreground md:text-5xl">
+                                    {isOnboarding ? "Tu operación empieza con un perfil claro." : isSignUp ? "Empieza hoy y publica solicitudes con más agilidad." : "Bienvenido a una forma más clara de comprar y cotizar."}
                                 </h2>
                                 <p
-                                    className="mt-3 max-w-md text-sm leading-relaxed text-muted-foreground md:text-base">Plataforma diseñada para subastas, abastecimiento y coordinación comercial entre ingenieros y ferreterías.
-                                                    </p>
+                                    className="mt-4 max-w-lg text-sm leading-relaxed text-muted-foreground md:text-base">
+                                    PIDO conecta ingenieros y ferreterías en una experiencia simple, confiable y visual para gestionar pedidos, ofertas y decisiones comerciales.
+                                </p>
+                                {!isOnboarding ? (
+                                    <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                                        <Button
+                                            type="button"
+                                            onClick={() => {
+                                                setIsSignUp(true);
+                                            }}
+                                            className="justify-center rounded-full px-6">
+                                            <UserPlus className="h-4 w-4" />
+                                            Crear cuenta
+                                        </Button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setIsSignUp(false);
+                                            }}
+                                            className="inline-flex items-center justify-center gap-2 rounded-full border border-[hsl(var(--foreground)/0.1)] bg-[hsl(var(--surface-1)/0.82)] px-5 py-3 text-sm font-semibold text-foreground transition-all duration-200 hover:-translate-y-0.5 hover:border-[hsl(var(--primary)/0.28)] hover:bg-[hsl(var(--surface-1))]">
+                                            Ir directo al login
+                                            <ArrowRight className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                ) : null}
                             </div>
-                            <div className="grid gap-3">
-                                {featureHighlights.map(item => {
+                            <div className="grid gap-3 motion-safe:animate-[fade-up_700ms_ease-out]">
+                                {featureHighlights.map((item, index) => {
                                     const Icon = item.icon;
 
                                     return (
-                                        <article key={item.title} className="panel-muted flex items-start gap-3 p-4">
+                                        <article
+                                            key={item.title}
+                                            className="panel-muted flex items-start gap-3 p-4 motion-safe:animate-[fade-up_700ms_ease-out]"
+                                            style={{ animationDelay: `${index * 90}ms` }}>
                                             <div
                                                 className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[1.1rem] bg-[hsl(var(--primary)/0.14)] text-primary">
                                                 <Icon className="h-5 w-5" />
