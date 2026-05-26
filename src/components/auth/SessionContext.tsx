@@ -45,6 +45,10 @@ const saveLocalProfile = (userId: string, profile: Profile) => {
   localStorage.setItem(`profile_${userId}`, JSON.stringify(profile));
 };
 
+const isProfileCompleted = (profile: Partial<Profile> | null | undefined) => {
+  return Boolean(profile?.full_name && profile?.document_id && profile?.user_type);
+};
+
 export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -59,7 +63,7 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
       full_name: localProfile?.full_name ?? null,
       document_id: localProfile?.document_id ?? null,
       user_type: localProfile?.user_type ?? null,
-      onboarded: localProfile?.onboarded ?? false,
+      onboarded: localProfile?.onboarded ?? isProfileCompleted(localProfile),
       store_name: localProfile?.store_name ?? null,
       sector: localProfile?.sector ?? 'Alma Rosa I',
       delivery_coverage: localProfile?.delivery_coverage ?? ['Alma Rosa I', 'Alma Rosa II'],
@@ -87,7 +91,14 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
       full_name: data.full_name ?? localProfile?.full_name ?? null,
       document_id: data.document_id ?? localProfile?.document_id ?? null,
       user_type: data.user_type ?? localProfile?.user_type ?? null,
-      onboarded: data.onboarded ?? localProfile?.onboarded ?? false,
+      onboarded:
+        data.onboarded ??
+        localProfile?.onboarded ??
+        isProfileCompleted({
+          full_name: data.full_name ?? localProfile?.full_name,
+          document_id: data.document_id ?? localProfile?.document_id,
+          user_type: data.user_type ?? localProfile?.user_type,
+        }),
       store_name: data.store_name ?? localProfile?.store_name ?? data.full_name ?? null,
       sector: data.sector ?? localProfile?.sector ?? 'Alma Rosa I',
       delivery_coverage: data.delivery_coverage ?? localProfile?.delivery_coverage ?? ['Alma Rosa I', 'Alma Rosa II'],
@@ -111,11 +122,16 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
   const updateProfile = async (updates: Partial<Profile>) => {
     if (!user) return;
 
-    const updatedProfile = {
+    const completedProfile = {
       ...profile,
       ...updates,
       id: user.id,
     } as Profile;
+
+    const updatedProfile: Profile = {
+      ...completedProfile,
+      onboarded: completedProfile.onboarded || isProfileCompleted(completedProfile),
+    };
 
     saveLocalProfile(user.id, updatedProfile);
     setProfile(updatedProfile);
