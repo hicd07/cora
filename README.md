@@ -1,6 +1,6 @@
-# ConstruBid 🏗️ Gavel • B2B Marketplace de Construcción (SDE)
+# PIDO 🏗️ Gavel • B2B Marketplace de Construcción (SDE)
 
-**ConstruBid** es una plataforma web mobile-first diseñada para revolucionar la adquisición de materiales de construcción en Santo Domingo Este (SDE), República Dominicana. Conecta de manera eficiente a **Ingenieros de Obra** con **Ferreterías Locales**, permitiendo optimizar costos y logística mediante un sistema de subastas inversas y cotizaciones detalladas por ítem.
+**PIDO** es una plataforma web mobile-first diseñada para revolucionar la adquisición de materiales de construcción en Santo Domingo Este (SDE), República Dominicana. Conecta de manera eficiente a **Ingenieros de Obra** con **Ferreterías Locales**, permitiendo optimizar costos y logística mediante un sistema de subastas inversas y cotizaciones detalladas por ítem.
 
 ---
 
@@ -36,9 +36,10 @@
 
 1. Clona este repositorio:
    ```bash
-   git clone https://github.com/tu-usuario/construbid.git
+   git clone https://github.com/tu-usuario/pido.git
    ```
 2. Instala las dependencias:
+
    ```bash
    npm install
    ```

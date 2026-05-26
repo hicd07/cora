@@ -15,7 +15,7 @@ const FullScreenLoader = () => (
   <div className="flex min-h-screen items-center justify-center bg-background px-6">
     <div className="app-shell w-full max-w-xs rounded-xl p-6 text-center">
       <div className="mx-auto h-10 w-10 animate-spin rounded-full border-[3px] border-primary border-t-transparent" />
-      <p className="font-display mt-4 text-sm font-semibold text-foreground">Cargando ConstruBid</p>
+      <p className="font-display mt-4 text-sm font-semibold text-foreground">Cargando PIDO</p>
       <p className="mt-1 text-xs text-muted-foreground">Preparando tu panel de compras y ofertas.</p>
     </div>
   </div>

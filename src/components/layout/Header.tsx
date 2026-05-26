@@ -18,7 +18,7 @@ export const Header: React.FC = () => {
           </div>
           <div>
             <p className="section-label">Marketplace B2B</p>
-            <h1 className="font-display text-lg font-semibold tracking-tight text-foreground">ConstruBid</h1>
+            <h1 className="font-display text-lg font-semibold tracking-tight text-foreground">PIDO</h1>
             <p className="text-xs text-muted-foreground">Compras y cotizaciones para Santo Domingo Este</p>
           </div>
         </div>

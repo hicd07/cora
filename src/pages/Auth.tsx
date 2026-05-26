@@ -134,7 +134,7 @@ export const Auth: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <p className="section-label">Acceso seguro</p>
-            <h1 className="font-display text-xl font-semibold text-foreground">ConstruBid</h1>
+            <h1 className="font-display text-xl font-semibold text-foreground">PIDO</h1>
           </div>
           <Button variant="outline" size="icon" onClick={toggleTheme} aria-label="Cambiar tema">
             {theme === "dark" ? <SunMedium className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -228,7 +228,7 @@ export const Auth: React.FC = () => {
                 <div>
                   <span className="data-chip data-chip-accent">Paso 2 · Configuración</span>
                   <p className="mt-3 text-sm text-muted-foreground">
-                    Necesitamos estos datos para dejar lista tu operación dentro de ConstruBid.
+                    Necesitamos estos datos para dejar lista tu operación dentro de PIDO.
                   </p>
                 </div>
 

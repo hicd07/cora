@@ -316,7 +316,7 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
                         <Phone className="h-3.5 w-3.5 text-primary" />Llamar
                       </a>
                       <a
-                        href={`https://wa.me/${contact.whatsapp}?text=Hola,%20me%20gustaría%20coordinar%20la%20entrega%20del%20pedido%20de%20ConstruBid.`}
+                        href={`https://wa.me/${contact.whatsapp}?text=Hola,%20me%20gustaría%20coordinar%20la%20entrega%20del%20pedido%20de%20PIDO.`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="font-display inline-flex min-h-[40px] items-center justify-center gap-2 rounded-md border border-transparent bg-[hsl(var(--success))] px-3 py-2 text-xs font-semibold text-[hsl(var(--success-foreground))] transition-opacity hover:opacity-90"

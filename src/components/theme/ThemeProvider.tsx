@@ -10,7 +10,7 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
-const STORAGE_KEY = "constru-bid-theme";
+const STORAGE_KEY = "pido-theme";
 
 const getInitialTheme = (): Theme => {
   if (typeof window === "undefined") {

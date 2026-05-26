@@ -88,7 +88,7 @@ export const StoreDetailModal: React.FC<StoreDetailProps> = ({ isOpen, onClose, 
                 <Phone className="h-4 w-4 text-primary" />Llamar
               </a>
               <a
-                href={`https://wa.me/${whatsapp}?text=Hola%20${encodeURIComponent(store.name)},%20vi%20su%20perfil%20en%20ConstruBid%20y%20me%20gustaría%20cotizar%20unos%20materiales.`}
+                href={`https://wa.me/${whatsapp}?text=Hola%20${encodeURIComponent(store.name)},%20vi%20su%20perfil%20en%20PIDO%20y%20me%20gustaría%20cotizar%20unos%20materiales.`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-display inline-flex min-h-[48px] items-center justify-center gap-2 rounded-md border border-transparent bg-[hsl(var(--success))] px-4 py-3 text-sm font-semibold text-[hsl(var(--success-foreground))] transition-opacity hover:opacity-90"
