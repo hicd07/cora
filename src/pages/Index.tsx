@@ -9,13 +9,15 @@ import ProviderProfileModal from '@/components/ferreteria/ProviderProfileModal';
 import StoreDetailModal from '@/components/ferreteria/StoreDetailModal';
 import { mockBidRequests, mockHardwareStores, BidRequest } from '@/lib/mockData';
 import { useSessionContext } from '@/components/auth/SessionContext';
+import { showError, showSuccess } from '@/utils/toast';
 import { Gavel, Store, ClipboardList, User, Plus, MapPin, Calendar, ArrowRight, Package, Settings, Eye, EyeOff } from 'lucide-react';
 
 const Index = () => {
-  const { profile, signOut } = useSessionContext();
+  const { profile, signOut, updateProfile } = useSessionContext();
   const role = profile?.user_type === 'hardware' ? 'hardware' : 'engineer';
 
   const [activeTab, setActiveTab] = useState<string>('bids');
+
   const [bidRequests, setBidRequests] = useState<BidRequest[]>(mockBidRequests);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   
@@ -29,6 +31,7 @@ const Index = () => {
 
   // Estados para configurar perfil de ferretería
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isUpdatingVisibility, setIsUpdatingVisibility] = useState(false);
 
   // Estados para ver detalle de ferretería
   const [selectedStore, setSelectedStore] = useState<any | null>(null);
@@ -99,8 +102,25 @@ const Index = () => {
     setIsStoreDetailOpen(true);
   };
 
+  const handleToggleCompanyVisibility = async () => {
+    if (!profile || role !== 'hardware') return;
+
+    const nextVisibility = !profile.is_public;
+    setIsUpdatingVisibility(true);
+
+    try {
+      await updateProfile({ is_public: nextVisibility });
+      showSuccess(nextVisibility ? 'Tu empresa ahora es visible para clientes.' : 'Tu empresa ahora está oculta para clientes.');
+    } catch (error) {
+      showError('No se pudo actualizar la visibilidad de tu empresa.');
+    } finally {
+      setIsUpdatingVisibility(false);
+    }
+  };
+
   // Renderizado condicional simple según la pestaña activa y el rol
   const renderContent = () => {
+
     if (role === 'hardware' && activeTab === 'bids') {
       return (
         <OpportunityFeed 
@@ -199,6 +219,92 @@ const Index = () => {
         );
 
       case 'market':
+        if (role === 'hardware') {
+          return (
+            <div className="space-y-4">
+              <div className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-600">Mi empresa</p>
+                    <h2 className="mt-1 text-lg font-bold text-slate-900">
+                      {profile?.store_name || profile?.full_name || 'Mi Ferretería'}
+                    </h2>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Administra cómo ven tu empresa los usuarios tipo cliente.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setIsProfileModalOpen(true)}
+                    className="flex min-h-[40px] items-center gap-1.5 rounded-full bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700 transition-colors hover:bg-amber-100"
+                  >
+                    <Settings className="h-4 w-4" />
+                    Editar
+                  </button>
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <div className="rounded-2xl bg-slate-50 p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Sector principal</p>
+                    <p className="mt-1 text-sm font-bold text-slate-800">{profile?.sector || 'Sin definir'}</p>
+                  </div>
+                  <div className="rounded-2xl bg-slate-50 p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Cobertura</p>
+                    <p className="mt-1 text-sm font-bold text-slate-800">{profile?.delivery_coverage?.length || 0} zonas</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className={`rounded-2xl p-2.5 ${profile?.is_public ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                      {profile?.is_public ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900">Visibilidad del perfil</h3>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {profile?.is_public
+                          ? 'Tu empresa aparece en Mercado para usuarios cliente.'
+                          : 'Tu empresa está oculta y no aparece para usuarios cliente.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleToggleCompanyVisibility}
+                    disabled={isUpdatingVisibility}
+                    className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
+                      profile?.is_public ? 'bg-amber-500' : 'bg-slate-200'
+                    } ${isUpdatingVisibility ? 'opacity-70' : ''}`}
+                    aria-label="Cambiar visibilidad del perfil"
+                  >
+                    <span
+                      className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                        profile?.is_public ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="mt-4 rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Mi Perfil de Empresa</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Desde aquí puedes editar tu nombre comercial, sector, cobertura de entrega y estado público o privado.
+                  </p>
+                  <button
+                    onClick={() => setIsProfileModalOpen(true)}
+                    className="mt-3 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-xs font-bold text-white transition-colors hover:bg-slate-800"
+                  >
+                    <Store className="h-4 w-4" />
+                    Abrir Mi Perfil de Empresa
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
         return (
           <div className="space-y-4">
             <div>
@@ -208,8 +314,8 @@ const Index = () => {
 
             <div className="space-y-3">
               {getHardwareStores().map((store) => (
-                <div 
-                  key={store.id} 
+                <div
+                  key={store.id}
                   onClick={() => handleOpenStoreDetail(store)}
                   className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-[0.99]"
                 >
@@ -303,7 +409,7 @@ const Index = () => {
 
             <div className="space-y-1">
               {profile?.user_type === 'hardware' && (
-                <button 
+                <button
                   onClick={() => setIsProfileModalOpen(true)}
                   className="w-full text-left px-3 py-2.5 text-xs text-amber-700 hover:bg-amber-50 rounded-lg transition-colors min-h-[44px] font-bold flex items-center gap-2"
                 >
@@ -311,22 +417,30 @@ const Index = () => {
                   Configurar Mi Ferretería
                 </button>
               )}
-              <button className="w-full text-left px-3 py-2.5 text-xs text-slate-700 hover:bg-slate-50 rounded-lg transition-colors min-h-[44px]">
+              <button
+                onClick={() => role === 'hardware' && setActiveTab('market')}
+                className="w-full text-left px-3 py-2.5 text-xs text-slate-700 hover:bg-slate-50 rounded-lg transition-colors min-h-[44px]"
+              >
                 Mi Perfil de Empresa
               </button>
-              <button className="w-full text-left px-3 py-2.5 text-xs text-slate-700 hover:bg-slate-50 rounded-lg transition-colors min-h-[44px]">
-                Historial de Subastas
-              </button>
-              <button className="w-full text-left px-3 py-2.5 text-xs text-slate-700 hover:bg-slate-50 rounded-lg transition-colors min-h-[44px]">
-                Métodos de Pago
-              </button>
-              <button 
+              {role === 'engineer' && (
+                <>
+                  <button className="w-full text-left px-3 py-2.5 text-xs text-slate-700 hover:bg-slate-50 rounded-lg transition-colors min-h-[44px]">
+                    Historial de Subastas
+                  </button>
+                  <button className="w-full text-left px-3 py-2.5 text-xs text-slate-700 hover:bg-slate-50 rounded-lg transition-colors min-h-[44px]">
+                    Métodos de Pago
+                  </button>
+                </>
+              )}
+              <button
                 onClick={signOut}
                 className="w-full text-left px-3 py-2.5 text-xs text-red-600 hover:bg-red-50 rounded-lg transition-colors min-h-[44px] font-medium"
               >
                 Cerrar Sesión
               </button>
             </div>
+
           </div>
         );
 
@@ -349,7 +463,7 @@ const Index = () => {
         </main>
 
         {/* Navegación Inferior */}
-        <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
+        <BottomNav role={role} activeTab={activeTab} setActiveTab={setActiveTab} />
 
         {/* Modal de Creación de Requerimiento (Ingeniero) */}
         <CreateBidModal 

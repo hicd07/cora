@@ -66,8 +66,9 @@ export const ProviderProfileModal: React.FC<ProviderProfileModalProps> = ({ isOp
               <Store className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 text-base">Configurar Mi Ferretería</h3>
-              <p className="text-[10px] text-slate-500">Personaliza tu perfil comercial para SDE</p>
+              <h3 className="font-bold text-slate-900 text-base">Mi Perfil de Empresa</h3>
+              <p className="text-[10px] text-slate-500">Edita tu perfil comercial y tu visibilidad en SDE</p>
+
             </div>
           </div>
           <button 
@@ -147,8 +148,9 @@ export const ProviderProfileModal: React.FC<ProviderProfileModalProps> = ({ isOp
                 <div>
                   <h4 className="text-xs font-bold text-slate-900">Visibilidad del Perfil</h4>
                   <p className="text-[10px] text-slate-500">
-                    {isPublic ? 'Visible para todos los ingenieros' : 'Oculto en el mercado'}
+                    {isPublic ? 'Visible para usuarios tipo cliente' : 'Oculto para usuarios tipo cliente'}
                   </p>
+
                 </div>
               </div>
 
@@ -169,8 +171,9 @@ export const ProviderProfileModal: React.FC<ProviderProfileModalProps> = ({ isOp
             </div>
 
             <p className="text-[10px] text-slate-500 leading-relaxed">
-              Si tu perfil es <strong>Público</strong>, aparecerás en la sección de "Mercado" y los ingenieros podrán ver tu información de contacto y cobertura. Si es <strong>Privado</strong>, no aparecerás en la lista pública.
+              Si tu perfil es <strong>Público</strong>, aparecerás en la sección de "Mercado" y los usuarios tipo cliente podrán ver tu información comercial y cobertura. Si es <strong>Privado</strong>, no aparecerás en la lista pública.
             </p>
+
           </div>
 
           {/* Botones de Acción */}

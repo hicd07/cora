@@ -2,14 +2,15 @@ import React from 'react';
 import { Gavel, Store, ClipboardList, User } from 'lucide-react';
 
 interface BottomNavProps {
+  role: 'engineer' | 'hardware';
   activeTab: string;
   setActiveTab: (tab: string) => void;
 }
 
-export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab }) => {
+export const BottomNav: React.FC<BottomNavProps> = ({ role, activeTab, setActiveTab }) => {
   const navItems = [
     { id: 'bids', label: 'Subastas', icon: Gavel },
-    { id: 'market', label: 'Mercado', icon: Store },
+    { id: 'market', label: role === 'hardware' ? 'Mi empresa' : 'Mercado', icon: Store },
     { id: 'orders', label: 'Pedidos', icon: ClipboardList },
     { id: 'account', label: 'Mi Cuenta', icon: User },
   ];
