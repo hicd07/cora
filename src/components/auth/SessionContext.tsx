@@ -8,6 +8,13 @@ export interface Profile {
   document_id: string | null; // RNC or Cedula
   user_type: 'engineer' | 'hardware' | null;
   onboarded: boolean;
+  // Provider specific fields
+  store_name?: string | null;
+  sector?: string | null;
+  delivery_coverage?: string[];
+  is_public?: boolean;
+  rating?: number;
+  reviews_count?: number;
 }
 
 interface SessionContextType {
@@ -16,6 +23,7 @@ interface SessionContextType {
   profile: Profile | null;
   loading: boolean;
   refreshProfile: () => Promise<void>;
+  updateProfile: (updates: Partial<Profile>) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -25,6 +33,7 @@ const SessionContext = createContext<SessionContextType>({
   profile: null,
   loading: true,
   refreshProfile: async () => {},
+  updateProfile: async () => {},
   signOut: async () => {},
 });
 
@@ -42,14 +51,14 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
         .eq('id', userId)
         .single();
 
+      // Fallback to local storage to ensure 100% uptime and support custom fields
+      const localProfileStr = localStorage.getItem(`profile_${userId}`);
+      const localProfile = localProfileStr ? JSON.parse(localProfileStr) : null;
+
       if (error) {
-        // If profile doesn't exist, we can create a default one or handle it in onboarding
-        console.log('Profile fetch error or not found, creating temporary local profile:', error.message);
-        
-        // Fallback to local storage if database table is not ready yet, to ensure 100% uptime
-        const localProfileStr = localStorage.getItem(`profile_${userId}`);
-        if (localProfileStr) {
-          setProfile(JSON.parse(localProfileStr));
+        console.log('Profile fetch error or not found, using local profile:', error.message);
+        if (localProfile) {
+          setProfile(localProfile);
         } else {
           const tempProfile: Profile = {
             id: userId,
@@ -57,16 +66,29 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
             document_id: null,
             user_type: null,
             onboarded: false,
+            store_name: null,
+            sector: 'Alma Rosa I',
+            delivery_coverage: ['Alma Rosa I', 'Alma Rosa II'],
+            is_public: true,
+            rating: 5.0,
+            reviews_count: 0,
           };
           setProfile(tempProfile);
         }
       } else if (data) {
+        // Merge database data with local storage custom fields if any
         setProfile({
           id: data.id,
-          full_name: data.full_name || data.first_name || null,
-          document_id: data.document_id || null,
-          user_type: data.user_type || null,
-          onboarded: data.onboarded || false,
+          full_name: data.full_name || data.first_name || localProfile?.full_name || null,
+          document_id: data.document_id || localProfile?.document_id || null,
+          user_type: data.user_type || localProfile?.user_type || null,
+          onboarded: data.onboarded || localProfile?.onboarded || false,
+          store_name: data.store_name || localProfile?.store_name || data.full_name || null,
+          sector: data.sector || localProfile?.sector || 'Alma Rosa I',
+          delivery_coverage: data.delivery_coverage || localProfile?.delivery_coverage || ['Alma Rosa I', 'Alma Rosa II'],
+          is_public: data.is_public !== undefined ? data.is_public : (localProfile?.is_public !== undefined ? localProfile.is_public : true),
+          rating: data.rating || localProfile?.rating || 5.0,
+          reviews_count: data.reviews_count || localProfile?.reviews_count || 0,
         });
       }
     } catch (err) {
@@ -80,13 +102,51 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
     }
   };
 
+  const updateProfile = async (updates: Partial<Profile>) => {
+    if (!user) return;
+
+    try {
+      const updatedProfile = {
+        ...profile,
+        ...updates,
+        id: user.id,
+      } as Profile;
+
+      // Save to local storage first for instant update and fallback
+      localStorage.setItem(`profile_${user.id}`, JSON.stringify(updatedProfile));
+      setProfile(updatedProfile);
+
+      // Try to save to Supabase profiles table
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          full_name: updatedProfile.full_name,
+          document_id: updatedProfile.document_id,
+          user_type: updatedProfile.user_type,
+          onboarded: updatedProfile.onboarded,
+          store_name: updatedProfile.store_name,
+          sector: updatedProfile.sector,
+          delivery_coverage: updatedProfile.delivery_coverage,
+          is_public: updatedProfile.is_public,
+          rating: updatedProfile.rating,
+          reviews_count: updatedProfile.reviews_count,
+          updated_at: new Date().toISOString(),
+        });
+
+      if (error) {
+        console.warn('Database upsert failed, using local storage fallback:', error.message);
+      }
+    } catch (err) {
+      console.error('Error updating profile:', err);
+    }
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
     setSession(null);
     setUser(null);
     setProfile(null);
-    // Clear local storage profiles
-    localStorage.removeItem('construbid_temp_user');
   };
 
   useEffect(() => {
@@ -120,7 +180,7 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
   }, []);
 
   return (
-    <SessionContext.Provider value={{ session, user, profile, loading, refreshProfile, signOut }}>
+    <SessionContext.Provider value={{ session, user, profile, loading, refreshProfile, updateProfile, signOut }}>
       {children}
     </SessionContext.Provider>
   );

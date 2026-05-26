@@ -5,9 +5,11 @@ import CreateBidModal from '@/components/bids/CreateBidModal';
 import OpportunityFeed from '@/components/ferreteria/OpportunityFeed';
 import BidFormModal from '@/components/ferreteria/BidFormModal';
 import BidComparisonModal from '@/components/bids/BidComparisonModal';
+import ProviderProfileModal from '@/components/ferreteria/ProviderProfileModal';
+import StoreDetailModal from '@/components/ferreteria/StoreDetailModal';
 import { mockBidRequests, mockHardwareStores, BidRequest } from '@/lib/mockData';
 import { useSessionContext } from '@/components/auth/SessionContext';
-import { Gavel, Store, ClipboardList, User, Plus, MapPin, Calendar, ArrowRight, Package } from 'lucide-react';
+import { Gavel, Store, ClipboardList, User, Plus, MapPin, Calendar, ArrowRight, Package, Settings, Eye, EyeOff } from 'lucide-react';
 
 const Index = () => {
   const { profile, signOut } = useSessionContext();
@@ -23,6 +25,13 @@ const Index = () => {
   // Estados para comparar ofertas como ingeniero
   const [selectedRequestForComparison, setSelectedRequestForComparison] = useState<BidRequest | null>(null);
   const [isComparisonModalOpen, setIsComparisonModalOpen] = useState(false);
+
+  // Estados para configurar perfil de ferretería
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+
+  // Estados para ver detalle de ferretería
+  const [selectedStore, setSelectedStore] = useState<any | null>(null);
+  const [isStoreDetailOpen, setIsStoreDetailOpen] = useState(false);
 
   // Set initial role from user profile if available
   useEffect(() => {
@@ -63,6 +72,36 @@ const Index = () => {
           : req
       )
     );
+  };
+
+  // Combinar tiendas simuladas con la tienda del usuario actual si es pública
+  const getHardwareStores = () => {
+    const stores = [...mockHardwareStores];
+    
+    // Si el usuario actual es una ferretería y tiene perfil público, lo agregamos a la lista
+    if (profile?.user_type === 'hardware' && profile.is_public) {
+      const userStore = {
+        id: profile.id,
+        name: profile.store_name || profile.full_name || 'Mi Ferretería',
+        rating: profile.rating || 5.0,
+        reviewsCount: profile.reviews_count || 0,
+        sector: profile.sector || 'Alma Rosa I',
+        deliveryCoverage: profile.delivery_coverage || ['Alma Rosa I'],
+        isVerified: true,
+      };
+      
+      // Evitar duplicados
+      if (!stores.some(s => s.id === profile.id)) {
+        stores.unshift(userStore);
+      }
+    }
+    
+    return stores;
+  };
+
+  const handleOpenStoreDetail = (store: any) => {
+    setSelectedStore(store);
+    setIsStoreDetailOpen(true);
   };
 
   // Renderizado condicional simple según la pestaña activa y el rol
@@ -173,8 +212,12 @@ const Index = () => {
             </div>
 
             <div className="space-y-3">
-              {mockHardwareStores.map((store) => (
-                <div key={store.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+              {getHardwareStores().map((store) => (
+                <div 
+                  key={store.id} 
+                  onClick={() => handleOpenStoreDetail(store)}
+                  className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-[0.99]"
+                >
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <h3 className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
@@ -228,7 +271,7 @@ const Index = () => {
               </div>
               <div>
                 <h3 className="font-bold text-slate-900 text-sm">
-                  {profile?.full_name || (role === 'engineer' ? 'Constructora SDE S.R.L.' : 'Ferretería El Progreso SDE')}
+                  {profile?.store_name || profile?.full_name || (role === 'engineer' ? 'Constructora SDE S.R.L.' : 'Ferretería El Progreso SDE')}
                 </h3>
                 <p className="text-xs text-slate-500">
                   {role === 'engineer' ? 'Comprador Profesional' : 'Vendedor Verificado'}
@@ -239,7 +282,40 @@ const Index = () => {
               </div>
             </div>
 
+            {/* Estado de Visibilidad para Proveedores */}
+            {profile?.user_type === 'hardware' && (
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {profile.is_public ? (
+                    <Eye className="w-4 h-4 text-emerald-600" />
+                  ) : (
+                    <EyeOff className="w-4 h-4 text-slate-400" />
+                  )}
+                  <div>
+                    <p className="text-xs font-bold text-slate-800">Estado del Perfil</p>
+                    <p className="text-[10px] text-slate-500">
+                      {profile.is_public ? 'Público (Visible en Mercado)' : 'Privado (Oculto)'}
+                    </p>
+                  </div>
+                </div>
+                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                  profile.is_public ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'
+                }`}>
+                  {profile.is_public ? 'Público' : 'Privado'}
+                </span>
+              </div>
+            )}
+
             <div className="space-y-1">
+              {profile?.user_type === 'hardware' && (
+                <button 
+                  onClick={() => setIsProfileModalOpen(true)}
+                  className="w-full text-left px-3 py-2.5 text-xs text-amber-700 hover:bg-amber-50 rounded-lg transition-colors min-h-[44px] font-bold flex items-center gap-2"
+                >
+                  <Settings className="w-4 h-4" />
+                  Configurar Mi Ferretería
+                </button>
+              )}
               <button className="w-full text-left px-3 py-2.5 text-xs text-slate-700 hover:bg-slate-50 rounded-lg transition-colors min-h-[44px]">
                 Mi Perfil de Empresa
               </button>
@@ -301,6 +377,19 @@ const Index = () => {
           onClose={() => setIsComparisonModalOpen(false)}
           request={selectedRequestForComparison}
           onCompleteOrder={handleCompleteOrder}
+        />
+
+        {/* Modal de Configuración de Perfil de Ferretería */}
+        <ProviderProfileModal
+          isOpen={isProfileModalOpen}
+          onClose={() => setIsProfileModalOpen(false)}
+        />
+
+        {/* Modal de Detalle de Ferretería */}
+        <StoreDetailModal
+          isOpen={isStoreDetailOpen}
+          onClose={() => setIsStoreDetailOpen(false)}
+          store={selectedStore}
         />
         
       </div>
