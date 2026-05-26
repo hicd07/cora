@@ -77,7 +77,7 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
         }
       } else if (data) {
         // Merge database data with local storage custom fields if any
-        setProfile({
+        const mergedProfile: Profile = {
           id: data.id,
           full_name: data.full_name || data.first_name || localProfile?.full_name || null,
           document_id: data.document_id || localProfile?.document_id || null,
@@ -89,7 +89,10 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
           is_public: data.is_public !== undefined ? data.is_public : (localProfile?.is_public !== undefined ? localProfile.is_public : true),
           rating: data.rating || localProfile?.rating || 5.0,
           reviews_count: data.reviews_count || localProfile?.reviews_count || 0,
-        });
+        };
+        setProfile(mergedProfile);
+        // Keep local storage in sync
+        localStorage.setItem(`profile_${userId}`, JSON.stringify(mergedProfile));
       }
     } catch (err) {
       console.error('Error fetching profile:', err);
