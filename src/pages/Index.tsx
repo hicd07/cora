@@ -167,14 +167,14 @@ const Index = () => {
           <EmptyState
             icon={TriangleAlert}
             title="No pudimos cargar tus solicitudes"
-            description="Ahora la app pide menos resultados por carga, pero esta consulta sigue fallando. Puedes intentar refrescar la vista o crear una nueva solicitud."
+            description="La consulta falló temporalmente. Puedes refrescar la vista o crear una nueva solicitud mientras tanto."
             action={<Button onClick={() => setIsCreateModalOpen(true)}>Crear solicitud</Button>}
           />
         ) : engineerRequests.length === 0 ? (
           <EmptyState
             icon={ClipboardList}
-            title="Aún no tienes solicitudes recientes"
-            description="No encontramos pedidos tuyos en esta carga inicial. Crea una nueva solicitud para empezar a recibir ofertas."
+            title="No encontramos solicitudes recientes"
+            description="Todavía no aparecen pedidos tuyos en esta carga inicial. Puedes crear una nueva solicitud para empezar."
             action={
               <Button onClick={() => setIsCreateModalOpen(true)}>
                 <Plus className="h-4 w-4" />

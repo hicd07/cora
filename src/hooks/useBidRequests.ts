@@ -15,6 +15,11 @@ const fetchBidRequests = async (): Promise<BidRequest[]> => {
     .range(0, BID_REQUESTS_PAGE_SIZE - 1);
 
   if (error) {
+    const status = typeof error.code === "string" ? Number(error.code) : NaN;
+    if (status === 500 || error.message?.includes("500")) {
+      return [];
+    }
+
     throw error;
   }
 
@@ -40,6 +45,7 @@ export const useBidRequests = () =>
   useQuery({
     queryKey: bidRequestsKey,
     queryFn: fetchBidRequests,
+    retry: false,
   });
 
 interface CreateBidRequestInput {
