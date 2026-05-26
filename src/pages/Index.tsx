@@ -1,44 +1,36 @@
-import React, { useState } from 'react';
-import Header from '@/components/layout/Header';
-import BottomNav from '@/components/layout/BottomNav';
-import CreateBidModal from '@/components/bids/CreateBidModal';
-import OpportunityFeed from '@/components/ferreteria/OpportunityFeed';
-import BidFormModal from '@/components/ferreteria/BidFormModal';
-import BidComparisonModal from '@/components/bids/BidComparisonModal';
-import ProviderProfileModal from '@/components/ferreteria/ProviderProfileModal';
-import StoreDetailModal from '@/components/ferreteria/StoreDetailModal';
-import { mockBidRequests, mockHardwareStores, BidRequest } from '@/lib/mockData';
-import { useSessionContext } from '@/components/auth/SessionContext';
-import { showError, showSuccess } from '@/utils/toast';
-import { Gavel, Store, ClipboardList, User, Plus, MapPin, Calendar, ArrowRight, Package, Settings, Eye, EyeOff } from 'lucide-react';
+import React, { useState } from "react";
+import { ArrowRight, Calendar, ClipboardList, Eye, EyeOff, Gavel, MapPin, Package, Plus, Settings, Store } from "lucide-react";
+import BidComparisonModal from "@/components/bids/BidComparisonModal";
+import CreateBidModal from "@/components/bids/CreateBidModal";
+import { useSessionContext } from "@/components/auth/SessionContext";
+import OpportunityFeed from "@/components/ferreteria/OpportunityFeed";
+import BidFormModal from "@/components/ferreteria/BidFormModal";
+import ProviderProfileModal from "@/components/ferreteria/ProviderProfileModal";
+import StoreDetailModal from "@/components/ferreteria/StoreDetailModal";
+import BottomNav from "@/components/layout/BottomNav";
+import Header from "@/components/layout/Header";
+import { Button } from "@/components/ui/button";
+import { mockBidRequests, mockHardwareStores, BidRequest } from "@/lib/mockData";
+import { cn } from "@/lib/utils";
+import { showError, showSuccess } from "@/utils/toast";
 
 const Index = () => {
   const { profile, signOut, updateProfile } = useSessionContext();
-  const role = profile?.user_type === 'hardware' ? 'hardware' : 'engineer';
+  const role = profile?.user_type === "hardware" ? "hardware" : "engineer";
 
-  const [activeTab, setActiveTab] = useState<string>('bids');
-
+  const [activeTab, setActiveTab] = useState<string>("bids");
   const [bidRequests, setBidRequests] = useState<BidRequest[]>(mockBidRequests);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  
-  // Estados para cotizar como ferretería
   const [selectedRequestForBid, setSelectedRequestForBid] = useState<BidRequest | null>(null);
   const [isBidModalOpen, setIsBidModalOpen] = useState(false);
-
-  // Estados para comparar ofertas como ingeniero
   const [selectedRequestForComparison, setSelectedRequestForComparison] = useState<BidRequest | null>(null);
   const [isComparisonModalOpen, setIsComparisonModalOpen] = useState(false);
-
-  // Estados para configurar perfil de ferretería
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isUpdatingVisibility, setIsUpdatingVisibility] = useState(false);
-
-  // Estados para ver detalle de ferretería
   const [selectedStore, setSelectedStore] = useState<any | null>(null);
   const [isStoreDetailOpen, setIsStoreDetailOpen] = useState(false);
 
   const handlePublishBid = (newRequest: BidRequest) => {
-
     setBidRequests([newRequest, ...bidRequests]);
   };
 
@@ -53,47 +45,36 @@ const Index = () => {
   };
 
   const handleSubmitBid = (requestId: string) => {
-    setBidRequests(prev => 
-      prev.map(req => 
-        req.id === requestId 
-          ? { ...req, bidsCount: req.bidsCount + 1 } 
-          : req
-      )
+    setBidRequests((prev) =>
+      prev.map((request) => (request.id === requestId ? { ...request, bidsCount: request.bidsCount + 1 } : request)),
     );
   };
 
   const handleCompleteOrder = (requestId: string) => {
-    setBidRequests(prev => 
-      prev.map(req => 
-        req.id === requestId 
-          ? { ...req, status: 'completed' } 
-          : req
-      )
+    setBidRequests((prev) =>
+      prev.map((request) => (request.id === requestId ? { ...request, status: "completed" } : request)),
     );
   };
 
-  // Combinar tiendas simuladas con la tienda del usuario actual si es pública
   const getHardwareStores = () => {
     const stores = [...mockHardwareStores];
-    
-    // Si el usuario actual es una ferretería y tiene perfil público, lo agregamos a la lista
-    if (profile?.user_type === 'hardware' && profile.is_public) {
+
+    if (profile?.user_type === "hardware" && profile.is_public) {
       const userStore = {
         id: profile.id,
-        name: profile.store_name || profile.full_name || 'Mi Ferretería',
-        rating: profile.rating || 5.0,
+        name: profile.store_name || profile.full_name || "Mi Ferretería",
+        rating: profile.rating || 5,
         reviewsCount: profile.reviews_count || 0,
-        sector: profile.sector || 'Alma Rosa I',
-        deliveryCoverage: profile.delivery_coverage || ['Alma Rosa I'],
+        sector: profile.sector || "Alma Rosa I",
+        deliveryCoverage: profile.delivery_coverage || ["Alma Rosa I"],
         isVerified: true,
       };
-      
-      // Evitar duplicados
-      if (!stores.some(s => s.id === profile.id)) {
+
+      if (!stores.some((store) => store.id === profile.id)) {
         stores.unshift(userStore);
       }
     }
-    
+
     return stores;
   };
 
@@ -103,80 +84,64 @@ const Index = () => {
   };
 
   const handleToggleCompanyVisibility = async () => {
-    if (!profile || role !== 'hardware') return;
+    if (!profile || role !== "hardware") return;
 
     const nextVisibility = !profile.is_public;
     setIsUpdatingVisibility(true);
 
     try {
       await updateProfile({ is_public: nextVisibility });
-      showSuccess(nextVisibility ? 'Tu empresa ahora es visible para clientes.' : 'Tu empresa ahora está oculta para clientes.');
+      showSuccess(nextVisibility ? "Tu empresa ahora es visible para clientes." : "Tu empresa ahora está oculta para clientes.");
     } catch (error) {
-      showError('No se pudo actualizar la visibilidad de tu empresa.');
+      showError("No se pudo actualizar la visibilidad de tu empresa.");
     } finally {
       setIsUpdatingVisibility(false);
     }
   };
 
-  // Renderizado condicional simple según la pestaña activa y el rol
   const renderContent = () => {
-
-    if (role === 'hardware' && activeTab === 'bids') {
-      return (
-        <OpportunityFeed 
-          requests={bidRequests} 
-          onOpenBidModal={handleOpenBidModal} 
-        />
-      );
+    if (role === "hardware" && activeTab === "bids") {
+      return <OpportunityFeed requests={bidRequests} onOpenBidModal={handleOpenBidModal} />;
     }
 
     switch (activeTab) {
-      case 'bids':
+      case "bids":
         return (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-end justify-between gap-3">
               <div>
-                <h2 className="text-base font-bold text-slate-900">Subastas Activas</h2>
-                <p className="text-xs text-slate-500">Solicitudes de cotización en Santo Domingo Este</p>
+                <p className="section-label">Centro de subastas</p>
+                <h2 className="font-display text-lg font-semibold text-foreground">Solicitudes activas</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Gestiona pedidos y compara ofertas por ítem con precisión.</p>
               </div>
-              {role === 'engineer' && (
-                <button 
-                  onClick={() => setIsCreateModalOpen(true)}
-                  className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-md shadow-amber-500/10 transition-all min-h-[40px] active:scale-95"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Cotizar</span>
-                </button>
+              {role === "engineer" && (
+                <Button onClick={() => setIsCreateModalOpen(true)} className="shrink-0">
+                  <Plus className="h-4 w-4" />Cotizar
+                </Button>
               )}
             </div>
 
             <div className="space-y-3">
-              {bidRequests.map((req) => (
-                <div key={req.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex justify-between items-start gap-2 mb-2">
-                    <span className="bg-amber-50 text-amber-700 text-[10px] font-semibold px-2.5 py-1 rounded-full">
-                      {req.category}
-                    </span>
-                    <span className={`text-xs font-bold ${req.status === 'completed' ? 'text-blue-600' : 'text-emerald-600'}`}>
-                      {req.status === 'completed' ? 'Compra Finalizada' : `${req.bidsCount} ofertas`}
+              {bidRequests.map((request) => (
+                <article key={request.id} className="app-shell rounded-xl p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="data-chip data-chip-accent">{request.category}</span>
+                    <span className={cn("data-chip", request.status === "completed" ? "" : "data-chip-success")}>
+                      {request.status === "completed" ? "Compra finalizada" : `${request.bidsCount} ofertas`}
                     </span>
                   </div>
-                  
-                  <h3 className="font-bold text-slate-900 text-sm mb-1">
-                    {req.title}
-                  </h3>
 
-                  {/* Desglose de Materiales */}
-                  <div className="my-3 bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-1.5">
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                      <Package className="w-3 h-3 text-amber-500" />
-                      Materiales Solicitados ({req.itemsCount})
+                  <h3 className="font-display mt-4 text-base font-semibold text-foreground">{request.title}</h3>
+
+                  <div className="panel-muted my-4 rounded-lg p-3">
+                    <p className="section-label flex items-center gap-1.5 text-[10px]">
+                      <Package className="h-3.5 w-3.5 text-primary" />Materiales solicitados ({request.itemsCount})
                     </p>
-                    <ul className="space-y-1">
-                      {req.items?.map((item, idx) => (
-                        <li key={idx} className="text-xs text-slate-700 flex justify-between items-center">
-                          <span className="font-medium">{item.name}</span>
-                          <span className="text-slate-500 font-semibold bg-white px-1.5 py-0.5 rounded border border-slate-100 text-[10px]">
+                    <ul className="mt-3 space-y-2">
+                      {request.items.map((item, index) => (
+                        <li key={index} className="flex items-center justify-between gap-3 border-b border-border/70 pb-2 last:border-b-0 last:pb-0">
+                          <span className="text-sm text-foreground">{item.name}</span>
+                          <span className="mono-data text-xs text-muted-foreground">
                             {item.quantity} {item.unit}
                           </span>
                         </li>
@@ -184,88 +149,77 @@ const Index = () => {
                     </ul>
                   </div>
 
-                  <div className="space-y-1.5 text-xs text-slate-500 mb-3">
-                    <div className="flex items-center gap-1.5">
-                      <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span className="truncate">{req.deliveryAddress}</span>
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-primary" />
+                      <span className="truncate">{request.deliveryAddress}</span>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span>Expira: {new Date(req.expiresAt).toLocaleDateString('es-DO')}</span>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-primary" />
+                      <span>Expira: {new Date(request.expiresAt).toLocaleDateString("es-DO")}</span>
                     </div>
                   </div>
 
-                  <div className="pt-3 border-t border-slate-50 flex items-center justify-between">
+                  <div className="mt-4 flex items-end justify-between gap-4 border-t border-border pt-4">
                     <div>
-                      <p className="text-[10px] text-slate-400 uppercase tracking-wider">Presupuesto Máx.</p>
-                      <p className="text-sm font-extrabold text-slate-900">
-                        {req.budgetLimit ? `RD$ ${req.budgetLimit.toLocaleString()}` : 'A cotizar'}
+                      <p className="section-label">Presupuesto máximo</p>
+                      <p className="mono-data mt-1 text-base font-semibold text-foreground">
+                        {request.budgetLimit ? `RD$ ${request.budgetLimit.toLocaleString()}` : "A cotizar"}
                       </p>
                     </div>
-                    {req.status !== 'completed' && role === 'engineer' && (
-                      <button 
-                        onClick={() => handleOpenComparisonModal(req)}
-                        className="text-amber-600 hover:text-amber-700 text-xs font-bold flex items-center gap-1 min-h-[36px]"
-                      >
-                        <span>Ver detalles</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
+                    {request.status !== "completed" && role === "engineer" && (
+                      <Button variant="ghost" onClick={() => handleOpenComparisonModal(request)} className="px-0 text-primary hover:bg-transparent">
+                        Ver detalles
+                        <ArrowRight className="h-4 w-4" />
+                      </Button>
                     )}
                   </div>
-                </div>
+                </article>
               ))}
             </div>
           </div>
         );
 
-      case 'market':
-        if (role === 'hardware') {
+      case "market":
+        if (role === "hardware") {
           return (
             <div className="space-y-4">
-              <div className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
+              <section className="app-shell rounded-xl p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-600">Mi empresa</p>
-                    <h2 className="mt-1 text-lg font-bold text-slate-900">
-                      {profile?.store_name || profile?.full_name || 'Mi Ferretería'}
+                    <p className="section-label">Mi empresa</p>
+                    <h2 className="font-display mt-2 text-lg font-semibold text-foreground">
+                      {profile?.store_name || profile?.full_name || "Mi Ferretería"}
                     </h2>
-                    <p className="mt-1 text-xs text-slate-500">
-                      Administra cómo ven tu empresa los usuarios tipo cliente.
-                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">Administra cómo te ven los compradores dentro del mercado.</p>
                   </div>
-                  <button
-                    onClick={() => setIsProfileModalOpen(true)}
-                    className="flex min-h-[40px] items-center gap-1.5 rounded-full bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700 transition-colors hover:bg-amber-100"
-                  >
-                    <Settings className="h-4 w-4" />
-                    Editar
-                  </button>
+                  <Button variant="outline" onClick={() => setIsProfileModalOpen(true)}>
+                    <Settings className="h-4 w-4" />Editar
+                  </Button>
                 </div>
 
-                <div className="mt-4 grid grid-cols-2 gap-3">
-                  <div className="rounded-2xl bg-slate-50 p-3">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Sector principal</p>
-                    <p className="mt-1 text-sm font-bold text-slate-800">{profile?.sector || 'Sin definir'}</p>
+                <div className="mt-5 grid grid-cols-2 gap-3">
+                  <div className="panel-muted rounded-lg p-3">
+                    <p className="section-label">Sector principal</p>
+                    <p className="mt-2 text-sm font-semibold text-foreground">{profile?.sector || "Sin definir"}</p>
                   </div>
-                  <div className="rounded-2xl bg-slate-50 p-3">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Cobertura</p>
-                    <p className="mt-1 text-sm font-bold text-slate-800">{profile?.delivery_coverage?.length || 0} zonas</p>
+                  <div className="panel-muted rounded-lg p-3">
+                    <p className="section-label">Cobertura</p>
+                    <p className="mt-2 text-sm font-semibold text-foreground">{profile?.delivery_coverage?.length || 0} zonas</p>
                   </div>
                 </div>
-              </div>
+              </section>
 
-              <div className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
-                <div className="flex items-center justify-between gap-3">
+              <section className="app-shell rounded-xl p-5">
+                <div className="flex items-center justify-between gap-4">
                   <div className="flex items-start gap-3">
-                    <div className={`rounded-2xl p-2.5 ${profile?.is_public ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                    <div className={`flex h-11 w-11 items-center justify-center rounded-lg ${profile?.is_public ? "bg-[hsl(var(--success)/0.14)] text-[hsl(var(--success))]" : "bg-muted text-muted-foreground"}`}>
                       {profile?.is_public ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-slate-900">Visibilidad del perfil</h3>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {profile?.is_public
-                          ? 'Tu empresa aparece en Mercado para usuarios cliente.'
-                          : 'Tu empresa está oculta y no aparece para usuarios cliente.'}
+                      <h3 className="font-display text-base font-semibold text-foreground">Visibilidad del perfil</h3>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {profile?.is_public ? "Tu empresa aparece en Mercado para usuarios cliente." : "Tu empresa está oculta de la lista pública."}
                       </p>
                     </div>
                   </div>
@@ -274,33 +228,23 @@ const Index = () => {
                     type="button"
                     onClick={handleToggleCompanyVisibility}
                     disabled={isUpdatingVisibility}
-                    className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
-                      profile?.is_public ? 'bg-amber-500' : 'bg-slate-200'
-                    } ${isUpdatingVisibility ? 'opacity-70' : ''}`}
+                    className={`grid h-8 w-14 items-center rounded-md border p-1 transition-colors ${profile?.is_public ? "border-primary/20 bg-[hsl(var(--primary)/0.16)]" : "border-border bg-muted"} ${isUpdatingVisibility ? "opacity-70" : ""}`}
                     aria-label="Cambiar visibilidad del perfil"
                   >
-                    <span
-                      className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-                        profile?.is_public ? 'translate-x-6' : 'translate-x-1'
-                      }`}
-                    />
+                    <span className={`block h-5 w-5 rounded-sm bg-card transition-transform ${profile?.is_public ? "translate-x-6" : "translate-x-0"}`} />
                   </button>
                 </div>
 
-                <div className="mt-4 rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Mi Perfil de Empresa</p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Desde aquí puedes editar tu nombre comercial, sector, cobertura de entrega y estado público o privado.
+                <div className="panel-muted mt-5 rounded-lg p-4">
+                  <p className="section-label">Perfil público</p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Edita tu nombre comercial, sector, cobertura y estado público o privado desde un solo panel.
                   </p>
-                  <button
-                    onClick={() => setIsProfileModalOpen(true)}
-                    className="mt-3 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-xs font-bold text-white transition-colors hover:bg-slate-800"
-                  >
-                    <Store className="h-4 w-4" />
-                    Abrir Mi Perfil de Empresa
-                  </button>
+                  <Button onClick={() => setIsProfileModalOpen(true)} className="mt-4 w-full justify-center">
+                    <Store className="h-4 w-4" />Abrir perfil de empresa
+                  </Button>
                 </div>
-              </div>
+              </section>
             </div>
           );
         }
@@ -308,140 +252,120 @@ const Index = () => {
         return (
           <div className="space-y-4">
             <div>
-              <h2 className="text-base font-bold text-slate-900">Ferreterías Aliadas</h2>
-              <p className="text-xs text-slate-500">Proveedores verificados en la zona oriental</p>
+              <p className="section-label">Mercado</p>
+              <h2 className="font-display text-lg font-semibold text-foreground">Ferreterías aliadas</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Proveedores verificados con cobertura en la zona oriental.</p>
             </div>
 
             <div className="space-y-3">
               {getHardwareStores().map((store) => (
-                <div
+                <article
                   key={store.id}
                   onClick={() => handleOpenStoreDetail(store)}
-                  className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-[0.99]"
+                  className="app-shell cursor-pointer rounded-xl p-4 transition-colors hover:bg-accent/30"
                 >
-                  <div className="flex justify-between items-start mb-2">
+                  <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h3 className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
-                        {store.name}
-                        {store.isVerified && (
-                          <span className="bg-blue-50 text-blue-600 text-[9px] font-bold px-1.5 py-0.5 rounded">
-                            Verificado
-                          </span>
-                        )}
-                      </h3>
-                      <p className="text-xs text-slate-500">{store.sector}, SDE</p>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-display text-base font-semibold text-foreground">{store.name}</h3>
+                        {store.isVerified && <span className="data-chip data-chip-accent">Verificado</span>}
+                      </div>
+                      <p className="mt-1 text-sm text-muted-foreground">{store.sector}, SDE</p>
                     </div>
-                    <div className="bg-amber-50 text-amber-700 text-xs font-bold px-2 py-1 rounded-lg flex items-center gap-1">
-                      ★ {store.rating}
-                    </div>
+                    <span className="data-chip data-chip-accent">★ {store.rating}</span>
                   </div>
 
-                  <div className="mt-3 pt-3 border-t border-slate-50">
-                    <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Cobertura de entrega</p>
-                    <div className="flex flex-wrap gap-1">
-                      {store.deliveryCoverage.map((cov, idx) => (
-                        <span key={idx} className="bg-slate-100 text-slate-600 text-[10px] px-2 py-0.5 rounded-md">
-                          {cov}
-                        </span>
+                  <div className="mt-4 border-t border-border pt-4">
+                    <p className="section-label">Cobertura de entrega</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {store.deliveryCoverage.map((coverage, index) => (
+                        <span key={index} className="data-chip">{coverage}</span>
                       ))}
                     </div>
                   </div>
-                </div>
+                </article>
               ))}
             </div>
           </div>
         );
 
-      case 'orders':
+      case "orders":
         return (
-          <div className="text-center py-12 bg-white rounded-2xl border border-slate-100 p-6">
-            <ClipboardList className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-            <h3 className="font-bold text-slate-900 text-sm mb-1">No tienes pedidos en curso</h3>
-            <p className="text-xs text-slate-500 max-w-[240px] mx-auto">
-              Cuando ganes una subasta o aceptes una oferta, tus pedidos aparecerán aquí.
+          <section className="panel-muted rounded-xl border-dashed p-8 text-center">
+            <ClipboardList className="mx-auto h-12 w-12 text-muted-foreground" />
+            <h3 className="font-display mt-3 text-base font-semibold text-foreground">No tienes pedidos en curso</h3>
+            <p className="mx-auto mt-1 max-w-[260px] text-sm text-muted-foreground">
+              Cuando ganes una subasta o aceptes una oferta, los pedidos aparecerán aquí con su estado consolidado.
             </p>
-          </div>
+          </section>
         );
 
-      case 'account':
+      case "account":
         return (
-          <div className="bg-white rounded-2xl border border-slate-100 p-4 space-y-4">
-            <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
-              <div className="w-12 h-12 bg-amber-100 text-amber-800 rounded-full flex items-center justify-center font-bold text-lg">
-                {role === 'engineer' ? 'I' : 'F'}
+          <section className="app-shell rounded-xl p-4">
+            <div className="flex items-center gap-3 border-b border-border pb-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[hsl(var(--primary)/0.14)] font-display text-lg font-semibold text-[hsl(var(--warning-foreground))]">
+                {role === "engineer" ? "I" : "F"}
               </div>
               <div>
-                <h3 className="font-bold text-slate-900 text-sm">
-                  {profile?.store_name || profile?.full_name || (role === 'engineer' ? 'Constructora SDE S.R.L.' : 'Ferretería El Progreso SDE')}
+                <h3 className="font-display text-base font-semibold text-foreground">
+                  {profile?.store_name || profile?.full_name || (role === "engineer" ? "Constructora SDE S.R.L." : "Ferretería El Progreso SDE")}
                 </h3>
-                <p className="text-xs text-slate-500">
-                  {role === 'engineer' ? 'Comprador Profesional' : 'Vendedor Verificado'}
-                </p>
-                {profile?.document_id && (
-                  <p className="text-[10px] text-slate-400 mt-0.5">Doc: {profile.document_id}</p>
-                )}
+                <p className="text-sm text-muted-foreground">{role === "engineer" ? "Comprador profesional" : "Vendedor verificado"}</p>
+                {profile?.document_id && <p className="mono-data mt-1 text-xs text-muted-foreground">Doc: {profile.document_id}</p>}
               </div>
             </div>
 
-            {/* Estado de Visibilidad para Proveedores */}
-            {profile?.user_type === 'hardware' && (
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {profile.is_public ? (
-                    <Eye className="w-4 h-4 text-emerald-600" />
-                  ) : (
-                    <EyeOff className="w-4 h-4 text-slate-400" />
-                  )}
+            {profile?.user_type === "hardware" && (
+              <div className="panel-muted mt-4 flex items-center justify-between rounded-lg p-3">
+                <div className="flex items-center gap-3">
+                  <div className={`flex h-9 w-9 items-center justify-center rounded-md ${profile.is_public ? "bg-[hsl(var(--success)/0.14)] text-[hsl(var(--success))]" : "bg-muted text-muted-foreground"}`}>
+                    {profile.is_public ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                  </div>
                   <div>
-                    <p className="text-xs font-bold text-slate-800">Estado del Perfil</p>
-                    <p className="text-[10px] text-slate-500">
-                      {profile.is_public ? 'Público (Visible en Mercado)' : 'Privado (Oculto)'}
+                    <p className="font-display text-sm font-semibold text-foreground">Estado del perfil</p>
+                    <p className="text-xs text-muted-foreground">
+                      {profile.is_public ? "Público · visible en Mercado" : "Privado · oculto para clientes"}
                     </p>
                   </div>
                 </div>
-                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
-                  profile.is_public ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'
-                }`}>
-                  {profile.is_public ? 'Público' : 'Privado'}
-                </span>
+                <span className={cn("data-chip", profile.is_public ? "data-chip-success" : "")}>{profile.is_public ? "Público" : "Privado"}</span>
               </div>
             )}
 
-            <div className="space-y-1">
-              {profile?.user_type === 'hardware' && (
+            <div className="mt-4 space-y-2">
+              {profile?.user_type === "hardware" && (
                 <button
                   onClick={() => setIsProfileModalOpen(true)}
-                  className="w-full text-left px-3 py-2.5 text-xs text-amber-700 hover:bg-amber-50 rounded-lg transition-colors min-h-[44px] font-bold flex items-center gap-2"
+                  className="flex min-h-[44px] w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm text-foreground transition-colors hover:bg-accent"
                 >
-                  <Settings className="w-4 h-4" />
-                  Configurar Mi Ferretería
+                  <Settings className="h-4 w-4 text-primary" />Configurar mi ferretería
                 </button>
               )}
               <button
-                onClick={() => role === 'hardware' && setActiveTab('market')}
-                className="w-full text-left px-3 py-2.5 text-xs text-slate-700 hover:bg-slate-50 rounded-lg transition-colors min-h-[44px]"
+                onClick={() => role === "hardware" && setActiveTab("market")}
+                className="flex min-h-[44px] w-full items-center rounded-lg px-3 py-2.5 text-left text-sm text-foreground transition-colors hover:bg-accent"
               >
-                Mi Perfil de Empresa
+                Mi perfil de empresa
               </button>
-              {role === 'engineer' && (
+              {role === "engineer" && (
                 <>
-                  <button className="w-full text-left px-3 py-2.5 text-xs text-slate-700 hover:bg-slate-50 rounded-lg transition-colors min-h-[44px]">
-                    Historial de Subastas
+                  <button className="flex min-h-[44px] w-full items-center rounded-lg px-3 py-2.5 text-left text-sm text-foreground transition-colors hover:bg-accent">
+                    Historial de subastas
                   </button>
-                  <button className="w-full text-left px-3 py-2.5 text-xs text-slate-700 hover:bg-slate-50 rounded-lg transition-colors min-h-[44px]">
-                    Métodos de Pago
+                  <button className="flex min-h-[44px] w-full items-center rounded-lg px-3 py-2.5 text-left text-sm text-foreground transition-colors hover:bg-accent">
+                    Métodos de pago
                   </button>
                 </>
               )}
               <button
                 onClick={signOut}
-                className="w-full text-left px-3 py-2.5 text-xs text-red-600 hover:bg-red-50 rounded-lg transition-colors min-h-[44px] font-medium"
+                className="flex min-h-[44px] w-full items-center rounded-lg px-3 py-2.5 text-left text-sm text-destructive transition-colors hover:bg-destructive/10"
               >
-                Cerrar Sesión
+                Cerrar sesión
               </button>
             </div>
-
-          </div>
+          </section>
         );
 
       default:
@@ -450,57 +374,29 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex justify-center">
-      {/* Contenedor Mobile-First Estricto */}
-      <div className="w-full max-w-md bg-slate-50 min-h-screen flex flex-col relative shadow-2xl border-x border-slate-100">
-        
-        {/* Header según el tipo de usuario */}
+    <div className="min-h-screen bg-[hsl(var(--surface-0))] px-0 md:px-6">
+      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col border-x border-border bg-background">
         <Header />
 
-        {/* Contenido Principal con scroll */}
-        <main className="flex-1 p-4 pb-24 overflow-y-auto">
-          {renderContent()}
-        </main>
+        <main className="flex-1 px-4 pb-28 pt-4">{renderContent()}</main>
 
-        {/* Navegación Inferior */}
         <BottomNav role={role} activeTab={activeTab} setActiveTab={setActiveTab} />
 
-        {/* Modal de Creación de Requerimiento (Ingeniero) */}
-        <CreateBidModal 
-          isOpen={isCreateModalOpen} 
-          onClose={() => setIsCreateModalOpen(false)} 
-          onPublish={handlePublishBid}
-        />
-
-        {/* Modal de Cotización Detallada (Ferretería) */}
+        <CreateBidModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} onPublish={handlePublishBid} />
         <BidFormModal
           isOpen={isBidModalOpen}
           onClose={() => setIsBidModalOpen(false)}
           request={selectedRequestForBid}
           onSubmitBid={handleSubmitBid}
         />
-
-        {/* Tablero de Comparación y Selección de Ítems (Ingeniero) */}
         <BidComparisonModal
           isOpen={isComparisonModalOpen}
           onClose={() => setIsComparisonModalOpen(false)}
           request={selectedRequestForComparison}
           onCompleteOrder={handleCompleteOrder}
         />
-
-        {/* Modal de Configuración de Perfil de Ferretería */}
-        <ProviderProfileModal
-          isOpen={isProfileModalOpen}
-          onClose={() => setIsProfileModalOpen(false)}
-        />
-
-        {/* Modal de Detalle de Ferretería */}
-        <StoreDetailModal
-          isOpen={isStoreDetailOpen}
-          onClose={() => setIsStoreDetailOpen(false)}
-          store={selectedStore}
-        />
-        
+        <ProviderProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
+        <StoreDetailModal isOpen={isStoreDetailOpen} onClose={() => setIsStoreDetailOpen(false)} store={selectedStore} />
       </div>
     </div>
   );

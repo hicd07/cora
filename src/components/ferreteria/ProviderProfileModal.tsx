@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
-import { X, Store, MapPin, Eye, EyeOff, Check, ShieldCheck } from 'lucide-react';
-import { useSessionContext, Profile } from '@/components/auth/SessionContext';
-import { showSuccess } from '@/utils/toast';
+import React, { useState } from "react";
+import { Check, Eye, EyeOff, MapPin, ShieldCheck, Store, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useSessionContext } from "@/components/auth/SessionContext";
+import { cn } from "@/lib/utils";
+import { showSuccess } from "@/utils/toast";
 
 interface ProviderProfileModalProps {
   isOpen: boolean;
@@ -9,199 +12,173 @@ interface ProviderProfileModalProps {
 }
 
 const SECTORS = [
-  'Alma Rosa I',
-  'Alma Rosa II',
-  'Ensanche Ozama',
-  'Lucerna',
-  'San Isidro',
-  'El Almirante',
-  'Carretera Mella',
-  'Av. España'
+  "Alma Rosa I",
+  "Alma Rosa II",
+  "Ensanche Ozama",
+  "Lucerna",
+  "San Isidro",
+  "El Almirante",
+  "Carretera Mella",
+  "Av. España",
 ];
+
+const fieldClassName = "h-11 rounded-md border border-input bg-muted px-3 text-sm text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring/25";
 
 export const ProviderProfileModal: React.FC<ProviderProfileModalProps> = ({ isOpen, onClose }) => {
   const { profile, updateProfile } = useSessionContext();
-  if (!isOpen || !profile) return null;
 
-  const [storeName, setStoreName] = useState(profile.store_name || profile.full_name || '');
-  const [sector, setSector] = useState(profile.sector || SECTORS[0]);
-  const [deliveryCoverage, setDeliveryCoverage] = useState<string[]>(profile.delivery_coverage || []);
-  const [isPublic, setIsPublic] = useState<boolean>(profile.is_public !== undefined ? profile.is_public : true);
+  const [storeName, setStoreName] = useState(profile?.store_name || profile?.full_name || "");
+  const [sector, setSector] = useState(profile?.sector || SECTORS[0]);
+  const [deliveryCoverage, setDeliveryCoverage] = useState<string[]>(profile?.delivery_coverage || []);
+  const [isPublic, setIsPublic] = useState<boolean>(profile?.is_public !== undefined ? profile.is_public : true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleToggleSector = (sec: string) => {
-    if (deliveryCoverage.includes(sec)) {
-      setDeliveryCoverage(deliveryCoverage.filter(s => s !== sec));
-    } else {
-      setDeliveryCoverage([...deliveryCoverage, sec]);
+  if (!isOpen || !profile) return null;
+
+  const handleToggleSector = (selectedSector: string) => {
+    if (deliveryCoverage.includes(selectedSector)) {
+      setDeliveryCoverage(deliveryCoverage.filter((sectorItem) => sectorItem !== selectedSector));
+      return;
     }
+
+    setDeliveryCoverage([...deliveryCoverage, selectedSector]);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     if (!storeName.trim()) return;
 
     setIsSubmitting(true);
     await updateProfile({
       store_name: storeName,
-      full_name: storeName, // Keep full_name in sync
+      full_name: storeName,
       sector,
       delivery_coverage: deliveryCoverage,
       is_public: isPublic,
     });
 
     setIsSubmitting(false);
-    showSuccess('¡Perfil de ferretería actualizado con éxito!');
+    showSuccess("¡Perfil de ferretería actualizado con éxito!");
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-end justify-center">
-      <div className="bg-white w-full max-w-md rounded-t-3xl max-h-[92vh] overflow-y-auto flex flex-col animate-in slide-in-from-bottom duration-300">
-        
-        {/* Header */}
-        <div className="sticky top-0 bg-white px-6 py-4 border-b border-slate-100 flex items-center justify-between z-10">
-          <div className="flex items-center gap-2">
-            <div className="bg-amber-100 text-amber-700 p-1.5 rounded-lg">
-              <Store className="w-5 h-5" />
+    <div className="modal-backdrop fixed inset-0 z-50 flex items-end justify-center">
+      <div className="modal-sheet max-h-[92vh] w-full max-w-md overflow-y-auto animate-in slide-in-from-bottom duration-300">
+        <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-border bg-card px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-primary/20 bg-[hsl(var(--primary)/0.14)] text-primary">
+              <Store className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 text-base">Mi Perfil de Empresa</h3>
-              <p className="text-[10px] text-slate-500">Edita tu perfil comercial y tu visibilidad en SDE</p>
-
+              <p className="section-label">Perfil comercial</p>
+              <h3 className="font-display text-base font-semibold text-foreground">Mi perfil de empresa</h3>
+              <p className="mt-1 text-xs text-muted-foreground">Edita visibilidad, cobertura y presencia comercial.</p>
             </div>
           </div>
-          <button 
-            onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-50 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Cerrar">
+            <X className="h-4 w-4" />
+          </Button>
         </div>
 
-        {/* Formulario */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5 flex-1 pb-10">
-          
-          {/* Nombre Comercial */}
+        <form onSubmit={handleSubmit} className="space-y-5 px-6 py-6 pb-10">
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700 block">Nombre de la Ferretería</label>
-            <input
+            <label className="section-label block">Nombre de la ferretería</label>
+            <Input
               type="text"
               required
               placeholder="Ej: Ferretería El Progreso SDE"
               value={storeName}
               onChange={(e) => setStoreName(e.target.value)}
-              className="w-full px-4 py-3 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
             />
           </div>
 
-          {/* Sector de Ubicación */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
-              <MapPin className="w-3.5 h-3.5 text-amber-500" />
-              Sector Principal (SDE)
+            <label className="section-label flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-primary" />Sector principal (SDE)
             </label>
-            <select
-              value={sector}
-              onChange={(e) => setSector(e.target.value)}
-              className="w-full px-4 py-3 text-sm rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
-            >
-              {SECTORS.map((sec) => (
-                <option key={sec} value={sec}>{sec}</option>
+            <select value={sector} onChange={(e) => setSector(e.target.value)} className={fieldClassName}>
+              {SECTORS.map((sectorItem) => (
+                <option key={sectorItem} value={sectorItem}>
+                  {sectorItem}
+                </option>
               ))}
             </select>
           </div>
 
-          {/* Cobertura de Entrega */}
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-700 block">Zonas de Cobertura de Entrega</label>
-            <p className="text-[10px] text-slate-500">Selecciona todos los sectores donde realizas despachos:</p>
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              {SECTORS.map((sec) => {
-                const isSelected = deliveryCoverage.includes(sec);
+            <label className="section-label block">Cobertura de entrega</label>
+            <p className="text-xs text-muted-foreground">Selecciona todos los sectores donde realizas despachos directos.</p>
+            <div className="grid grid-cols-2 gap-2">
+              {SECTORS.map((sectorItem) => {
+                const isSelected = deliveryCoverage.includes(sectorItem);
+
                 return (
                   <button
-                    key={sec}
+                    key={sectorItem}
                     type="button"
-                    onClick={() => handleToggleSector(sec)}
-                    className={`flex items-center justify-between px-3 py-2.5 rounded-xl border text-xs font-medium transition-all ${
+                    onClick={() => handleToggleSector(sectorItem)}
+                    className={cn(
+                      "flex items-center justify-between rounded-lg border px-3 py-2.5 text-left text-xs transition-colors",
                       isSelected
-                        ? 'border-amber-500 bg-amber-50/40 text-amber-800 font-bold'
-                        : 'border-slate-100 bg-slate-50 text-slate-600 hover:bg-slate-100'
-                    }`}
+                        ? "border-primary/25 bg-[hsl(var(--primary)/0.12)] text-foreground"
+                        : "border-border bg-card text-muted-foreground hover:bg-accent",
+                    )}
                   >
-                    <span>{sec}</span>
-                    {isSelected && <Check className="w-3.5 h-3.5 text-amber-600 shrink-0" />}
+                    <span>{sectorItem}</span>
+                    {isSelected && <Check className="h-3.5 w-3.5 text-primary" />}
                   </button>
                 );
               })}
             </div>
           </div>
 
-          {/* Visibilidad del Perfil (Público / Privado) */}
-          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className={`p-1.5 rounded-lg ${isPublic ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'}`}>
-                  {isPublic ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+          <div className="panel-muted rounded-lg p-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg", isPublic ? "bg-[hsl(var(--success)/0.14)] text-[hsl(var(--success))]" : "bg-muted text-muted-foreground")}>
+                  {isPublic ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-slate-900">Visibilidad del Perfil</h4>
-                  <p className="text-[10px] text-slate-500">
-                    {isPublic ? 'Visible para usuarios tipo cliente' : 'Oculto para usuarios tipo cliente'}
+                  <h4 className="font-display text-sm font-semibold text-foreground">Visibilidad del perfil</h4>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {isPublic ? "Visible para usuarios tipo cliente" : "Oculto para usuarios tipo cliente"}
                   </p>
-
                 </div>
               </div>
 
-              {/* Switch de Visibilidad */}
               <button
                 type="button"
                 onClick={() => setIsPublic(!isPublic)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                  isPublic ? 'bg-amber-500' : 'bg-slate-200'
-                }`}
+                className={cn(
+                  "grid h-8 w-14 items-center rounded-md border p-1 transition-colors",
+                  isPublic ? "border-primary/20 bg-[hsl(var(--primary)/0.16)]" : "border-border bg-muted",
+                )}
+                aria-label="Cambiar visibilidad"
               >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    isPublic ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
+                <span className={cn("block h-5 w-5 rounded-sm bg-card transition-transform", isPublic ? "translate-x-6" : "translate-x-0")} />
               </button>
             </div>
 
-            <p className="text-[10px] text-slate-500 leading-relaxed">
-              Si tu perfil es <strong>Público</strong>, aparecerás en la sección de "Mercado" y los usuarios tipo cliente podrán ver tu información comercial y cobertura. Si es <strong>Privado</strong>, no aparecerás en la lista pública.
+            <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
+              Si tu perfil es <strong className="text-foreground">Público</strong>, aparecerás en la sección de Mercado y los compradores podrán ver tu información comercial y zonas de cobertura.
             </p>
-
           </div>
 
-          {/* Botones de Acción */}
-          <div className="pt-2 grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="w-full py-3.5 text-sm font-bold text-slate-500 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors min-h-[48px]"
-            >
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
               Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full py-3.5 text-sm font-bold text-white bg-amber-500 hover:bg-amber-600 rounded-xl shadow-md shadow-amber-500/10 transition-all min-h-[48px] flex items-center justify-center gap-1.5"
-            >
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
-                <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                <span className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
               ) : (
                 <>
-                  <ShieldCheck className="w-4 h-4" />
-                  Guardar Perfil
+                  <ShieldCheck className="h-4 w-4" />Guardar perfil
                 </>
               )}
-            </button>
+            </Button>
           </div>
-
         </form>
       </div>
     </div>
