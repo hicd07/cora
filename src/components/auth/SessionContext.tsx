@@ -36,6 +36,15 @@ const SessionContext = createContext<SessionContextType>({
   signOut: async () => {},
 });
 
+const getLocalProfile = (userId: string): Profile | null => {
+  const localProfileStr = localStorage.getItem(`profile_${userId}`);
+  return localProfileStr ? JSON.parse(localProfileStr) : null;
+};
+
+const saveLocalProfile = (userId: string, profile: Profile) => {
+  localStorage.setItem(`profile_${userId}`, JSON.stringify(profile));
+};
+
 export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -43,8 +52,7 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
-    const localProfileStr = localStorage.getItem(`profile_${userId}`);
-    const localProfile = localProfileStr ? JSON.parse(localProfileStr) : null;
+    const localProfile = getLocalProfile(userId);
 
     const fallbackProfile: Profile = {
       id: userId,
@@ -69,7 +77,7 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
     if (error || !data) {
       setProfile(fallbackProfile);
       if (localProfile) {
-        localStorage.setItem(`profile_${userId}`, JSON.stringify(fallbackProfile));
+        saveLocalProfile(userId, fallbackProfile);
       }
       return fallbackProfile;
     }
@@ -89,7 +97,7 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
     };
 
     setProfile(mergedProfile);
-    localStorage.setItem(`profile_${userId}`, JSON.stringify(mergedProfile));
+    saveLocalProfile(userId, mergedProfile);
     return mergedProfile;
   };
 
@@ -109,7 +117,7 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
       id: user.id,
     } as Profile;
 
-    localStorage.setItem(`profile_${user.id}`, JSON.stringify(updatedProfile));
+    saveLocalProfile(user.id, updatedProfile);
     setProfile(updatedProfile);
 
     const { error } = await supabase
@@ -130,7 +138,14 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
       });
 
     if (error) {
-      throw error;
+      const isMissingProfilesTable =
+        error.code === 'PGRST205' ||
+        error.message.toLowerCase().includes('profiles') ||
+        error.message.toLowerCase().includes('404');
+
+      if (!isMissingProfilesTable) {
+        throw error;
+      }
     }
   };
 
