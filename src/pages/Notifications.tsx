@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { ArrowLeft, BellRing, CheckCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import AppLogo from "@/components/branding/AppLogo";
 import NotificationsEmptyState from "@/components/notifications/NotificationsEmptyState";
 import NotificationsList from "@/components/notifications/NotificationsList";
 import { Button } from "@/components/ui/button";
@@ -68,7 +69,12 @@ const Notifications = () => {
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div>
-                <p className="section-label">Inbox</p>
+                <div className="mb-1 flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-[0.95rem] border border-[hsl(var(--foreground)/0.08)] bg-[hsl(var(--surface-1))] shadow-[0_12px_22px_-18px_hsl(var(--foreground)/0.35)]">
+                    <AppLogo variant="symbol" context="header" size={18} />
+                  </div>
+                  <p className="section-label">Inbox PIDO</p>
+                </div>
                 <h1 className="font-display text-xl font-semibold text-foreground">Notificaciones</h1>
                 <p className="text-xs text-muted-foreground">Historial en tiempo real de eventos clave en tus compras y subastas.</p>
               </div>
@@ -149,11 +155,15 @@ const Notifications = () => {
             <>
               <section className="mb-4 app-shell p-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-[1.2rem] bg-[hsl(var(--primary)/0.14)] text-primary">
-                    <BellRing className="h-5 w-5" />
+                  <div className="relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-[1.2rem] border border-[hsl(var(--foreground)/0.08)] bg-[hsl(var(--surface-1))] shadow-[0_16px_28px_-22px_hsl(var(--foreground)/0.35)]">
+                    <div className="absolute inset-[3px] rounded-[0.95rem] bg-[hsl(var(--primary)/0.08)]" />
+                    <AppLogo variant="symbol" context="header" size={24} className="relative" />
                   </div>
-                  <div>
-                    <p className="font-display text-sm font-semibold text-foreground">{unreadCount} sin leer</p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-display text-sm font-semibold text-foreground">{unreadCount} sin leer</p>
+                      <BellRing className="h-4 w-4 text-primary" />
+                    </div>
                     <p className="text-xs text-muted-foreground">Tu historial se actualiza automáticamente cuando llega un nuevo evento.</p>
                   </div>
                 </div>

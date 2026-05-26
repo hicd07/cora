@@ -1,5 +1,6 @@
-import { Toaster } from "@/components/ui/toaster";
+import AppLogo from "@/components/branding/AppLogo";
 import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
@@ -15,8 +16,12 @@ const queryClient = new QueryClient();
 const FullScreenLoader = () => (
   <div className="flex min-h-screen items-center justify-center bg-background px-6">
     <div className="app-shell w-full max-w-sm p-7 text-center">
-      <div className="panel-muted mx-auto flex h-16 w-16 items-center justify-center rounded-[1.5rem] border-primary/15 bg-[hsl(var(--primary)/0.08)]">
-        <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-primary border-t-transparent" />
+      <div className="mx-auto flex h-20 w-20 items-center justify-center">
+        <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-[1.8rem] border border-[hsl(var(--foreground)/0.08)] bg-[hsl(var(--surface-1))] shadow-[0_24px_44px_-30px_hsl(var(--foreground)/0.45)]">
+          <div className="absolute inset-[6px] rounded-[1.35rem] bg-[hsl(var(--primary)/0.08)]" />
+          <div className="absolute inset-0 animate-spin rounded-[1.8rem] border-2 border-primary/20 border-t-primary/80" />
+          <AppLogo variant="symbol" context="header" size={34} className="relative" />
+        </div>
       </div>
       <p className="font-display mt-5 text-base font-semibold text-foreground">Cargando PIDO</p>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">Preparando tu panel de compras, oportunidades y comparativas.</p>

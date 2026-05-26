@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FileText, HardHat, Lock, LogIn, Mail, Moon, ShieldCheck, Store, SunMedium, Truck, User, UserPlus } from "lucide-react";
+import AppLogo from "@/components/branding/AppLogo";
 import { useSessionContext } from "@/components/auth/SessionContext";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { Button } from "@/components/ui/button";
@@ -194,9 +195,11 @@ export const Auth: React.FC = () => {
                       : "Accede a tu espacio de compras, cotizaciones y relaciones comerciales."}
                   </p>
                 </div>
-                <div className="flex h-12 w-12 items-center justify-center rounded-[1.2rem] border border-primary/20 bg-primary text-primary-foreground shadow-[0_18px_32px_-24px_hsl(var(--primary)/0.8)]">
-                  <HardHat className="h-6 w-6" />
+                <div className="relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-[1.2rem] border border-[hsl(var(--foreground)/0.08)] bg-[hsl(var(--surface-1))] shadow-[0_18px_32px_-24px_hsl(var(--foreground)/0.3)]">
+                  <div className="absolute inset-[3px] rounded-[0.95rem] bg-[hsl(var(--primary)/0.08)]" />
+                  <AppLogo variant="symbol" context="header" size={26} className="relative" />
                 </div>
+
               </div>
             </div>
 

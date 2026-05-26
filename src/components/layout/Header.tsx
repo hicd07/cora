@@ -2,6 +2,7 @@ import React from "react";
 import { Bell, HardHat, Moon, Store, SunMedium } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSessionContext } from "@/components/auth/SessionContext";
+import AppLogo from "@/components/branding/AppLogo";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { Button } from "@/components/ui/button";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -17,8 +18,9 @@ export const Header: React.FC = () => {
     <header className="sticky top-0 z-40 border-b border-border/70 bg-[hsl(var(--surface-1)/0.9)] px-4 py-4 backdrop-blur-xl">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-[1.35rem] border border-primary/20 bg-primary text-primary-foreground shadow-[0_18px_32px_-24px_hsl(var(--primary)/0.75)]">
-            <HardHat className="h-5 w-5" />
+          <div className="relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-[1.35rem] border border-[hsl(var(--foreground)/0.08)] bg-[hsl(var(--surface-1))] shadow-[0_20px_34px_-24px_hsl(var(--foreground)/0.3)]">
+            <div className="absolute inset-[3px] rounded-[1.05rem] bg-[hsl(var(--primary)/0.08)]" />
+            <AppLogo variant="symbol" context="header" size={25} className="relative" />
           </div>
           <div>
             <p className="section-label">Marketplace B2B</p>
