@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Header from '@/components/layout/Header';
 import BottomNav from '@/components/layout/BottomNav';
 import CreateBidModal from '@/components/bids/CreateBidModal';
@@ -32,6 +32,12 @@ const Index = () => {
   // Estados para ver detalle de ferretería
   const [selectedStore, setSelectedStore] = useState<any | null>(null);
   const [isStoreDetailOpen, setIsStoreDetailOpen] = useState(false);
+
+  useEffect(() => {
+    if (role === 'hardware' && !['bids', 'account'].includes(activeTab)) {
+      setActiveTab('bids');
+    }
+  }, [role, activeTab]);
 
   const handlePublishBid = (newRequest: BidRequest) => {
 
@@ -302,7 +308,7 @@ const Index = () => {
 
             <div className="space-y-1">
               {profile?.user_type === 'hardware' && (
-                <button 
+                <button
                   onClick={() => setIsProfileModalOpen(true)}
                   className="w-full text-left px-3 py-2.5 text-xs text-amber-700 hover:bg-amber-50 rounded-lg transition-colors min-h-[44px] font-bold flex items-center gap-2"
                 >
@@ -313,19 +319,24 @@ const Index = () => {
               <button className="w-full text-left px-3 py-2.5 text-xs text-slate-700 hover:bg-slate-50 rounded-lg transition-colors min-h-[44px]">
                 Mi Perfil de Empresa
               </button>
-              <button className="w-full text-left px-3 py-2.5 text-xs text-slate-700 hover:bg-slate-50 rounded-lg transition-colors min-h-[44px]">
-                Historial de Subastas
-              </button>
-              <button className="w-full text-left px-3 py-2.5 text-xs text-slate-700 hover:bg-slate-50 rounded-lg transition-colors min-h-[44px]">
-                Métodos de Pago
-              </button>
-              <button 
+              {role === 'engineer' && (
+                <>
+                  <button className="w-full text-left px-3 py-2.5 text-xs text-slate-700 hover:bg-slate-50 rounded-lg transition-colors min-h-[44px]">
+                    Historial de Subastas
+                  </button>
+                  <button className="w-full text-left px-3 py-2.5 text-xs text-slate-700 hover:bg-slate-50 rounded-lg transition-colors min-h-[44px]">
+                    Métodos de Pago
+                  </button>
+                </>
+              )}
+              <button
                 onClick={signOut}
                 className="w-full text-left px-3 py-2.5 text-xs text-red-600 hover:bg-red-50 rounded-lg transition-colors min-h-[44px] font-medium"
               >
                 Cerrar Sesión
               </button>
             </div>
+
           </div>
         );
 
@@ -348,7 +359,7 @@ const Index = () => {
         </main>
 
         {/* Navegación Inferior */}
-        <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
+        <BottomNav role={role} activeTab={activeTab} setActiveTab={setActiveTab} />
 
         {/* Modal de Creación de Requerimiento (Ingeniero) */}
         <CreateBidModal 
