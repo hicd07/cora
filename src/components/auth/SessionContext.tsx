@@ -46,11 +46,7 @@ const saveLocalProfile = (userId: string, profile: Profile) => {
 };
 
 const isProfileCompleted = (profile: Partial<Profile> | null | undefined) => {
-  return Boolean(
-    profile?.full_name &&
-    profile?.document_id &&
-    profile?.user_type
-  );
+  return Boolean(profile?.full_name && profile?.document_id && profile?.user_type);
 };
 
 const buildFallbackProfile = (userId: string, localProfile?: Profile | null): Profile => ({
@@ -156,9 +152,7 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
           updated_at: new Date().toISOString(),
         },
         { onConflict: 'id' }
-      )
-      .select()
-      .single();
+      );
 
     if (error) {
       throw error;
