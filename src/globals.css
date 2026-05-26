@@ -247,27 +247,32 @@
   .data-chip {
     @apply inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em];
     font-family: var(--font-mono);
-    background-color: hsl(var(--muted));
-    color: hsl(var(--muted-foreground));
-    border-color: hsl(var(--border));
+    background-color: hsl(var(--surface-1));
+    color: hsl(var(--foreground));
+    border-color: hsl(var(--outline-strong));
+    box-shadow: inset 0 1px 0 hsl(var(--surface-0) / 0.8);
+  }
+
+  .data-chip svg {
+    color: currentColor;
   }
 
   .data-chip-accent {
-    background-color: hsl(var(--primary) / 0.12);
+    background-color: hsl(var(--primary) / 0.18);
     color: hsl(var(--warning-foreground));
-    border-color: hsl(var(--primary) / 0.22);
+    border-color: hsl(var(--primary) / 0.34);
   }
 
   .data-chip-success {
-    background-color: hsl(var(--success) / 0.12);
-    color: hsl(var(--success));
-    border-color: hsl(var(--success) / 0.22);
+    background-color: hsl(var(--success) / 0.18);
+    color: hsl(var(--foreground));
+    border-color: hsl(var(--success) / 0.32);
   }
 
   .data-chip-danger {
-    background-color: hsl(var(--destructive) / 0.12);
-    color: hsl(var(--destructive));
-    border-color: hsl(var(--destructive) / 0.22);
+    background-color: hsl(var(--destructive) / 0.16);
+    color: hsl(var(--foreground));
+    border-color: hsl(var(--destructive) / 0.3);
   }
 
   .modal-backdrop {
