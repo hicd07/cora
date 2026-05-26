@@ -4,10 +4,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { mapBidRequestRow } from "@/lib/mappers/bidRequests";
 import { BidRequest, QuoteItem } from "@/lib/types";
 
-const bidRequestsKey = ["bid-requests"];
+const BID_REQUESTS_PAGE_SIZE = 12;
+const bidRequestsKey = ["bid-requests", BID_REQUESTS_PAGE_SIZE];
 
 const fetchBidRequests = async (): Promise<BidRequest[]> => {
-  const { data: requests, error } = await supabase.from("bid_requests").select("*").order("created_at", { ascending: false });
+  const { data: requests, error } = await supabase
+    .from("bid_requests")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .range(0, BID_REQUESTS_PAGE_SIZE - 1);
 
   if (error) {
     throw error;
@@ -31,7 +36,11 @@ const fetchBidRequests = async (): Promise<BidRequest[]> => {
   return requests.map((request) => mapBidRequestRow(request, items ?? []));
 };
 
-export const useBidRequests = () => useQuery({ queryKey: bidRequestsKey, queryFn: fetchBidRequests });
+export const useBidRequests = () =>
+  useQuery({
+    queryKey: bidRequestsKey,
+    queryFn: fetchBidRequests,
+  });
 
 interface CreateBidRequestInput {
   title: string;

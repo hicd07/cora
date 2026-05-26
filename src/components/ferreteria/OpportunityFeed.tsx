@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Bell, BellOff, Clock3, Gavel, Package, Warehouse } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { BidRequest } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNowStrict } from "date-fns";
@@ -9,6 +10,8 @@ import { es } from "date-fns/locale";
 interface OpportunityFeedProps {
   requests: BidRequest[];
   onOpenBidModal: (request: BidRequest) => void;
+  isLoading?: boolean;
+  hasError?: boolean;
 }
 
 const getRemainingTime = (expiresAt: string) => {
@@ -17,7 +20,7 @@ const getRemainingTime = (expiresAt: string) => {
   return `Cierra ${formatDistanceToNowStrict(expiresDate, { addSuffix: true, locale: es })}`;
 };
 
-export const OpportunityFeed: React.FC<OpportunityFeedProps> = ({ requests, onOpenBidModal }) => {
+export const OpportunityFeed: React.FC<OpportunityFeedProps> = ({ requests, onOpenBidModal, isLoading = false, hasError = false }) => {
   const [isAvailable, setIsAvailable] = useState(true);
   const activeRequests = requests.filter((request) => request.status === "active");
 
@@ -67,12 +70,50 @@ export const OpportunityFeed: React.FC<OpportunityFeedProps> = ({ requests, onOp
             Puedes volver a activarlas cuando quieras. Tus datos y oportunidades reales no se pierden.
           </p>
         </section>
+      ) : isLoading ? (
+        <section className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="section-label">Feed de oportunidades</p>
+              <h2 className="font-display text-base font-semibold text-foreground">Pedidos listos para cotizar</h2>
+            </div>
+            <Skeleton className="h-6 w-20 rounded-full" />
+          </div>
+
+          {Array.from({ length: 3 }).map((_, index) => (
+            <article key={index} className="app-shell p-5">
+              <div className="flex items-center justify-between gap-3">
+                <Skeleton className="h-6 w-24 rounded-full" />
+                <Skeleton className="h-6 w-28 rounded-full" />
+              </div>
+              <div className="mt-4 space-y-2">
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="h-4 w-full" />
+              </div>
+              <div className="panel-muted mt-4 space-y-3 p-4">
+                <Skeleton className="h-4 w-36" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-5/6" />
+                <Skeleton className="h-4 w-2/3" />
+              </div>
+              <Skeleton className="mt-4 h-10 w-full rounded-full" />
+            </article>
+          ))}
+        </section>
+      ) : hasError ? (
+        <section className="panel-muted rounded-[1.8rem] border-dashed p-8 text-center">
+          <Warehouse className="mx-auto h-10 w-10 text-muted-foreground" />
+          <h4 className="font-display mt-3 text-sm font-semibold text-foreground">No pudimos cargar oportunidades</h4>
+          <p className="mx-auto mt-1 max-w-[260px] text-xs leading-relaxed text-muted-foreground">
+            Estamos trayendo menos resultados por carga, pero ahora mismo la consulta falló. Intenta refrescar la vista.
+          </p>
+        </section>
       ) : activeRequests.length === 0 ? (
         <section className="panel-muted rounded-[1.8rem] border-dashed p-8 text-center">
           <Warehouse className="mx-auto h-10 w-10 text-muted-foreground" />
           <h4 className="font-display mt-3 text-sm font-semibold text-foreground">Sin oportunidades activas</h4>
           <p className="mx-auto mt-1 max-w-[260px] text-xs leading-relaxed text-muted-foreground">
-            Cuando un cliente publique una solicitud activa dentro de la plataforma, aparecerá aquí para cotizarla con datos reales.
+            Aún no hay solicitudes activas dentro del lote cargado. Cuando aparezcan nuevas oportunidades, las verás aquí.
           </p>
         </section>
       ) : (
@@ -90,7 +131,8 @@ export const OpportunityFeed: React.FC<OpportunityFeedProps> = ({ requests, onOp
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="data-chip">{request.category}</span>
                 <span className={cn("data-chip", getRemainingTime(request.expiresAt) === "Expirada" ? "data-chip-danger" : "data-chip-success")}>
-                  <Clock3 className="h-3 w-3" />{getRemainingTime(request.expiresAt)}
+                  <Clock3 className="h-3 w-3" />
+                  {getRemainingTime(request.expiresAt)}
                 </span>
               </div>
 
@@ -101,7 +143,8 @@ export const OpportunityFeed: React.FC<OpportunityFeedProps> = ({ requests, onOp
 
               <div className="panel-muted mt-4 p-4">
                 <p className="section-label flex items-center gap-1.5 text-[10px]">
-                  <Package className="h-3.5 w-3.5 text-primary" />Materiales a cotizar ({request.itemsCount})
+                  <Package className="h-3.5 w-3.5 text-primary" />
+                  Materiales a cotizar ({request.itemsCount})
                 </p>
                 <ul className="mt-3 space-y-2">
                   {request.items.map((item) => (
@@ -116,7 +159,8 @@ export const OpportunityFeed: React.FC<OpportunityFeedProps> = ({ requests, onOp
               </div>
 
               <Button onClick={() => onOpenBidModal(request)} className="mt-4 w-full justify-center">
-                <Gavel className="h-4 w-4" />Cotizar pedido
+                <Gavel className="h-4 w-4" />
+                Cotizar pedido
               </Button>
             </article>
           ))}

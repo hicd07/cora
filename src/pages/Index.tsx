@@ -11,6 +11,7 @@ import StoreDetailModal from "@/components/ferreteria/StoreDetailModal";
 import BottomNav from "@/components/layout/BottomNav";
 import Header from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useBidRequests } from "@/hooks/useBidRequests";
 import { useMarketplaceStores } from "@/hooks/useMarketplaceStores";
 import { BidRequest, HardwareStore } from "@/lib/types";
@@ -115,21 +116,14 @@ const Index = () => {
 
   const renderBidRequestsBlock = () => {
     if (role === "hardware") {
-      if (bidRequestsQuery.isLoading) {
-        return <div className="space-y-3">{Array.from({ length: 2 }).map((_, index) => <div key={index} className="app-shell h-44 animate-pulse p-5" />)}</div>;
-      }
-
-      if (bidRequestsQuery.error) {
-        return (
-          <EmptyState
-            icon={TriangleAlert}
-            title="No pudimos cargar oportunidades"
-            description="Hubo un problema al consultar las solicitudes activas. Intenta refrescar la vista más tarde."
-          />
-        );
-      }
-
-      return <OpportunityFeed requests={hardwareOpportunities} onOpenBidModal={handleOpenBidModal} />;
+      return (
+        <OpportunityFeed
+          requests={hardwareOpportunities}
+          onOpenBidModal={handleOpenBidModal}
+          isLoading={bidRequestsQuery.isLoading}
+          hasError={!!bidRequestsQuery.error}
+        />
+      );
     }
 
     return (
@@ -139,31 +133,52 @@ const Index = () => {
             <p className="section-label">Centro de subastas</p>
             <h2 className="font-display text-lg font-semibold text-foreground">Solicitudes activas</h2>
             <p className="mt-1 max-w-[260px] text-sm leading-relaxed text-muted-foreground">
-              Publica pedidos reales y compara ofertas persistidas en Supabase.
+              Mostrando una carga inicial más ligera para consultar tus pedidos más recientes.
             </p>
           </div>
           <Button onClick={() => setIsCreateModalOpen(true)} className="shrink-0">
-            <Plus className="h-4 w-4" />Cotizar
+            <Plus className="h-4 w-4" />
+            Cotizar
           </Button>
         </div>
 
         {bidRequestsQuery.isLoading ? (
-          <div className="space-y-3">{Array.from({ length: 3 }).map((_, index) => <div key={index} className="app-shell h-56 animate-pulse p-5" />)}</div>
+          <div className="space-y-3">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div key={index} className="app-shell space-y-4 p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <Skeleton className="h-6 w-24 rounded-full" />
+                  <Skeleton className="h-6 w-20 rounded-full" />
+                </div>
+                <Skeleton className="h-5 w-2/3" />
+                <div className="panel-muted space-y-3 p-4">
+                  <Skeleton className="h-4 w-40" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-5/6" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : bidRequestsQuery.error ? (
           <EmptyState
             icon={TriangleAlert}
             title="No pudimos cargar tus solicitudes"
-            description="Ocurrió un problema consultando la base de datos. Vuelve a intentarlo en unos momentos."
+            description="Ahora la app pide menos resultados por carga, pero esta consulta sigue fallando. Puedes intentar refrescar la vista o crear una nueva solicitud."
             action={<Button onClick={() => setIsCreateModalOpen(true)}>Crear solicitud</Button>}
           />
         ) : engineerRequests.length === 0 ? (
           <EmptyState
             icon={ClipboardList}
-            title="Aún no has creado solicitudes"
-            description="Publica tu primera solicitud para empezar a recibir ofertas reales de ferreterías activas."
+            title="Aún no tienes solicitudes recientes"
+            description="No encontramos pedidos tuyos en esta carga inicial. Crea una nueva solicitud para empezar a recibir ofertas."
             action={
               <Button onClick={() => setIsCreateModalOpen(true)}>
-                <Plus className="h-4 w-4" />Crear solicitud
+                <Plus className="h-4 w-4" />
+                Crear solicitud
               </Button>
             }
           />
@@ -182,7 +197,8 @@ const Index = () => {
 
                 <div className="panel-muted my-4 p-4">
                   <p className="section-label flex items-center gap-1.5 text-[10px]">
-                    <Package className="h-3.5 w-3.5 text-primary" />Materiales solicitados ({request.itemsCount})
+                    <Package className="h-3.5 w-3.5 text-primary" />
+                    Materiales solicitados ({request.itemsCount})
                   </p>
                   {request.items.length > 0 ? (
                     <ul className="mt-3 space-y-2">
@@ -247,7 +263,8 @@ const Index = () => {
                 </p>
               </div>
               <Button variant="outline" onClick={() => setIsProfileModalOpen(true)}>
-                <Settings className="h-4 w-4" />Editar
+                <Settings className="h-4 w-4" />
+                Editar
               </Button>
             </div>
 
@@ -303,7 +320,8 @@ const Index = () => {
                 Completa tu nombre comercial, sector y cobertura para mejorar tu presencia en el marketplace.
               </p>
               <Button onClick={() => setIsProfileModalOpen(true)} className="mt-4 w-full justify-center">
-                <Store className="h-4 w-4" />Abrir perfil de empresa
+                <Store className="h-4 w-4" />
+                Abrir perfil de empresa
               </Button>
             </div>
           </section>
@@ -325,7 +343,11 @@ const Index = () => {
           icon={Store}
           title="Todavía no hay ferreterías públicas"
           description="Cuando los proveedores completen su perfil y activen visibilidad pública, aparecerán aquí automáticamente."
-          action={<Button variant="outline" onClick={() => setActiveTab("bids")}>Volver a subastas</Button>}
+          action={
+            <Button variant="outline" onClick={() => setActiveTab("bids")}>
+              Volver a subastas
+            </Button>
+          }
         />
       );
     }
@@ -357,7 +379,9 @@ const Index = () => {
                 {store.deliveryCoverage.length > 0 ? (
                   <div className="mt-3 flex flex-wrap gap-2">
                     {store.deliveryCoverage.map((coverage) => (
-                      <span key={coverage} className="data-chip">{coverage}</span>
+                      <span key={coverage} className="data-chip">
+                        {coverage}
+                      </span>
                     ))}
                   </div>
                 ) : (
@@ -467,7 +491,8 @@ const Index = () => {
               onClick={() => setIsProfileModalOpen(true)}
               className="interactive-row flex min-h-[48px] w-full items-center gap-2 rounded-[1.1rem] px-4 py-3 text-left text-sm text-foreground hover:bg-[hsl(var(--surface-2))]"
             >
-              <Settings className="h-4 w-4 text-primary" />Configurar mi ferretería
+              <Settings className="h-4 w-4 text-primary" />
+              Configurar mi ferretería
             </button>
           ) : null}
           <button
