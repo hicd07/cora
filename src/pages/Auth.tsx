@@ -30,7 +30,16 @@ export const Auth: React.FC = () => {
     }
   }, [session, profile, sessionLoading, navigate]);
 
+  useEffect(() => {
+    if (profile && !profile.onboarded) {
+      setFullName(profile.full_name || profile.store_name || '');
+      setDocumentId(profile.document_id || '');
+      setUserType(profile.user_type || null);
+    }
+  }, [profile]);
+
   const handleAuth = async (e: React.FormEvent) => {
+
     e.preventDefault();
 
     if (!email || !password) {
