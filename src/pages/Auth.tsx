@@ -6,33 +6,33 @@ import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast
 import { HardHat, Store, Mail, Lock, User, FileText, ArrowRight, LogIn, UserPlus, Check } from 'lucide-react';
 
 export const Auth: React.FC = () => {
-  const { session, profile, refreshProfile } = useSessionContext();
+  const { session, profile, refreshProfile, updateProfile, loading: sessionLoading } = useSessionContext();
   const navigate = useNavigate();
 
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-
-  // Onboarding states
   const [isOnboarding, setIsOnboarding] = useState(false);
   const [fullName, setFullName] = useState('');
-  const [documentId, setDocumentId] = useState(''); // RNC or Cedula
+  const [documentId, setDocumentId] = useState('');
   const [userType, setUserType] = useState<'engineer' | 'hardware' | null>(null);
 
-  // Redirect if already logged in and onboarded
   useEffect(() => {
+    if (sessionLoading) return;
+
     if (session && profile) {
       if (profile.onboarded) {
-        navigate('/');
+        navigate('/', { replace: true });
       } else {
         setIsOnboarding(true);
       }
     }
-  }, [session, profile, navigate]);
+  }, [session, profile, sessionLoading, navigate]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!email || !password) {
       showError('Por favor, completa todos los campos.');
       return;
@@ -49,9 +49,13 @@ export const Auth: React.FC = () => {
         });
 
         dismissToast(toastId);
+
         if (error) {
           showError(error.message);
-        } else if (data.user) {
+          return;
+        }
+
+        if (data.user) {
           showSuccess('¡Cuenta creada con éxito! Completemos tu perfil.');
           setIsOnboarding(true);
         }
@@ -62,16 +66,14 @@ export const Auth: React.FC = () => {
         });
 
         dismissToast(toastId);
+
         if (error) {
           showError(error.message);
-        } else {
-          showSuccess('¡Bienvenido de vuelta!');
-          navigate('/');
+          return;
         }
+
+        showSuccess('¡Bienvenido de vuelta!');
       }
-    } catch (err: any) {
-      dismissToast(toastId);
-      showError(err.message || 'Ocurrió un error inesperado.');
     } finally {
       setLoading(false);
     }
@@ -79,6 +81,7 @@ export const Auth: React.FC = () => {
 
   const handleOnboardingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!fullName || !documentId || !userType) {
       showError('Por favor, completa todos los campos de registro.');
       return;
@@ -89,37 +92,29 @@ export const Auth: React.FC = () => {
 
     try {
       const user = (await supabase.auth.getUser()).data.user;
-      if (!user) throw new Error('No se encontró un usuario activo.');
 
-      // Try to update the profile in Supabase
-      const { error } = await supabase
-        .from('profiles')
-        .upsert({
-          id: user.id,
-          full_name: fullName,
-          document_id: documentId,
-          user_type: userType,
-          onboarded: true,
-          updated_at: new Date().toISOString(),
-        });
-
-      if (error) {
-        console.warn('Database upsert failed, saving to local storage fallback:', error.message);
-        // Fallback to local storage to ensure 100% uptime if table is not fully migrated
-        const localProfile = {
-          id: user.id,
-          full_name: fullName,
-          document_id: documentId,
-          user_type: userType,
-          onboarded: true,
-        };
-        localStorage.setItem(`profile_${user.id}`, JSON.stringify(localProfile));
+      if (!user) {
+        throw new Error('No se encontró un usuario activo.');
       }
 
+      await updateProfile({
+        id: user.id,
+        full_name: fullName,
+        document_id: documentId,
+        user_type: userType,
+        onboarded: true,
+        store_name: userType === 'hardware' ? fullName : null,
+        sector: userType === 'hardware' ? 'Alma Rosa I' : undefined,
+        delivery_coverage: userType === 'hardware' ? ['Alma Rosa I', 'Alma Rosa II'] : undefined,
+        is_public: userType === 'hardware' ? true : undefined,
+        rating: userType === 'hardware' ? 5.0 : undefined,
+        reviews_count: userType === 'hardware' ? 0 : undefined,
+      });
+
+      await refreshProfile();
       dismissToast(toastId);
       showSuccess('¡Perfil configurado con éxito!');
-      await refreshProfile();
-      navigate('/');
+      navigate('/', { replace: true });
     } catch (err: any) {
       dismissToast(toastId);
       showError(err.message || 'Error al guardar el perfil.');
@@ -131,8 +126,6 @@ export const Auth: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50 flex justify-center items-center p-4">
       <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden flex flex-col animate-in fade-in duration-300">
-        
-        {/* Header Banner */}
         <div className="bg-gradient-to-br from-amber-500 to-amber-600 p-8 text-white text-center relative">
           <div className="absolute top-4 right-4 bg-white/10 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase">
             SDE • B2B
@@ -146,23 +139,20 @@ export const Auth: React.FC = () => {
           </p>
         </div>
 
-        {/* Content Area */}
         <div className="p-6 flex-1">
           {!isOnboarding ? (
-            /* LOGIN / SIGNUP FORM */
             <form onSubmit={handleAuth} className="space-y-5">
               <div className="text-center mb-2">
                 <h2 className="text-lg font-bold text-slate-900">
                   {isSignUp ? 'Crear una Cuenta' : 'Iniciar Sesión'}
                 </h2>
                 <p className="text-xs text-slate-500 mt-1">
-                  {isSignUp 
-                    ? 'Únete a la red de ingenieros y ferreterías de SDE' 
+                  {isSignUp
+                    ? 'Únete a la red de ingenieros y ferreterías de SDE'
                     : 'Ingresa tus credenciales para acceder a la plataforma'}
                 </p>
               </div>
 
-              {/* Email Input */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-700 block">Correo Electrónico</label>
                 <div className="relative">
@@ -180,7 +170,6 @@ export const Auth: React.FC = () => {
                 </div>
               </div>
 
-              {/* Password Input */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-700 block">Contraseña</label>
                 <div className="relative">
@@ -198,7 +187,6 @@ export const Auth: React.FC = () => {
                 </div>
               </div>
 
-              {/* Submit Button */}
               <button
                 type="submit"
                 disabled={loading}
@@ -219,21 +207,19 @@ export const Auth: React.FC = () => {
                 )}
               </button>
 
-              {/* Toggle Auth Mode */}
               <div className="text-center pt-2">
                 <button
                   type="button"
                   onClick={() => setIsSignUp(!isSignUp)}
                   className="text-xs font-bold text-amber-600 hover:text-amber-700 transition-colors"
                 >
-                  {isSignUp 
-                    ? '¿Ya tienes una cuenta? Inicia Sesión' 
+                  {isSignUp
+                    ? '¿Ya tienes una cuenta? Inicia Sesión'
                     : '¿No tienes cuenta? Regístrate aquí'}
                 </button>
               </div>
             </form>
           ) : (
-            /* ONBOARDING FLOW */
             <form onSubmit={handleOnboardingSubmit} className="space-y-5">
               <div className="text-center mb-2">
                 <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
@@ -245,7 +231,6 @@ export const Auth: React.FC = () => {
                 </p>
               </div>
 
-              {/* Full Name */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-700 block">Nombre Completo o Razón Social</label>
                 <div className="relative">
@@ -263,7 +248,6 @@ export const Auth: React.FC = () => {
                 </div>
               </div>
 
-              {/* RNC or Cedula */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-700 block">RNC o Cédula de Identidad</label>
                 <div className="relative">
@@ -281,11 +265,9 @@ export const Auth: React.FC = () => {
                 </div>
               </div>
 
-              {/* User Type Selection */}
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-700 block">¿Cómo usarás ConstruBid?</label>
                 <div className="grid grid-cols-2 gap-3">
-                  {/* Engineer Option */}
                   <button
                     type="button"
                     onClick={() => setUserType('engineer')}
@@ -311,7 +293,6 @@ export const Auth: React.FC = () => {
                     </div>
                   </button>
 
-                  {/* Hardware Store Option */}
                   <button
                     type="button"
                     onClick={() => setUserType('hardware')}
@@ -339,7 +320,6 @@ export const Auth: React.FC = () => {
                 </div>
               </div>
 
-              {/* Complete Onboarding Button */}
               <button
                 type="submit"
                 disabled={loading || !userType}
@@ -357,7 +337,6 @@ export const Auth: React.FC = () => {
             </form>
           )}
         </div>
-
       </div>
     </div>
   );

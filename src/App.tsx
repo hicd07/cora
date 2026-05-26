@@ -10,45 +10,63 @@ import { SessionContextProvider, useSessionContext } from "./components/auth/Ses
 
 const queryClient = new QueryClient();
 
-// A simple route guard to protect the main application
+const FullScreenLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-slate-50">
+    <div className="text-center space-y-3">
+      <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+      <p className="text-xs font-bold text-slate-500">Cargando ConstruBid...</p>
+    </div>
+  </div>
+);
+
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { session, profile, loading } = useSessionContext();
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="text-center space-y-3">
-          <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-xs font-bold text-slate-500">Cargando ConstruBid...</p>
-        </div>
-      </div>
-    );
+    return <FullScreenLoader />;
   }
 
   if (!session) {
     return <Navigate to="/auth" replace />;
   }
 
-  if (profile && !profile.onboarded) {
+  if (!profile) {
+    return <FullScreenLoader />;
+  }
+
+  if (!profile.onboarded) {
     return <Navigate to="/auth" replace />;
   }
 
   return <>{children}</>;
 };
 
+const AuthRoute = () => {
+  const { session, profile, loading } = useSessionContext();
+
+  if (loading) {
+    return <FullScreenLoader />;
+  }
+
+  if (session && profile?.onboarded) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <Auth />;
+};
+
 const AppRoutes = () => {
   return (
     <Routes>
-      <Route 
-        path="/" 
+      <Route
+        path="/"
         element={
           <ProtectedRoute>
             <Index />
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route path="/auth" element={<Auth />} />
-      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+      <Route path="/auth" element={<AuthRoute />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
