@@ -106,9 +106,9 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
   };
 
   return (
-    <div className="modal-backdrop fixed inset-0 z-50 flex items-end justify-center">
-      <div className="modal-sheet max-h-[92vh] w-full max-w-md overflow-y-auto animate-in slide-in-from-bottom duration-300">
-        <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-border bg-card px-6 py-4">
+    <div className="modal-backdrop fixed inset-0 z-50 flex animate-in fade-in-0 duration-200 items-end justify-center">
+      <div className="modal-sheet max-h-[92vh] w-full max-w-md overflow-y-auto animate-in fade-in-0 slide-in-from-bottom-4 zoom-in-95 duration-300">
+        <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-border bg-[hsl(var(--card)/0.94)] px-6 py-4 backdrop-blur">
           <div>
             <p className="section-label">Bid matrix</p>
             <h3 className="font-display text-base font-semibold text-foreground">
@@ -118,14 +118,14 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
               {isCheckout ? "Desglose por proveedor seleccionado" : "Compara precios por ítem y elige la mejor combinación."}
             </p>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Cerrar">
+          <Button variant="outline" size="icon" onClick={onClose} aria-label="Cerrar">
             <X className="h-4 w-4" />
           </Button>
         </div>
 
         {!isCheckout ? (
           <div className="space-y-5 px-6 py-6 pb-10">
-            <div className="panel-muted rounded-lg p-4">
+            <div className="panel-muted p-4">
               <p className="section-label">Proyecto</p>
               <h4 className="font-display mt-2 text-sm font-semibold text-foreground">{request.title}</h4>
               <p className="mt-1 text-xs text-muted-foreground">Destino: {request.deliveryAddress}</p>
@@ -168,7 +168,7 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
                           if (!offer || !offer.isAvailable) {
                             return (
                               <TableCell key={bid.storeId} className="align-top">
-                                <div className="rounded-md border border-dashed border-border bg-muted/70 p-3 text-center text-xs text-muted-foreground">
+                                <div className="rounded-2xl border border-dashed border-border bg-muted/70 p-3 text-center text-xs text-muted-foreground">
                                   <p className="font-display text-sm font-semibold text-foreground/60">N/D</p>
                                   <p className="mt-1">Sin disponibilidad</p>
                                 </div>
@@ -182,10 +182,10 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
                                 type="button"
                                 onClick={() => handleSelectProvider(item.name, bid.storeId)}
                                 className={cn(
-                                  "flex min-h-[108px] w-full flex-col justify-between rounded-md border p-3 text-left transition-colors",
+                                  "flex min-h-[116px] w-full flex-col justify-between rounded-[1.15rem] border p-3 text-left transition-[transform,box-shadow,border-color,background-color] duration-200",
                                   isSelected
-                                    ? "border-[hsl(var(--success))] bg-[hsl(var(--success)/0.10)]"
-                                    : "border-border bg-card hover:bg-accent/40",
+                                    ? "border-[hsl(var(--success))] bg-[hsl(var(--success)/0.10)] shadow-[0_16px_30px_-24px_hsl(var(--success)/0.45)]"
+                                    : "border-border bg-card hover:-translate-y-0.5 hover:border-primary/20 hover:bg-accent/40",
                                 )}
                               >
                                 <div className="flex items-start justify-between gap-2">
@@ -218,9 +218,9 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
                   if (itemsCount === 0) return null;
 
                   return (
-                    <div key={bid.storeId} className="panel-muted flex items-center justify-between rounded-lg p-3">
+                    <div key={bid.storeId} className="panel-muted flex items-center justify-between p-3.5">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-md bg-[hsl(var(--primary)/0.14)] text-primary">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-[1rem] bg-[hsl(var(--primary)/0.14)] text-primary">
                           <Store className="h-4 w-4" />
                         </div>
                         <div>
@@ -235,7 +235,7 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
               </div>
             </div>
 
-            <div className="rounded-lg border border-primary/20 bg-[hsl(var(--surface-3))] p-4">
+            <div className="panel-strong rounded-[1.5rem] p-4">
               <div className="flex justify-between text-sm text-muted-foreground">
                 <span>Subtotal neto</span>
                 <span className="mono-data">RD$ {generalSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
@@ -259,7 +259,7 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
           </div>
         ) : (
           <div className="space-y-5 px-6 py-6 pb-10">
-            <div className="rounded-lg border border-primary/20 bg-[hsl(var(--primary)/0.1)] p-4">
+            <div className="panel-strong rounded-[1.5rem] border-primary/20 bg-[hsl(var(--primary)/0.1)] p-4">
               <div className="flex gap-3">
                 <Info className="mt-0.5 h-5 w-5 text-primary" />
                 <div>
@@ -281,7 +281,7 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
                 const orderReference = `OC-${request.id.slice(-4)}-${bid.storeId.slice(-1)}`;
 
                 return (
-                  <div key={bid.storeId} className="app-shell rounded-lg p-4">
+                  <div key={bid.storeId} className="app-shell p-4">
                     <div className="flex items-center justify-between gap-3 border-b border-border pb-3">
                       <div className="flex items-center gap-2">
                         <Store className="h-4 w-4 text-primary" />
@@ -303,7 +303,7 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
                       ))}
                     </ul>
 
-                    <div className="panel-muted mt-4 flex items-center justify-between rounded-md px-3 py-2.5 text-sm">
+                    <div className="panel-muted mt-4 flex items-center justify-between px-3 py-3 text-sm">
                       <span className="font-display font-semibold text-foreground">Subtotal orden</span>
                       <span className="mono-data font-semibold text-foreground">RD$ {data.subtotal.toLocaleString()}</span>
                     </div>
@@ -311,7 +311,7 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
                     <div className="mt-4 grid grid-cols-2 gap-2">
                       <a
                         href={`tel:${contact.phone}`}
-                        className="font-display inline-flex min-h-[40px] items-center justify-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-accent"
+                        className="font-display inline-flex min-h-[42px] items-center justify-center gap-2 rounded-2xl border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground transition-[transform,background-color,border-color] duration-200 hover:-translate-y-0.5 hover:bg-[hsl(var(--surface-2))]"
                       >
                         <Phone className="h-3.5 w-3.5 text-primary" />Llamar
                       </a>
@@ -319,7 +319,7 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
                         href={`https://wa.me/${contact.whatsapp}?text=Hola,%20me%20gustaría%20coordinar%20la%20entrega%20del%20pedido%20de%20PIDO.`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="font-display inline-flex min-h-[40px] items-center justify-center gap-2 rounded-md border border-transparent bg-[hsl(var(--success))] px-3 py-2 text-xs font-semibold text-[hsl(var(--success-foreground))] transition-opacity hover:opacity-90"
+                        className="font-display inline-flex min-h-[42px] items-center justify-center gap-2 rounded-2xl border border-transparent bg-[hsl(var(--success))] px-3 py-2 text-xs font-semibold text-[hsl(var(--success-foreground))] transition-[transform,opacity] duration-200 hover:-translate-y-0.5 hover:opacity-90"
                       >
                         <MessageSquare className="h-3.5 w-3.5" />WhatsApp
                       </a>
@@ -329,7 +329,7 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
               })}
             </div>
 
-            <div className="rounded-lg border border-primary/20 bg-[hsl(var(--surface-3))] p-4">
+            <div className="panel-strong rounded-[1.5rem] p-4">
               <div className="flex justify-between text-sm text-muted-foreground">
                 <span>Subtotal consolidado</span>
                 <span className="mono-data">RD$ {generalSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>

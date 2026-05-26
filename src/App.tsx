@@ -13,10 +13,12 @@ const queryClient = new QueryClient();
 
 const FullScreenLoader = () => (
   <div className="flex min-h-screen items-center justify-center bg-background px-6">
-    <div className="app-shell w-full max-w-xs rounded-xl p-6 text-center">
-      <div className="mx-auto h-10 w-10 animate-spin rounded-full border-[3px] border-primary border-t-transparent" />
-      <p className="font-display mt-4 text-sm font-semibold text-foreground">Cargando PIDO</p>
-      <p className="mt-1 text-xs text-muted-foreground">Preparando tu panel de compras y ofertas.</p>
+    <div className="app-shell w-full max-w-sm p-7 text-center">
+      <div className="panel-muted mx-auto flex h-16 w-16 items-center justify-center rounded-[1.5rem] border-primary/15 bg-[hsl(var(--primary)/0.08)]">
+        <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-primary border-t-transparent" />
+      </div>
+      <p className="font-display mt-5 text-base font-semibold text-foreground">Cargando PIDO</p>
+      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">Preparando tu panel de compras, oportunidades y comparativas.</p>
     </div>
   </div>
 );

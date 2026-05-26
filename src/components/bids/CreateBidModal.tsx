@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Calendar, Check, DollarSign, FileText, HardHat, Info, Map, MapPin, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { BidRequest, QuoteItem } from "@/lib/mockData";
 import { cn } from "@/lib/utils";
 import { dismissToast, showError, showLoading, showSuccess } from "@/utils/toast";
@@ -32,8 +33,7 @@ const MAP_LANDMARKS = [
   { name: "Av. Mella Esq. Calle Respaldo, El Almirante", sector: "El Almirante", x: 85, y: 70 },
 ];
 
-const fieldClassName = "h-11 rounded-md border border-input bg-muted px-3 text-sm text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring/25";
-const textareaClassName = "min-h-[88px] w-full rounded-md border border-input bg-muted px-3 py-3 text-sm text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring/25 resize-none";
+const fieldClassName = "field-soft appearance-none pr-10";
 
 export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose, onPublish }) => {
   const [title, setTitle] = useState("");
@@ -131,11 +131,11 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose,
   };
 
   return (
-    <div className="modal-backdrop fixed inset-0 z-50 flex items-end justify-center">
-      <div className="modal-sheet max-h-[92vh] w-full max-w-md overflow-y-auto animate-in slide-in-from-bottom duration-300">
-        <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-border bg-card px-6 py-4">
+    <div className="modal-backdrop fixed inset-0 z-50 flex animate-in fade-in-0 duration-200 items-end justify-center">
+      <div className="modal-sheet max-h-[92vh] w-full max-w-md overflow-y-auto animate-in fade-in-0 slide-in-from-bottom-4 zoom-in-95 duration-300">
+        <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-border bg-[hsl(var(--card)/0.94)] px-6 py-4 backdrop-blur">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-primary/20 bg-[hsl(var(--primary)/0.14)] text-primary">
+            <div className="flex h-11 w-11 items-center justify-center rounded-[1.15rem] border border-primary/20 bg-[hsl(var(--primary)/0.14)] text-primary">
               <HardHat className="h-5 w-5" />
             </div>
             <div>
@@ -144,7 +144,7 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose,
               <p className="mt-1 text-xs text-muted-foreground">Múltiples materiales en un solo pedido.</p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Cerrar">
+          <Button variant="outline" size="icon" onClick={onClose} aria-label="Cerrar">
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -175,15 +175,15 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose,
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">
               <label className="section-label block">Lista de materiales</label>
-              <Button type="button" variant="ghost" size="sm" onClick={handleAddItem} className="h-8 px-2 text-primary hover:bg-transparent">
+              <Button type="button" variant="ghost" size="sm" onClick={handleAddItem} className="px-2 text-primary hover:bg-transparent">
                 <Plus className="h-3.5 w-3.5" />Añadir
               </Button>
             </div>
 
             <div className="space-y-2.5">
               {items.map((item, index) => (
-                <div key={index} className="panel-muted rounded-lg p-3">
-                  <div className="grid grid-cols-[1fr_72px_92px_auto] items-center gap-2">
+                <div key={index} className="panel-muted p-3.5">
+                  <div className="grid grid-cols-[1fr_78px_98px_auto] items-center gap-2">
                     <Input
                       type="text"
                       required
@@ -212,7 +212,7 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose,
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     ) : (
-                      <div className="h-10 w-10" />
+                      <div className="h-11 w-11" />
                     )}
                   </div>
                 </div>
@@ -220,7 +220,7 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose,
             </div>
           </div>
 
-          <div className="panel-muted rounded-lg p-4">
+          <div className="panel-muted p-4">
             <div className="space-y-1.5">
               <label className="section-label flex items-center gap-1.5">
                 <MapPin className="h-3.5 w-3.5 text-primary" />Sector de entrega (SDE)
@@ -276,16 +276,15 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose,
             <label className="section-label flex items-center gap-1.5">
               <FileText className="h-3.5 w-3.5 text-primary" />Notas e instrucciones especiales
             </label>
-            <textarea
+            <Textarea
               placeholder="Ej: entregar en segundo nivel, se requiere camión con grúa..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-              className={textareaClassName}
+              rows={4}
             />
           </div>
 
-          <div className="rounded-lg border border-primary/20 bg-[hsl(var(--primary)/0.1)] p-4">
+          <div className="panel-strong rounded-[1.5rem] border-primary/20 bg-[hsl(var(--primary)/0.1)] p-4">
             <div className="flex gap-3">
               <Info className="mt-0.5 h-5 w-5 text-primary" />
               <p className="text-sm leading-relaxed text-muted-foreground">
@@ -306,15 +305,15 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose,
       </div>
 
       {isMapOpen && (
-        <div className="modal-backdrop fixed inset-0 z-[60] flex items-center justify-center p-4">
-          <div className="app-shell w-full max-w-sm overflow-hidden rounded-2xl bg-card">
+        <div className="modal-backdrop fixed inset-0 z-[60] flex animate-in fade-in-0 duration-200 items-center justify-center p-4">
+          <div className="app-shell w-full max-w-sm overflow-hidden rounded-[1.9rem] bg-card animate-in fade-in-0 zoom-in-95 duration-200">
             <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
               <div>
                 <p className="section-label">Mapa de obra</p>
                 <h4 className="font-display text-sm font-semibold text-foreground">Fijar ubicación</h4>
                 <p className="mt-1 text-xs text-muted-foreground">Toca un punto de referencia en Santo Domingo Este.</p>
               </div>
-              <Button type="button" variant="ghost" size="icon" onClick={() => setIsMapOpen(false)} aria-label="Cerrar mapa">
+              <Button type="button" variant="outline" size="icon" onClick={() => setIsMapOpen(false)} aria-label="Cerrar mapa">
                 <X className="h-4 w-4" />
               </Button>
             </div>
@@ -339,8 +338,8 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose,
                     className="absolute -translate-x-1/2 -translate-y-1/2"
                   >
                     <div className="relative flex items-center justify-center">
-                      {isSelected && <span className="absolute inline-flex h-8 w-8 animate-ping rounded-full bg-primary/30" />}
-                      <MapPin className={cn("h-6 w-6 transition-transform", isSelected ? "scale-125 text-primary" : "text-muted-foreground hover:scale-110 hover:text-foreground")} />
+                      {isSelected && <span className="absolute inline-flex h-10 w-10 animate-ping rounded-full bg-primary/30" />}
+                      <MapPin className={cn("h-6 w-6 transition-transform duration-200", isSelected ? "scale-125 text-primary" : "text-muted-foreground hover:scale-110 hover:text-foreground")} />
                     </div>
                   </button>
                 );
@@ -348,9 +347,9 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose,
             </div>
 
             <div className="space-y-4 px-5 py-5">
-              <div className="panel-muted rounded-lg p-4">
+              <div className="panel-muted p-4">
                 <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[hsl(var(--primary)/0.14)] text-primary">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-[1rem] bg-[hsl(var(--primary)/0.14)] text-primary">
                     <MapPin className="h-5 w-5" />
                   </div>
                   <div>

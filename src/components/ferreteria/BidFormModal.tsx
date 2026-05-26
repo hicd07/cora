@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { AlertTriangle, Check, Clock, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { BidRequest } from "@/lib/mockData";
 import { cn } from "@/lib/utils";
 import { showError, showSuccess } from "@/utils/toast";
@@ -21,8 +22,7 @@ interface ItemQuote {
   isAvailable: boolean;
 }
 
-const fieldClassName = "h-11 rounded-md border border-input bg-muted px-3 text-sm text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring/25";
-const textareaClassName = "min-h-[88px] w-full rounded-md border border-input bg-muted px-3 py-3 text-sm text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring/25 resize-none";
+const fieldClassName = "field-soft appearance-none pr-10";
 
 export const BidFormModal: React.FC<BidFormModalProps> = ({ isOpen, onClose, request, onSubmitBid }) => {
   const [items, setItems] = useState<ItemQuote[]>([]);
@@ -88,15 +88,15 @@ export const BidFormModal: React.FC<BidFormModalProps> = ({ isOpen, onClose, req
   };
 
   return (
-    <div className="modal-backdrop fixed inset-0 z-50 flex items-end justify-center">
-      <div className="modal-sheet max-h-[92vh] w-full max-w-md overflow-y-auto animate-in slide-in-from-bottom duration-300">
-        <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-border bg-card px-6 py-4">
+    <div className="modal-backdrop fixed inset-0 z-50 flex animate-in fade-in-0 duration-200 items-end justify-center">
+      <div className="modal-sheet max-h-[92vh] w-full max-w-md overflow-y-auto animate-in fade-in-0 slide-in-from-bottom-4 zoom-in-95 duration-300">
+        <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-border bg-[hsl(var(--card)/0.94)] px-6 py-4 backdrop-blur">
           <div>
             <p className="section-label">Nueva oferta</p>
             <h3 className="font-display text-base font-semibold text-foreground">Enviar cotización</h3>
             <p className="mt-1 max-w-[280px] truncate text-xs text-muted-foreground">Para: {request.title}</p>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Cerrar">
+          <Button variant="outline" size="icon" onClick={onClose} aria-label="Cerrar">
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -109,8 +109,10 @@ export const BidFormModal: React.FC<BidFormModalProps> = ({ isOpen, onClose, req
                 <div
                   key={index}
                   className={cn(
-                    "rounded-lg border p-3",
-                    item.isAvailable ? "panel-muted" : "border-destructive/20 bg-destructive/10 opacity-85",
+                    "rounded-[1.4rem] border p-4 transition-[transform,background-color,border-color,box-shadow] duration-200",
+                    item.isAvailable
+                      ? "panel-muted"
+                      : "border-destructive/20 bg-destructive/10 opacity-90 shadow-[inset_0_1px_0_hsl(var(--surface-1)/0.55)]",
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -123,10 +125,7 @@ export const BidFormModal: React.FC<BidFormModalProps> = ({ isOpen, onClose, req
                     <button
                       type="button"
                       onClick={() => handleAvailabilityToggle(index)}
-                      className={cn(
-                        "data-chip",
-                        item.isAvailable ? "data-chip-success" : "data-chip-danger",
-                      )}
+                      className={cn("data-chip", item.isAvailable ? "data-chip-success" : "data-chip-danger")}
                     >
                       {item.isAvailable ? "Disponible" : "No disponible"}
                     </button>
@@ -135,7 +134,7 @@ export const BidFormModal: React.FC<BidFormModalProps> = ({ isOpen, onClose, req
                   {item.isAvailable ? (
                     <div className="mt-3 flex items-center gap-3">
                       <div className="relative flex-1">
-                        <span className="mono-data pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                        <span className="mono-data pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                           RD$
                         </span>
                         <Input
@@ -146,7 +145,7 @@ export const BidFormModal: React.FC<BidFormModalProps> = ({ isOpen, onClose, req
                           placeholder="Precio unitario"
                           value={item.unitPrice || ""}
                           onChange={(e) => handlePriceChange(index, e.target.value)}
-                          className="pl-11"
+                          className="pl-12"
                         />
                       </div>
                       <div className="min-w-[88px] text-right">
@@ -181,16 +180,15 @@ export const BidFormModal: React.FC<BidFormModalProps> = ({ isOpen, onClose, req
 
           <div className="space-y-1.5">
             <label className="section-label block">Notas y condiciones</label>
-            <textarea
+            <Textarea
               placeholder="Ej: precios válidos por 5 días, incluye descarga a pie de camión..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-              className={textareaClassName}
+              rows={4}
             />
           </div>
 
-          <div className="rounded-lg border border-primary/20 bg-[hsl(var(--surface-3))] p-4">
+          <div className="panel-strong rounded-[1.5rem] p-4">
             <div className="flex justify-between text-sm text-muted-foreground">
               <span>Subtotal neto</span>
               <span className="mono-data">RD$ {subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>

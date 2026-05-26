@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Bell, BellOff, Clock, Gavel, MapPin, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BidRequest } from "@/lib/mockData";
+import { cn } from "@/lib/utils";
 
 interface OpportunityFeedProps {
   requests: BidRequest[];
@@ -35,38 +36,47 @@ export const OpportunityFeed: React.FC<OpportunityFeedProps> = ({ requests, onOp
 
   return (
     <div className="space-y-4">
-      <section className="app-shell rounded-xl p-4">
+      <section className="app-shell p-5">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-start gap-3">
-            <div className={`flex h-11 w-11 items-center justify-center rounded-lg ${isAvailable ? "bg-[hsl(var(--primary)/0.14)] text-primary" : "bg-muted text-muted-foreground"}`}>
+            <div
+              className={cn(
+                "flex h-12 w-12 items-center justify-center rounded-[1.15rem]",
+                isAvailable ? "bg-[hsl(var(--primary)/0.14)] text-primary" : "bg-muted text-muted-foreground",
+              )}
+            >
               {isAvailable ? <Bell className="h-5 w-5" /> : <BellOff className="h-5 w-5" />}
             </div>
             <div>
               <p className="section-label">Alertas</p>
               <h3 className="font-display text-sm font-semibold text-foreground">Obras cercanas en tiempo real</h3>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {isAvailable ? "Recibiendo solicitudes activas para tu zona de cobertura." : "Las alertas están pausadas temporalmente."}
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                {isAvailable
+                  ? "Recibiendo solicitudes activas para tu zona de cobertura."
+                  : "Las alertas están pausadas temporalmente."}
               </p>
             </div>
           </div>
 
           <button
+            type="button"
             onClick={() => setIsAvailable(!isAvailable)}
-            className={`grid h-8 w-14 items-center rounded-md border p-1 transition-colors ${isAvailable ? "border-primary/20 bg-[hsl(var(--primary)/0.16)]" : "border-border bg-muted"}`}
+            className={cn(
+              "toggle-track shrink-0",
+              isAvailable ? "border-primary/20 bg-[hsl(var(--primary)/0.16)]" : "border-border bg-muted",
+            )}
             aria-label="Alternar alertas"
           >
-            <span
-              className={`block h-5 w-5 rounded-sm bg-card transition-transform ${isAvailable ? "translate-x-6" : "translate-x-0"}`}
-            />
+            <span className={cn("toggle-thumb", isAvailable ? "translate-x-7" : "translate-x-0")} />
           </button>
         </div>
       </section>
 
       {!isAvailable ? (
-        <section className="panel-muted rounded-xl border-dashed p-8 text-center">
+        <section className="panel-muted rounded-[1.75rem] border-dashed p-8 text-center">
           <BellOff className="mx-auto h-10 w-10 text-muted-foreground" />
           <h4 className="font-display mt-3 text-sm font-semibold text-foreground">Alertas pausadas</h4>
-          <p className="mx-auto mt-1 max-w-[240px] text-xs text-muted-foreground">
+          <p className="mx-auto mt-1 max-w-[240px] text-xs leading-relaxed text-muted-foreground">
             Activa las alertas para volver a visualizar y cotizar los pedidos activos en tu zona.
           </p>
         </section>
@@ -81,12 +91,12 @@ export const OpportunityFeed: React.FC<OpportunityFeedProps> = ({ requests, onOp
           </div>
 
           {activeRequests.map((request) => (
-            <article key={request.id} className="app-shell rounded-xl p-4">
+            <article key={request.id} className="app-shell interactive-card p-5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="data-chip">
                   <MapPin className="h-3 w-3 text-primary" />A {getDistance(request.id)} de ti
                 </span>
-                <span className={`data-chip ${getRemainingTime(request.expiresAt) === "Expirado" ? "data-chip-danger" : "data-chip-success"}`}>
+                <span className={cn("data-chip", getRemainingTime(request.expiresAt) === "Expirado" ? "data-chip-danger" : "data-chip-success")}>
                   <Clock className="h-3 w-3" />{getRemainingTime(request.expiresAt)}
                 </span>
               </div>
@@ -98,7 +108,7 @@ export const OpportunityFeed: React.FC<OpportunityFeedProps> = ({ requests, onOp
                 </p>
               </div>
 
-              <div className="panel-muted mt-4 rounded-lg p-3">
+              <div className="panel-muted mt-4 p-4">
                 <p className="section-label flex items-center gap-1.5 text-[10px]">
                   <Package className="h-3.5 w-3.5 text-primary" />Materiales a cotizar ({request.itemsCount})
                 </p>

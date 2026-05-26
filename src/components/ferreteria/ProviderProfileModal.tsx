@@ -22,7 +22,7 @@ const SECTORS = [
   "Av. España",
 ];
 
-const fieldClassName = "h-11 rounded-md border border-input bg-muted px-3 text-sm text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-ring/25";
+const fieldClassName = "field-soft appearance-none pr-10";
 
 export const ProviderProfileModal: React.FC<ProviderProfileModalProps> = ({ isOpen, onClose }) => {
   const { profile, updateProfile } = useSessionContext();
@@ -63,11 +63,11 @@ export const ProviderProfileModal: React.FC<ProviderProfileModalProps> = ({ isOp
   };
 
   return (
-    <div className="modal-backdrop fixed inset-0 z-50 flex items-end justify-center">
-      <div className="modal-sheet max-h-[92vh] w-full max-w-md overflow-y-auto animate-in slide-in-from-bottom duration-300">
-        <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-border bg-card px-6 py-4">
+    <div className="modal-backdrop fixed inset-0 z-50 flex animate-in fade-in-0 duration-200 items-end justify-center">
+      <div className="modal-sheet max-h-[92vh] w-full max-w-md overflow-y-auto animate-in fade-in-0 slide-in-from-bottom-4 zoom-in-95 duration-300">
+        <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-border bg-[hsl(var(--card)/0.94)] px-6 py-4 backdrop-blur">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-primary/20 bg-[hsl(var(--primary)/0.14)] text-primary">
+            <div className="flex h-11 w-11 items-center justify-center rounded-[1.15rem] border border-primary/20 bg-[hsl(var(--primary)/0.14)] text-primary">
               <Store className="h-5 w-5" />
             </div>
             <div>
@@ -76,7 +76,7 @@ export const ProviderProfileModal: React.FC<ProviderProfileModalProps> = ({ isOp
               <p className="mt-1 text-xs text-muted-foreground">Edita visibilidad, cobertura y presencia comercial.</p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Cerrar">
+          <Button variant="outline" size="icon" onClick={onClose} aria-label="Cerrar">
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -119,10 +119,10 @@ export const ProviderProfileModal: React.FC<ProviderProfileModalProps> = ({ isOp
                     type="button"
                     onClick={() => handleToggleSector(sectorItem)}
                     className={cn(
-                      "flex items-center justify-between rounded-lg border px-3 py-2.5 text-left text-xs transition-colors",
+                      "interactive-row flex items-center justify-between rounded-[1.15rem] border px-3 py-3 text-left text-xs",
                       isSelected
-                        ? "border-primary/25 bg-[hsl(var(--primary)/0.12)] text-foreground"
-                        : "border-border bg-card text-muted-foreground hover:bg-accent",
+                        ? "border-primary/25 bg-[hsl(var(--primary)/0.12)] text-foreground shadow-[0_12px_24px_-24px_hsl(var(--primary)/0.75)]"
+                        : "border-border bg-card text-muted-foreground hover:bg-[hsl(var(--surface-2))] hover:text-foreground",
                     )}
                   >
                     <span>{sectorItem}</span>
@@ -133,15 +133,15 @@ export const ProviderProfileModal: React.FC<ProviderProfileModalProps> = ({ isOp
             </div>
           </div>
 
-          <div className="panel-muted rounded-lg p-4">
+          <div className="panel-muted p-4">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-start gap-3">
-                <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg", isPublic ? "bg-[hsl(var(--success)/0.14)] text-[hsl(var(--success))]" : "bg-muted text-muted-foreground")}>
+                <div className={cn("flex h-10 w-10 items-center justify-center rounded-[1rem]", isPublic ? "bg-[hsl(var(--success)/0.14)] text-[hsl(var(--success))]" : "bg-muted text-muted-foreground")}>
                   {isPublic ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                 </div>
                 <div>
                   <h4 className="font-display text-sm font-semibold text-foreground">Visibilidad del perfil</h4>
-                  <p className="mt-1 text-xs text-muted-foreground">
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                     {isPublic ? "Visible para usuarios tipo cliente" : "Oculto para usuarios tipo cliente"}
                   </p>
                 </div>
@@ -151,12 +151,12 @@ export const ProviderProfileModal: React.FC<ProviderProfileModalProps> = ({ isOp
                 type="button"
                 onClick={() => setIsPublic(!isPublic)}
                 className={cn(
-                  "grid h-8 w-14 items-center rounded-md border p-1 transition-colors",
+                  "toggle-track shrink-0",
                   isPublic ? "border-primary/20 bg-[hsl(var(--primary)/0.16)]" : "border-border bg-muted",
                 )}
                 aria-label="Cambiar visibilidad"
               >
-                <span className={cn("block h-5 w-5 rounded-sm bg-card transition-transform", isPublic ? "translate-x-6" : "translate-x-0")} />
+                <span className={cn("toggle-thumb", isPublic ? "translate-x-7" : "translate-x-0")} />
               </button>
             </div>
 

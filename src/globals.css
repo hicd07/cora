@@ -34,7 +34,7 @@
     --input: 214 32% 92%;
     --ring: 38 92% 51%;
 
-    --radius: 0.25rem;
+    --radius: 1rem;
 
     --surface-0: 225 100% 99%;
     --surface-1: 0 0% 100%;
@@ -161,22 +161,91 @@
   }
 
   .app-shell {
+    @apply rounded-[1.75rem];
     background-color: hsl(var(--surface-1));
     border: 1px solid hsl(var(--border));
+    box-shadow: 0 18px 42px -30px hsl(var(--foreground) / 0.28);
+    transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease, background-color 200ms ease;
   }
 
   .panel-muted {
+    @apply rounded-[1.4rem];
     background-color: hsl(var(--surface-2));
     border: 1px solid hsl(var(--border));
+    box-shadow: inset 0 1px 0 hsl(var(--surface-1) / 0.75);
+    transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease, background-color 200ms ease;
   }
 
   .panel-strong {
+    @apply rounded-[1.6rem];
     background-color: hsl(var(--surface-3));
     border: 1px solid hsl(var(--border));
+    box-shadow: 0 14px 30px -26px hsl(var(--foreground) / 0.28);
+    transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease, background-color 200ms ease;
+  }
+
+  .interactive-card {
+    transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease, background-color 200ms ease;
+  }
+
+  .interactive-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 24px 40px -30px hsl(var(--foreground) / 0.26);
+    border-color: hsl(var(--primary) / 0.18);
+  }
+
+  .interactive-card:active {
+    transform: translateY(-1px) scale(0.988);
+  }
+
+  .interactive-row {
+    transition: transform 180ms ease, background-color 180ms ease, color 180ms ease, border-color 180ms ease;
+  }
+
+  .interactive-row:hover {
+    transform: translateY(-1px);
+  }
+
+  .field-soft {
+    @apply h-11 w-full rounded-2xl border px-4 text-sm text-foreground;
+    background-color: hsl(var(--surface-2));
+    border-color: hsl(var(--input));
+    box-shadow: inset 0 1px 0 hsl(var(--surface-1) / 0.85);
+    transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease, transform 180ms ease;
+  }
+
+  .field-soft::placeholder {
+    color: hsl(var(--muted-foreground));
+  }
+
+  .field-soft:focus-visible {
+    outline: none;
+    border-color: hsl(var(--primary) / 0.34);
+    box-shadow: 0 0 0 4px hsl(var(--ring) / 0.14), inset 0 1px 0 hsl(var(--surface-1) / 0.92);
+    background-color: hsl(var(--card));
+  }
+
+  .field-soft-area {
+    @apply min-h-[104px] w-full rounded-[1.4rem] border px-4 py-3 text-sm text-foreground resize-none;
+    background-color: hsl(var(--surface-2));
+    border-color: hsl(var(--input));
+    box-shadow: inset 0 1px 0 hsl(var(--surface-1) / 0.85);
+    transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease, transform 180ms ease;
+  }
+
+  .field-soft-area::placeholder {
+    color: hsl(var(--muted-foreground));
+  }
+
+  .field-soft-area:focus-visible {
+    outline: none;
+    border-color: hsl(var(--primary) / 0.34);
+    box-shadow: 0 0 0 4px hsl(var(--ring) / 0.14), inset 0 1px 0 hsl(var(--surface-1) / 0.92);
+    background-color: hsl(var(--card));
   }
 
   .data-chip {
-    @apply inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-[10px] font-semibold;
+    @apply inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em];
     font-family: var(--font-mono);
     background-color: hsl(var(--muted));
     color: hsl(var(--muted-foreground));
@@ -202,15 +271,16 @@
   }
 
   .modal-backdrop {
-    background-color: hsl(var(--foreground) / 0.38);
-    backdrop-filter: blur(12px);
+    background-color: hsl(var(--foreground) / 0.34);
+    backdrop-filter: blur(14px);
   }
 
   .modal-sheet {
     background-color: hsl(var(--card));
     border: 1px solid hsl(var(--border));
     border-bottom: none;
-    border-radius: 1rem 1rem 0 0;
+    border-radius: 1.75rem 1.75rem 0 0;
+    box-shadow: 0 -10px 40px -24px hsl(var(--foreground) / 0.22);
   }
 
   .section-label {
@@ -222,8 +292,47 @@
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
   }
-  
+
   .elevated-outline {
     box-shadow: 0 0 0 1px hsl(var(--border));
+  }
+
+  .toggle-track {
+    @apply grid h-9 w-16 items-center rounded-full border p-1;
+    box-shadow: inset 0 1px 2px hsl(var(--foreground) / 0.08);
+    transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+  }
+
+  .toggle-track:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 4px hsl(var(--ring) / 0.14), inset 0 1px 2px hsl(var(--foreground) / 0.08);
+  }
+
+  .toggle-thumb {
+    @apply block h-7 w-7 rounded-full bg-card;
+    box-shadow: 0 6px 14px -10px hsl(var(--foreground) / 0.45);
+    transition: transform 180ms ease;
+  }
+
+  .floating-nav {
+    @apply rounded-[1.8rem] border;
+    background-color: hsl(var(--surface-1) / 0.96);
+    box-shadow: 0 20px 38px -24px hsl(var(--foreground) / 0.26);
+    backdrop-filter: blur(16px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
