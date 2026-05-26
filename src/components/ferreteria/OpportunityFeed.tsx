@@ -1,37 +1,24 @@
 import React, { useState } from "react";
-import { Bell, BellOff, Clock, Gavel, MapPin, Package } from "lucide-react";
+import { Bell, BellOff, Clock3, Gavel, Package, Warehouse } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { BidRequest } from "@/lib/mockData";
+import { BidRequest } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { formatDistanceToNowStrict } from "date-fns";
+import { es } from "date-fns/locale";
 
 interface OpportunityFeedProps {
   requests: BidRequest[];
   onOpenBidModal: (request: BidRequest) => void;
 }
 
+const getRemainingTime = (expiresAt: string) => {
+  const expiresDate = new Date(expiresAt);
+  if (expiresDate.getTime() <= Date.now()) return "Expirada";
+  return `Cierra ${formatDistanceToNowStrict(expiresDate, { addSuffix: true, locale: es })}`;
+};
+
 export const OpportunityFeed: React.FC<OpportunityFeedProps> = ({ requests, onOpenBidModal }) => {
   const [isAvailable, setIsAvailable] = useState(true);
-
-  const getDistance = (id: string) => {
-    const distances: Record<string, string> = {
-      "req-1": "1.2 km",
-      "req-2": "2.8 km",
-      "req-3": "4.5 km",
-    };
-
-    return distances[id] || "3.1 km";
-  };
-
-  const getRemainingTime = (expiresAt: string) => {
-    const diff = new Date(expiresAt).getTime() - Date.now();
-    if (diff <= 0) return "Expirado";
-
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    if (hours < 1) return "Menos de 1 hora";
-
-    return `${hours} horas restantes`;
-  };
-
   const activeRequests = requests.filter((request) => request.status === "active");
 
   return (
@@ -49,11 +36,11 @@ export const OpportunityFeed: React.FC<OpportunityFeedProps> = ({ requests, onOp
             </div>
             <div>
               <p className="section-label">Alertas</p>
-              <h3 className="font-display text-sm font-semibold text-foreground">Obras cercanas en tiempo real</h3>
+              <h3 className="font-display text-sm font-semibold text-foreground">Disponibilidad en esta sesión</h3>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                 {isAvailable
-                  ? "Recibiendo solicitudes activas para tu zona de cobertura."
-                  : "Las alertas están pausadas temporalmente."}
+                  ? "Mostrando solicitudes activas que puedes cotizar ahora mismo."
+                  : "Las alertas visuales están pausadas solo en este dispositivo."}
               </p>
             </div>
           </div>
@@ -65,7 +52,7 @@ export const OpportunityFeed: React.FC<OpportunityFeedProps> = ({ requests, onOp
               "toggle-track shrink-0",
               isAvailable ? "border-primary/20 bg-[hsl(var(--primary)/0.16)]" : "border-border bg-muted",
             )}
-            aria-label="Alternar alertas"
+            aria-label="Alternar alertas locales"
           >
             <span className={cn("toggle-thumb", isAvailable ? "translate-x-7" : "translate-x-0")} />
           </button>
@@ -77,7 +64,15 @@ export const OpportunityFeed: React.FC<OpportunityFeedProps> = ({ requests, onOp
           <BellOff className="mx-auto h-10 w-10 text-muted-foreground" />
           <h4 className="font-display mt-3 text-sm font-semibold text-foreground">Alertas pausadas</h4>
           <p className="mx-auto mt-1 max-w-[240px] text-xs leading-relaxed text-muted-foreground">
-            Activa las alertas para volver a visualizar y cotizar los pedidos activos en tu zona.
+            Puedes volver a activarlas cuando quieras. Tus datos y oportunidades reales no se pierden.
+          </p>
+        </section>
+      ) : activeRequests.length === 0 ? (
+        <section className="panel-muted rounded-[1.8rem] border-dashed p-8 text-center">
+          <Warehouse className="mx-auto h-10 w-10 text-muted-foreground" />
+          <h4 className="font-display mt-3 text-sm font-semibold text-foreground">Sin oportunidades activas</h4>
+          <p className="mx-auto mt-1 max-w-[260px] text-xs leading-relaxed text-muted-foreground">
+            Cuando un cliente publique una solicitud activa dentro de la plataforma, aparecerá aquí para cotizarla con datos reales.
           </p>
         </section>
       ) : (
@@ -93,19 +88,15 @@ export const OpportunityFeed: React.FC<OpportunityFeedProps> = ({ requests, onOp
           {activeRequests.map((request) => (
             <article key={request.id} className="app-shell interactive-card p-5">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="data-chip">
-                  <MapPin className="h-3 w-3 text-primary" />A {getDistance(request.id)} de ti
-                </span>
-                <span className={cn("data-chip", getRemainingTime(request.expiresAt) === "Expirado" ? "data-chip-danger" : "data-chip-success")}>
-                  <Clock className="h-3 w-3" />{getRemainingTime(request.expiresAt)}
+                <span className="data-chip">{request.category}</span>
+                <span className={cn("data-chip", getRemainingTime(request.expiresAt) === "Expirada" ? "data-chip-danger" : "data-chip-success")}>
+                  <Clock3 className="h-3 w-3" />{getRemainingTime(request.expiresAt)}
                 </span>
               </div>
 
               <div className="mt-4 space-y-1">
                 <h3 className="font-display text-base font-semibold text-foreground">{request.title}</h3>
-                <p className="text-xs text-muted-foreground">
-                  Sector: {request.sector} · {request.category}
-                </p>
+                <p className="text-xs text-muted-foreground">Sector: {request.sector} · Entrega: {request.deliveryAddress}</p>
               </div>
 
               <div className="panel-muted mt-4 p-4">
@@ -113,8 +104,8 @@ export const OpportunityFeed: React.FC<OpportunityFeedProps> = ({ requests, onOp
                   <Package className="h-3.5 w-3.5 text-primary" />Materiales a cotizar ({request.itemsCount})
                 </p>
                 <ul className="mt-3 space-y-2">
-                  {request.items.map((item, index) => (
-                    <li key={index} className="flex items-center justify-between gap-3 border-b border-border/70 pb-2 text-sm last:border-b-0 last:pb-0">
+                  {request.items.map((item) => (
+                    <li key={item.id ?? item.name} className="flex items-center justify-between gap-3 border-b border-border/70 pb-2 text-sm last:border-b-0 last:pb-0">
                       <span className="text-foreground">{item.name}</span>
                       <span className="mono-data text-xs text-muted-foreground">
                         {item.quantity} {item.unit}

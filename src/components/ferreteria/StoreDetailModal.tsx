@@ -1,26 +1,16 @@
 import React from "react";
-import { MapPin, MessageSquare, Phone, ShieldCheck, Star, Store, Truck, X } from "lucide-react";
+import { MapPin, ShieldCheck, Star, Store, Truck, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { HardwareStore } from "@/lib/types";
 
 interface StoreDetailProps {
   isOpen: boolean;
   onClose: () => void;
-  store: {
-    id: string;
-    name: string;
-    rating: number;
-    reviewsCount: number;
-    sector: string;
-    deliveryCoverage: string[];
-    isVerified: boolean;
-  } | null;
+  store: HardwareStore | null;
 }
 
 export const StoreDetailModal: React.FC<StoreDetailProps> = ({ isOpen, onClose, store }) => {
   if (!isOpen || !store) return null;
-
-  const phone = "+18095550123";
-  const whatsapp = "18095550123";
 
   return (
     <div className="modal-backdrop fixed inset-0 z-50 flex animate-in fade-in-0 duration-200 items-end justify-center">
@@ -31,9 +21,9 @@ export const StoreDetailModal: React.FC<StoreDetailProps> = ({ isOpen, onClose, 
               <Store className="h-5 w-5" />
             </div>
             <div>
-              <p className="section-label">Proveedor verificado</p>
+              <p className="section-label">Proveedor visible</p>
               <h3 className="font-display text-base font-semibold text-foreground">Detalle de proveedor</h3>
-              <p className="mt-1 text-xs text-muted-foreground">Información comercial y cobertura de despacho.</p>
+              <p className="mt-1 text-xs text-muted-foreground">Información comercial real disponible en el perfil público.</p>
             </div>
           </div>
           <Button variant="outline" size="icon" onClick={onClose} aria-label="Cerrar">
@@ -54,11 +44,12 @@ export const StoreDetailModal: React.FC<StoreDetailProps> = ({ isOpen, onClose, 
               </div>
               <p className="flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
                 <MapPin className="h-4 w-4 text-primary" />
-                {store.sector}, Santo Domingo Este
+                {store.sector ? `${store.sector}, Santo Domingo Este` : "Sector pendiente de completar"}
               </p>
               <span className="data-chip data-chip-accent">
-                <Star className="h-3.5 w-3.5 fill-current" />{store.rating}
-                <span className="text-muted-foreground">({store.reviewsCount} opiniones)</span>
+                <Star className="h-3.5 w-3.5 fill-current" />
+                {store.rating ? store.rating.toFixed(1) : "Sin rating"}
+                <span className="text-muted-foreground">({store.reviewsCount ?? 0} opiniones)</span>
               </span>
             </div>
           </div>
@@ -68,35 +59,26 @@ export const StoreDetailModal: React.FC<StoreDetailProps> = ({ isOpen, onClose, 
               <Truck className="h-4 w-4 text-primary" />Cobertura de entrega
             </h5>
             <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-              Este proveedor realiza despachos directos en los siguientes sectores de Santo Domingo Este.
+              Solo se muestran zonas realmente configuradas en el perfil público del proveedor.
             </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {store.deliveryCoverage.map((coverage, index) => (
-                <span key={index} className="data-chip">
-                  {coverage}
-                </span>
-              ))}
-            </div>
+            {store.deliveryCoverage.length > 0 ? (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {store.deliveryCoverage.map((coverage) => (
+                  <span key={coverage} className="data-chip">
+                    {coverage}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-muted-foreground">Esta ferretería todavía no ha configurado su cobertura.</p>
+            )}
           </div>
 
-          <div className="space-y-3">
-            <p className="section-label">Canales de contacto</p>
-            <div className="grid grid-cols-2 gap-3">
-              <a
-                href={`tel:${phone}`}
-                className="font-display inline-flex min-h-[48px] items-center justify-center gap-2 rounded-2xl border border-border bg-card px-4 py-3 text-sm font-semibold text-foreground transition-[transform,background-color,border-color] duration-200 hover:-translate-y-0.5 hover:bg-[hsl(var(--surface-2))]"
-              >
-                <Phone className="h-4 w-4 text-primary" />Llamar
-              </a>
-              <a
-                href={`https://wa.me/${whatsapp}?text=Hola%20${encodeURIComponent(store.name)},%20vi%20su%20perfil%20en%20PIDO%20y%20me%20gustaría%20cotizar%20unos%20materiales.`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-display inline-flex min-h-[48px] items-center justify-center gap-2 rounded-2xl border border-transparent bg-[hsl(var(--success))] px-4 py-3 text-sm font-semibold text-[hsl(var(--success-foreground))] transition-[transform,opacity] duration-200 hover:-translate-y-0.5 hover:opacity-90"
-              >
-                <MessageSquare className="h-4 w-4" />WhatsApp
-              </a>
-            </div>
+          <div className="panel-strong rounded-[1.5rem] p-4">
+            <p className="section-label">Contacto</p>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              Esta versión de producción ya no muestra teléfonos o WhatsApp inventados. Cuando el esquema incorpore datos de contacto reales, aparecerán aquí.
+            </p>
           </div>
 
           <Button type="button" variant="outline" onClick={onClose} className="w-full justify-center">

@@ -1,5 +1,6 @@
-import React, { useState } from "react";
-import { ArrowRight, Calendar, ClipboardList, Eye, EyeOff, MapPin, Package, Plus, Settings, Store } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { ArrowRight, Calendar, ClipboardList, Eye, EyeOff, MapPin, Package, Plus, Settings, Store, TriangleAlert } from "lucide-react";
 import BidComparisonModal from "@/components/bids/BidComparisonModal";
 import CreateBidModal from "@/components/bids/CreateBidModal";
 import { useSessionContext } from "@/components/auth/SessionContext";
@@ -10,16 +11,29 @@ import StoreDetailModal from "@/components/ferreteria/StoreDetailModal";
 import BottomNav from "@/components/layout/BottomNav";
 import Header from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
-import { BidRequest, HardwareStore, mockBidRequests, mockHardwareStores } from "@/lib/mockData";
+import { useBidRequests } from "@/hooks/useBidRequests";
+import { useMarketplaceStores } from "@/hooks/useMarketplaceStores";
+import { BidRequest, HardwareStore } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { showError, showSuccess } from "@/utils/toast";
 
-const Index = () => {
-  const { profile, signOut, updateProfile } = useSessionContext();
-  const role = profile?.user_type === "hardware" ? "hardware" : "engineer";
+const EmptyState = ({ icon: Icon, title, description, action }: { icon: React.ElementType; title: string; description: string; action?: React.ReactNode }) => (
+  <section className="panel-muted rounded-[1.8rem] border-dashed p-8 text-center">
+    <div className="panel-strong mx-auto flex h-16 w-16 items-center justify-center rounded-[1.4rem] bg-[hsl(var(--surface-1))]">
+      <Icon className="h-8 w-8 text-muted-foreground" />
+    </div>
+    <h3 className="font-display mt-4 text-base font-semibold text-foreground">{title}</h3>
+    <p className="mx-auto mt-2 max-w-[280px] text-sm leading-relaxed text-muted-foreground">{description}</p>
+    {action ? <div className="mt-5">{action}</div> : null}
+  </section>
+);
 
-  const [activeTab, setActiveTab] = useState<string>("bids");
-  const [bidRequests, setBidRequests] = useState<BidRequest[]>(mockBidRequests);
+const Index = () => {
+  const { profile, user, signOut, updateProfile } = useSessionContext();
+  const role = profile?.user_type === "hardware" ? "hardware" : "engineer";
+  const [searchParams] = useSearchParams();
+
+  const [activeTab, setActiveTab] = useState<string>(searchParams.get("tab") || "bids");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedRequestForBid, setSelectedRequestForBid] = useState<BidRequest | null>(null);
   const [isBidModalOpen, setIsBidModalOpen] = useState(false);
@@ -30,9 +44,43 @@ const Index = () => {
   const [selectedStore, setSelectedStore] = useState<HardwareStore | null>(null);
   const [isStoreDetailOpen, setIsStoreDetailOpen] = useState(false);
 
-  const handlePublishBid = (newRequest: BidRequest) => {
-    setBidRequests([newRequest, ...bidRequests]);
-  };
+  const bidRequestsQuery = useBidRequests();
+  const marketplaceStoresQuery = useMarketplaceStores();
+
+  const bidRequests = bidRequestsQuery.data ?? [];
+  const marketplaceStores = marketplaceStoresQuery.data ?? [];
+
+  const engineerRequests = useMemo(
+    () => bidRequests.filter((request) => request.ownerUserId === user?.id),
+    [bidRequests, user?.id],
+  );
+  const hardwareOpportunities = useMemo(
+    () => bidRequests.filter((request) => request.status === "active" && request.ownerUserId !== user?.id),
+    [bidRequests, user?.id],
+  );
+  const orders = useMemo(
+    () => (role === "engineer" ? engineerRequests : bidRequests).filter((request) => request.status === "completed"),
+    [bidRequests, engineerRequests, role],
+  );
+
+  useEffect(() => {
+    const nextTab = searchParams.get("tab");
+    if (nextTab) {
+      setActiveTab(nextTab);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const requestId = searchParams.get("requestId");
+    const tab = searchParams.get("tab");
+    if (!requestId || tab !== "bids" || bidRequests.length === 0 || role !== "engineer") return;
+
+    const request = engineerRequests.find((item) => item.id === requestId);
+    if (request) {
+      setSelectedRequestForComparison(request);
+      setIsComparisonModalOpen(true);
+    }
+  }, [bidRequests.length, engineerRequests, role, searchParams]);
 
   const handleOpenBidModal = (request: BidRequest) => {
     setSelectedRequestForBid(request);
@@ -42,40 +90,6 @@ const Index = () => {
   const handleOpenComparisonModal = (request: BidRequest) => {
     setSelectedRequestForComparison(request);
     setIsComparisonModalOpen(true);
-  };
-
-  const handleSubmitBid = (requestId: string) => {
-    setBidRequests((prev) =>
-      prev.map((request) => (request.id === requestId ? { ...request, bidsCount: request.bidsCount + 1 } : request)),
-    );
-  };
-
-  const handleCompleteOrder = (requestId: string) => {
-    setBidRequests((prev) =>
-      prev.map((request) => (request.id === requestId ? { ...request, status: "completed" } : request)),
-    );
-  };
-
-  const getHardwareStores = (): HardwareStore[] => {
-    const stores = [...mockHardwareStores];
-
-    if (profile?.user_type === "hardware" && profile.is_public) {
-      const userStore: HardwareStore = {
-        id: profile.id,
-        name: profile.store_name || profile.full_name || "Mi Ferretería",
-        rating: profile.rating || 5,
-        reviewsCount: profile.reviews_count || 0,
-        sector: profile.sector || "Alma Rosa I",
-        deliveryCoverage: profile.delivery_coverage || ["Alma Rosa I"],
-        isVerified: true,
-      };
-
-      if (!stores.some((store) => store.id === profile.id)) {
-        stores.unshift(userStore);
-      }
-    }
-
-    return stores;
   };
 
   const handleOpenStoreDetail = (store: HardwareStore) => {
@@ -99,49 +113,81 @@ const Index = () => {
     }
   };
 
-  const renderContent = () => {
-    if (role === "hardware" && activeTab === "bids") {
-      return <OpportunityFeed requests={bidRequests} onOpenBidModal={handleOpenBidModal} />;
+  const renderBidRequestsBlock = () => {
+    if (role === "hardware") {
+      if (bidRequestsQuery.isLoading) {
+        return <div className="space-y-3">{Array.from({ length: 2 }).map((_, index) => <div key={index} className="app-shell h-44 animate-pulse p-5" />)}</div>;
+      }
+
+      if (bidRequestsQuery.error) {
+        return (
+          <EmptyState
+            icon={TriangleAlert}
+            title="No pudimos cargar oportunidades"
+            description="Hubo un problema al consultar las solicitudes activas. Intenta refrescar la vista más tarde."
+          />
+        );
+      }
+
+      return <OpportunityFeed requests={hardwareOpportunities} onOpenBidModal={handleOpenBidModal} />;
     }
 
-    switch (activeTab) {
-      case "bids":
-        return (
-          <div className="space-y-4">
-            <div className="flex items-end justify-between gap-3">
-              <div>
-                <p className="section-label">Centro de subastas</p>
-                <h2 className="font-display text-lg font-semibold text-foreground">Solicitudes activas</h2>
-                <p className="mt-1 max-w-[260px] text-sm leading-relaxed text-muted-foreground">
-                  Gestiona pedidos y compara ofertas por ítem con una experiencia más clara y fluida.
-                </p>
-              </div>
-              {role === "engineer" && (
-                <Button onClick={() => setIsCreateModalOpen(true)} className="shrink-0">
-                  <Plus className="h-4 w-4" />Cotizar
-                </Button>
-              )}
-            </div>
+    return (
+      <div className="space-y-4">
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <p className="section-label">Centro de subastas</p>
+            <h2 className="font-display text-lg font-semibold text-foreground">Solicitudes activas</h2>
+            <p className="mt-1 max-w-[260px] text-sm leading-relaxed text-muted-foreground">
+              Publica pedidos reales y compara ofertas persistidas en Supabase.
+            </p>
+          </div>
+          <Button onClick={() => setIsCreateModalOpen(true)} className="shrink-0">
+            <Plus className="h-4 w-4" />Cotizar
+          </Button>
+        </div>
 
-            <div className="space-y-3">
-              {bidRequests.map((request) => (
-                <article key={request.id} className="app-shell interactive-card p-5">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="data-chip data-chip-accent">{request.category}</span>
-                    <span className={cn("data-chip", request.status === "completed" ? "" : "data-chip-success")}>
-                      {request.status === "completed" ? "Compra finalizada" : `${request.bidsCount} ofertas`}
-                    </span>
-                  </div>
+        {bidRequestsQuery.isLoading ? (
+          <div className="space-y-3">{Array.from({ length: 3 }).map((_, index) => <div key={index} className="app-shell h-56 animate-pulse p-5" />)}</div>
+        ) : bidRequestsQuery.error ? (
+          <EmptyState
+            icon={TriangleAlert}
+            title="No pudimos cargar tus solicitudes"
+            description="Ocurrió un problema consultando la base de datos. Vuelve a intentarlo en unos momentos."
+            action={<Button onClick={() => setIsCreateModalOpen(true)}>Crear solicitud</Button>}
+          />
+        ) : engineerRequests.length === 0 ? (
+          <EmptyState
+            icon={ClipboardList}
+            title="Aún no has creado solicitudes"
+            description="Publica tu primera solicitud para empezar a recibir ofertas reales de ferreterías activas."
+            action={
+              <Button onClick={() => setIsCreateModalOpen(true)}>
+                <Plus className="h-4 w-4" />Crear solicitud
+              </Button>
+            }
+          />
+        ) : (
+          <div className="space-y-3">
+            {engineerRequests.map((request) => (
+              <article key={request.id} className="app-shell interactive-card p-5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="data-chip data-chip-accent">{request.category}</span>
+                  <span className={cn("data-chip", request.status === "completed" ? "" : "data-chip-success")}>
+                    {request.status === "completed" ? "Compra finalizada" : `${request.bidsCount} ofertas`}
+                  </span>
+                </div>
 
-                  <h3 className="font-display mt-4 text-base font-semibold text-foreground">{request.title}</h3>
+                <h3 className="font-display mt-4 text-base font-semibold text-foreground">{request.title}</h3>
 
-                  <div className="panel-muted my-4 p-4">
-                    <p className="section-label flex items-center gap-1.5 text-[10px]">
-                      <Package className="h-3.5 w-3.5 text-primary" />Materiales solicitados ({request.itemsCount})
-                    </p>
+                <div className="panel-muted my-4 p-4">
+                  <p className="section-label flex items-center gap-1.5 text-[10px]">
+                    <Package className="h-3.5 w-3.5 text-primary" />Materiales solicitados ({request.itemsCount})
+                  </p>
+                  {request.items.length > 0 ? (
                     <ul className="mt-3 space-y-2">
-                      {request.items.map((item, index) => (
-                        <li key={index} className="flex items-center justify-between gap-3 border-b border-border/70 pb-2 last:border-b-0 last:pb-0">
+                      {request.items.map((item) => (
+                        <li key={item.id ?? item.name} className="flex items-center justify-between gap-3 border-b border-border/70 pb-2 last:border-b-0 last:pb-0">
                           <span className="text-sm text-foreground">{item.name}</span>
                           <span className="mono-data text-xs text-muted-foreground">
                             {item.quantity} {item.unit}
@@ -149,251 +195,307 @@ const Index = () => {
                         </li>
                       ))}
                     </ul>
-                  </div>
+                  ) : (
+                    <p className="mt-3 text-sm text-muted-foreground">Esta solicitud todavía no tiene ítems visibles.</p>
+                  )}
+                </div>
 
-                  <div className="space-y-2 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-primary" />
-                      <span className="truncate">{request.deliveryAddress}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-primary" />
-                      <span>Expira: {new Date(request.expiresAt).toLocaleDateString("es-DO")}</span>
-                    </div>
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-primary" />
+                    <span className="truncate">{request.deliveryAddress}</span>
                   </div>
-
-                  <div className="mt-4 flex items-end justify-between gap-4 border-t border-border/80 pt-4">
-                    <div>
-                      <p className="section-label">Presupuesto máximo</p>
-                      <p className="mono-data mt-1 text-base font-semibold text-foreground">
-                        {request.budgetLimit ? `RD$ ${request.budgetLimit.toLocaleString()}` : "A cotizar"}
-                      </p>
-                    </div>
-                    {request.status !== "completed" && role === "engineer" && (
-                      <Button variant="ghost" onClick={() => handleOpenComparisonModal(request)} className="px-1 text-primary hover:bg-transparent">
-                        Ver detalles
-                        <ArrowRight className="h-4 w-4" />
-                      </Button>
-                    )}
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-primary" />
+                    <span>Expira: {new Date(request.expiresAt).toLocaleDateString("es-DO")}</span>
                   </div>
-                </article>
-              ))}
-            </div>
-          </div>
-        );
+                </div>
 
-      case "market":
-        if (role === "hardware") {
-          return (
-            <div className="space-y-4">
-              <section className="app-shell p-5">
-                <div className="flex items-start justify-between gap-3">
+                <div className="mt-4 flex items-end justify-between gap-4 border-t border-border/80 pt-4">
                   <div>
-                    <p className="section-label">Mi empresa</p>
-                    <h2 className="font-display mt-2 text-lg font-semibold text-foreground">
-                      {profile?.store_name || profile?.full_name || "Mi Ferretería"}
-                    </h2>
-                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                      Administra cómo te ven los compradores dentro del mercado con una presencia más clara y confiable.
+                    <p className="section-label">Presupuesto máximo</p>
+                    <p className="mono-data mt-1 text-base font-semibold text-foreground">
+                      {request.budgetLimit ? `RD$ ${request.budgetLimit.toLocaleString()}` : "Sin tope definido"}
                     </p>
                   </div>
-                  <Button variant="outline" onClick={() => setIsProfileModalOpen(true)}>
-                    <Settings className="h-4 w-4" />Editar
-                  </Button>
+                  {request.status !== "completed" && (
+                    <Button variant="ghost" onClick={() => handleOpenComparisonModal(request)} className="px-1 text-primary hover:bg-transparent">
+                      Ver detalles
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
-
-                <div className="mt-5 grid grid-cols-2 gap-3">
-                  <div className="panel-muted p-4">
-                    <p className="section-label">Sector principal</p>
-                    <p className="mt-2 text-sm font-semibold text-foreground">{profile?.sector || "Sin definir"}</p>
-                  </div>
-                  <div className="panel-muted p-4">
-                    <p className="section-label">Cobertura</p>
-                    <p className="mt-2 text-sm font-semibold text-foreground">{profile?.delivery_coverage?.length || 0} zonas</p>
-                  </div>
-                </div>
-              </section>
-
-              <section className="app-shell p-5">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-start gap-3">
-                    <div
-                      className={cn(
-                        "flex h-12 w-12 items-center justify-center rounded-[1.15rem]",
-                        profile?.is_public ? "bg-[hsl(var(--success)/0.14)] text-[hsl(var(--success))]" : "bg-muted text-muted-foreground",
-                      )}
-                    >
-                      {profile?.is_public ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
-                    </div>
-                    <div>
-                      <h3 className="font-display text-base font-semibold text-foreground">Visibilidad del perfil</h3>
-                      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                        {profile?.is_public
-                          ? "Tu empresa aparece en Mercado para usuarios cliente."
-                          : "Tu empresa está oculta de la lista pública."}
-                      </p>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleToggleCompanyVisibility}
-                    disabled={isUpdatingVisibility}
-                    className={cn(
-                      "toggle-track shrink-0",
-                      profile?.is_public ? "border-primary/20 bg-[hsl(var(--primary)/0.16)]" : "border-border bg-muted",
-                      isUpdatingVisibility && "opacity-70",
-                    )}
-                    aria-label="Cambiar visibilidad del perfil"
-                  >
-                    <span className={cn("toggle-thumb", profile?.is_public ? "translate-x-7" : "translate-x-0")} />
-                  </button>
-                </div>
-
-                <div className="panel-muted mt-5 p-4">
-                  <p className="section-label">Perfil público</p>
-                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                    Edita tu nombre comercial, sector, cobertura y estado público o privado desde un solo panel.
-                  </p>
-                  <Button onClick={() => setIsProfileModalOpen(true)} className="mt-4 w-full justify-center">
-                    <Store className="h-4 w-4" />Abrir perfil de empresa
-                  </Button>
-                </div>
-              </section>
-            </div>
-          );
-        }
-
-        return (
-          <div className="space-y-4">
-            <div>
-              <p className="section-label">Mercado</p>
-              <h2 className="font-display text-lg font-semibold text-foreground">Ferreterías aliadas</h2>
-              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                Proveedores verificados con cobertura en la zona oriental y una presentación más fácil de escanear.
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              {getHardwareStores().map((store) => (
-                <article
-                  key={store.id}
-                  onClick={() => handleOpenStoreDetail(store)}
-                  className="app-shell interactive-card cursor-pointer p-5"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-display text-base font-semibold text-foreground">{store.name}</h3>
-                        {store.isVerified && <span className="data-chip data-chip-accent">Verificado</span>}
-                      </div>
-                      <p className="mt-1 text-sm text-muted-foreground">{store.sector}, SDE</p>
-                    </div>
-                    <span className="data-chip data-chip-accent">★ {store.rating}</span>
-                  </div>
-
-                  <div className="mt-4 border-t border-border/80 pt-4">
-                    <p className="section-label">Cobertura de entrega</p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {store.deliveryCoverage.map((coverage, index) => (
-                        <span key={index} className="data-chip">{coverage}</span>
-                      ))}
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
+              </article>
+            ))}
           </div>
-        );
+        )}
+      </div>
+    );
+  };
 
-      case "orders":
-        return (
-          <section className="panel-muted rounded-[1.8rem] border-dashed p-8 text-center">
-            <div className="panel-strong mx-auto flex h-16 w-16 items-center justify-center rounded-[1.4rem] bg-[hsl(var(--surface-1))]">
-              <ClipboardList className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <h3 className="font-display mt-4 text-base font-semibold text-foreground">No tienes pedidos en curso</h3>
-            <p className="mx-auto mt-2 max-w-[260px] text-sm leading-relaxed text-muted-foreground">
-              Cuando ganes una subasta o aceptes una oferta, los pedidos aparecerán aquí con su estado consolidado.
-            </p>
-          </section>
-        );
-
-      case "account":
-        return (
+  const renderMarketBlock = () => {
+    if (role === "hardware") {
+      return (
+        <div className="space-y-4">
           <section className="app-shell p-5">
-            <div className="flex items-center gap-3 border-b border-border/80 pb-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-[1.25rem] bg-[hsl(var(--primary)/0.14)] font-display text-lg font-semibold text-[hsl(var(--warning-foreground))]">
-                {role === "engineer" ? "I" : "F"}
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="section-label">Mi empresa</p>
+                <h2 className="font-display mt-2 text-lg font-semibold text-foreground">{profile?.store_name || profile?.full_name || "Perfil comercial pendiente"}</h2>
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                  Administra cómo te ven los compradores dentro del mercado con datos reales y configuración controlada.
+                </p>
+              </div>
+              <Button variant="outline" onClick={() => setIsProfileModalOpen(true)}>
+                <Settings className="h-4 w-4" />Editar
+              </Button>
+            </div>
+
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <div className="panel-muted p-4">
+                <p className="section-label">Sector principal</p>
+                <p className="mt-2 text-sm font-semibold text-foreground">{profile?.sector || "Pendiente"}</p>
+              </div>
+              <div className="panel-muted p-4">
+                <p className="section-label">Cobertura</p>
+                <p className="mt-2 text-sm font-semibold text-foreground">{profile?.delivery_coverage?.length || 0} zonas</p>
+              </div>
+            </div>
+          </section>
+
+          <section className="app-shell p-5">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div
+                  className={cn(
+                    "flex h-12 w-12 items-center justify-center rounded-[1.15rem]",
+                    profile?.is_public ? "bg-[hsl(var(--success)/0.14)] text-[hsl(var(--success))]" : "bg-muted text-muted-foreground",
+                  )}
+                >
+                  {profile?.is_public ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
+                </div>
+                <div>
+                  <h3 className="font-display text-base font-semibold text-foreground">Visibilidad del perfil</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                    {profile?.is_public ? "Tu empresa aparece en Mercado para usuarios cliente." : "Tu empresa está oculta de la lista pública."}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleToggleCompanyVisibility}
+                disabled={isUpdatingVisibility}
+                className={cn(
+                  "toggle-track shrink-0",
+                  profile?.is_public ? "border-primary/20 bg-[hsl(var(--primary)/0.16)]" : "border-border bg-muted",
+                  isUpdatingVisibility && "opacity-70",
+                )}
+                aria-label="Cambiar visibilidad del perfil"
+              >
+                <span className={cn("toggle-thumb", profile?.is_public ? "translate-x-7" : "translate-x-0")} />
+              </button>
+            </div>
+
+            <div className="panel-muted mt-5 p-4">
+              <p className="section-label">Perfil público</p>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                Completa tu nombre comercial, sector y cobertura para mejorar tu presencia en el marketplace.
+              </p>
+              <Button onClick={() => setIsProfileModalOpen(true)} className="mt-4 w-full justify-center">
+                <Store className="h-4 w-4" />Abrir perfil de empresa
+              </Button>
+            </div>
+          </section>
+        </div>
+      );
+    }
+
+    if (marketplaceStoresQuery.isLoading) {
+      return <div className="space-y-3">{Array.from({ length: 3 }).map((_, index) => <div key={index} className="app-shell h-40 animate-pulse p-5" />)}</div>;
+    }
+
+    if (marketplaceStoresQuery.error) {
+      return <EmptyState icon={TriangleAlert} title="No pudimos cargar el marketplace" description="Ocurrió un problema consultando las ferreterías públicas." />;
+    }
+
+    if (marketplaceStores.length === 0) {
+      return (
+        <EmptyState
+          icon={Store}
+          title="Todavía no hay ferreterías públicas"
+          description="Cuando los proveedores completen su perfil y activen visibilidad pública, aparecerán aquí automáticamente."
+          action={<Button variant="outline" onClick={() => setActiveTab("bids")}>Volver a subastas</Button>}
+        />
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        <div>
+          <p className="section-label">Mercado</p>
+          <h2 className="font-display text-lg font-semibold text-foreground">Ferreterías aliadas</h2>
+          <p className="mt-1 text-sm leading-relaxed text-muted-foreground">Directorio público alimentado solo por perfiles reales visibles.</p>
+        </div>
+
+        <div className="space-y-3">
+          {marketplaceStores.map((store) => (
+            <article key={store.id} onClick={() => handleOpenStoreDetail(store)} className="app-shell interactive-card cursor-pointer p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-display text-base font-semibold text-foreground">{store.name}</h3>
+                    {store.isVerified && <span className="data-chip data-chip-accent">Visible</span>}
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">{store.sector || "Sector pendiente"}</p>
+                </div>
+                <span className="data-chip data-chip-accent">{store.rating ? `★ ${store.rating.toFixed(1)}` : "Sin rating"}</span>
+              </div>
+
+              <div className="mt-4 border-t border-border/80 pt-4">
+                <p className="section-label">Cobertura de entrega</p>
+                {store.deliveryCoverage.length > 0 ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {store.deliveryCoverage.map((coverage) => (
+                      <span key={coverage} className="data-chip">{coverage}</span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-3 text-sm text-muted-foreground">Esta ferretería aún no ha definido su cobertura.</p>
+                )}
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderOrdersBlock = () => {
+    if (orders.length === 0) {
+      return (
+        <EmptyState
+          icon={ClipboardList}
+          title="No tienes pedidos finalizados"
+          description="Cuando una compra se marque como finalizada, aparecerá aquí con su historial consolidado."
+        />
+      );
+    }
+
+    return (
+      <div className="space-y-3">
+        <div>
+          <p className="section-label">Pedidos</p>
+          <h2 className="font-display text-lg font-semibold text-foreground">Historial finalizado</h2>
+        </div>
+
+        {orders.map((request) => (
+          <article key={request.id} className="app-shell p-5">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="font-display text-base font-semibold text-foreground">{request.title}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">{request.category}</p>
+              </div>
+              <span className="data-chip">Completado</span>
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-muted-foreground">
+              <div className="panel-muted p-3">
+                <p className="section-label">Entrega</p>
+                <p className="mt-1 text-foreground">{request.deliveryAddress}</p>
+              </div>
+              <div className="panel-muted p-3">
+                <p className="section-label">Ofertas recibidas</p>
+                <p className="mt-1 text-foreground">{request.bidsCount}</p>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    );
+  };
+
+  const renderAccountBlock = () => {
+    const displayName = profile?.store_name || profile?.full_name || "Perfil pendiente";
+    const initials = displayName.trim().slice(0, 1).toUpperCase() || "?";
+    const isIncomplete = !profile?.full_name || !profile?.document_id || !profile?.user_type || (role === "hardware" && !profile?.sector);
+
+    return (
+      <section className="app-shell p-5">
+        <div className="flex items-center gap-3 border-b border-border/80 pb-4">
+          <div className="flex h-14 w-14 items-center justify-center rounded-[1.25rem] bg-[hsl(var(--primary)/0.14)] font-display text-lg font-semibold text-[hsl(var(--warning-foreground))]">
+            {initials}
+          </div>
+          <div>
+            <h3 className="font-display text-base font-semibold text-foreground">{displayName}</h3>
+            <p className="text-sm text-muted-foreground">{role === "engineer" ? "Comprador profesional" : "Proveedor en marketplace"}</p>
+            {profile?.document_id ? <p className="mono-data mt-1 text-xs text-muted-foreground">Doc: {profile.document_id}</p> : null}
+          </div>
+        </div>
+
+        {isIncomplete ? (
+          <div className="panel-muted mt-4 p-4">
+            <p className="font-display text-sm font-semibold text-foreground">Perfil incompleto</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              Completa tu información para evitar espacios vacíos en tu experiencia productiva.
+            </p>
+            {role === "hardware" ? (
+              <Button variant="outline" onClick={() => setIsProfileModalOpen(true)} className="mt-4 w-full">
+                Completar perfil de empresa
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
+
+        {profile?.user_type === "hardware" && (
+          <div className="panel-muted mt-4 flex items-center justify-between p-4">
+            <div className="flex items-center gap-3">
+              <div className={cn("flex h-10 w-10 items-center justify-center rounded-[1rem]", profile.is_public ? "bg-[hsl(var(--success)/0.14)] text-[hsl(var(--success))]" : "bg-muted text-muted-foreground")}>
+                {profile.is_public ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
               </div>
               <div>
-                <h3 className="font-display text-base font-semibold text-foreground">
-                  {profile?.store_name || profile?.full_name || (role === "engineer" ? "Constructora SDE S.R.L." : "Ferretería El Progreso SDE")}
-                </h3>
-                <p className="text-sm text-muted-foreground">{role === "engineer" ? "Comprador profesional" : "Vendedor verificado"}</p>
-                {profile?.document_id && <p className="mono-data mt-1 text-xs text-muted-foreground">Doc: {profile.document_id}</p>}
+                <p className="font-display text-sm font-semibold text-foreground">Estado del perfil</p>
+                <p className="text-xs text-muted-foreground">{profile.is_public ? "Público · visible en Mercado" : "Privado · oculto para clientes"}</p>
               </div>
             </div>
+            <span className={cn("data-chip", profile.is_public ? "data-chip-success" : "")}>{profile.is_public ? "Público" : "Privado"}</span>
+          </div>
+        )}
 
-            {profile?.user_type === "hardware" && (
-              <div className="panel-muted mt-4 flex items-center justify-between p-4">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={cn(
-                      "flex h-10 w-10 items-center justify-center rounded-[1rem]",
-                      profile.is_public ? "bg-[hsl(var(--success)/0.14)] text-[hsl(var(--success))]" : "bg-muted text-muted-foreground",
-                    )}
-                  >
-                    {profile.is_public ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                  </div>
-                  <div>
-                    <p className="font-display text-sm font-semibold text-foreground">Estado del perfil</p>
-                    <p className="text-xs text-muted-foreground">
-                      {profile.is_public ? "Público · visible en Mercado" : "Privado · oculto para clientes"}
-                    </p>
-                  </div>
-                </div>
-                <span className={cn("data-chip", profile.is_public ? "data-chip-success" : "")}>{profile.is_public ? "Público" : "Privado"}</span>
-              </div>
-            )}
+        <div className="mt-4 space-y-2">
+          {profile?.user_type === "hardware" ? (
+            <button
+              onClick={() => setIsProfileModalOpen(true)}
+              className="interactive-row flex min-h-[48px] w-full items-center gap-2 rounded-[1.1rem] px-4 py-3 text-left text-sm text-foreground hover:bg-[hsl(var(--surface-2))]"
+            >
+              <Settings className="h-4 w-4 text-primary" />Configurar mi ferretería
+            </button>
+          ) : null}
+          <button
+            onClick={() => role === "hardware" && setActiveTab("market")}
+            className="interactive-row flex min-h-[48px] w-full items-center rounded-[1.1rem] px-4 py-3 text-left text-sm text-foreground hover:bg-[hsl(var(--surface-2))]"
+          >
+            Mi perfil de empresa
+          </button>
+          <button onClick={signOut} className="interactive-row flex min-h-[48px] w-full items-center rounded-[1.1rem] px-4 py-3 text-left text-sm text-destructive hover:bg-destructive/10">
+            Cerrar sesión
+          </button>
+        </div>
+      </section>
+    );
+  };
 
-            <div className="mt-4 space-y-2">
-              {profile?.user_type === "hardware" && (
-                <button
-                  onClick={() => setIsProfileModalOpen(true)}
-                  className="interactive-row flex min-h-[48px] w-full items-center gap-2 rounded-[1.1rem] px-4 py-3 text-left text-sm text-foreground hover:bg-[hsl(var(--surface-2))]"
-                >
-                  <Settings className="h-4 w-4 text-primary" />Configurar mi ferretería
-                </button>
-              )}
-              <button
-                onClick={() => role === "hardware" && setActiveTab("market")}
-                className="interactive-row flex min-h-[48px] w-full items-center rounded-[1.1rem] px-4 py-3 text-left text-sm text-foreground hover:bg-[hsl(var(--surface-2))]"
-              >
-                Mi perfil de empresa
-              </button>
-              {role === "engineer" && (
-                <>
-                  <button className="interactive-row flex min-h-[48px] w-full items-center rounded-[1.1rem] px-4 py-3 text-left text-sm text-foreground hover:bg-[hsl(var(--surface-2))]">
-                    Historial de subastas
-                  </button>
-                  <button className="interactive-row flex min-h-[48px] w-full items-center rounded-[1.1rem] px-4 py-3 text-left text-sm text-foreground hover:bg-[hsl(var(--surface-2))]">
-                    Métodos de pago
-                  </button>
-                </>
-              )}
-              <button
-                onClick={signOut}
-                className="interactive-row flex min-h-[48px] w-full items-center rounded-[1.1rem] px-4 py-3 text-left text-sm text-destructive hover:bg-destructive/10"
-              >
-                Cerrar sesión
-              </button>
-            </div>
-          </section>
-        );
-
+  const renderContent = () => {
+    switch (activeTab) {
+      case "bids":
+        return renderBidRequestsBlock();
+      case "market":
+        return renderMarketBlock();
+      case "orders":
+        return renderOrdersBlock();
+      case "account":
+        return renderAccountBlock();
       default:
-        return null;
+        return renderBidRequestsBlock();
     }
   };
 
@@ -406,19 +508,9 @@ const Index = () => {
 
         <BottomNav role={role} activeTab={activeTab} setActiveTab={setActiveTab} />
 
-        <CreateBidModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} onPublish={handlePublishBid} />
-        <BidFormModal
-          isOpen={isBidModalOpen}
-          onClose={() => setIsBidModalOpen(false)}
-          request={selectedRequestForBid}
-          onSubmitBid={handleSubmitBid}
-        />
-        <BidComparisonModal
-          isOpen={isComparisonModalOpen}
-          onClose={() => setIsComparisonModalOpen(false)}
-          request={selectedRequestForComparison}
-          onCompleteOrder={handleCompleteOrder}
-        />
+        <CreateBidModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
+        <BidFormModal isOpen={isBidModalOpen} onClose={() => setIsBidModalOpen(false)} request={selectedRequestForBid} />
+        <BidComparisonModal isOpen={isComparisonModalOpen} onClose={() => setIsComparisonModalOpen(false)} request={selectedRequestForComparison} />
         <ProviderProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
         <StoreDetailModal isOpen={isStoreDetailOpen} onClose={() => setIsStoreDetailOpen(false)} store={selectedStore} />
       </div>

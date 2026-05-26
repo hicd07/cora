@@ -8,6 +8,7 @@ import { ThemeProvider } from "./components/theme/ThemeProvider";
 import Auth from "./pages/Auth";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import Notifications from "./pages/Notifications";
 
 const queryClient = new QueryClient();
 
@@ -26,21 +27,10 @@ const FullScreenLoader = () => (
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { session, profile, loading } = useSessionContext();
 
-  if (loading) {
-    return <FullScreenLoader />;
-  }
-
-  if (!session) {
-    return <Navigate to="/auth" replace />;
-  }
-
-  if (!profile) {
-    return <FullScreenLoader />;
-  }
-
-  if (!profile.onboarded) {
-    return <Navigate to="/auth" replace />;
-  }
+  if (loading) return <FullScreenLoader />;
+  if (!session) return <Navigate to="/auth" replace />;
+  if (!profile) return <FullScreenLoader />;
+  if (!profile.onboarded) return <Navigate to="/auth" replace />;
 
   return <>{children}</>;
 };
@@ -48,13 +38,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const AuthRoute = () => {
   const { session, profile, loading } = useSessionContext();
 
-  if (loading) {
-    return <FullScreenLoader />;
-  }
-
-  if (session && profile?.onboarded) {
-    return <Navigate to="/" replace />;
-  }
+  if (loading) return <FullScreenLoader />;
+  if (session && profile?.onboarded) return <Navigate to="/" replace />;
 
   return <Auth />;
 };
@@ -66,6 +51,14 @@ const AppRoutes = () => (
       element={
         <ProtectedRoute>
           <Index />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/notifications"
+      element={
+        <ProtectedRoute>
+          <Notifications />
         </ProtectedRoute>
       }
     />

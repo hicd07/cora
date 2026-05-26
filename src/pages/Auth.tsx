@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Check, FileText, HardHat, Lock, LogIn, Mail, Moon, ShieldCheck, Store, SunMedium, Truck, User, UserPlus } from "lucide-react";
+import { FileText, HardHat, Lock, LogIn, Mail, Moon, ShieldCheck, Store, SunMedium, Truck, User, UserPlus } from "lucide-react";
 import { useSessionContext } from "@/components/auth/SessionContext";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { Button } from "@/components/ui/button";
@@ -10,21 +10,9 @@ import { cn } from "@/lib/utils";
 import { dismissToast, showError, showLoading, showSuccess } from "@/utils/toast";
 
 const featureHighlights = [
-  {
-    title: "Comparación por ítem",
-    description: "Evalúa precios, disponibilidad y entrega desde una sola vista.",
-    icon: HardHat,
-  },
-  {
-    title: "Proveedores verificados",
-    description: "Trabaja con ferreterías activas en Santo Domingo Este.",
-    icon: ShieldCheck,
-  },
-  {
-    title: "Despachos por zona",
-    description: "Organiza compras y cobertura comercial con claridad.",
-    icon: Truck,
-  },
+  { title: "Comparación por ítem", description: "Evalúa precios, disponibilidad y entrega desde una sola vista.", icon: HardHat },
+  { title: "Proveedores verificados", description: "Trabaja con ferreterías activas en Santo Domingo Este.", icon: ShieldCheck },
+  { title: "Despachos por zona", description: "Organiza compras y cobertura comercial con claridad.", icon: Truck },
 ];
 
 export const Auth: React.FC = () => {
@@ -75,21 +63,21 @@ export const Auth: React.FC = () => {
     try {
       if (isSignUp) {
         const { data, error } = await supabase.auth.signUp({ email, password });
-
         dismissToast(toastId);
+
         if (error) {
           showError(error.message);
           return;
         }
 
         if (data.user) {
-          showSuccess("¡Cuenta creada con éxito! Completemos tu perfil.");
+          showSuccess("Cuenta creada. Ahora completa tu perfil.");
           setIsOnboarding(true);
         }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
-
         dismissToast(toastId);
+
         if (error) {
           showError(error.message);
           return;
@@ -115,28 +103,27 @@ export const Auth: React.FC = () => {
 
     try {
       const user = (await supabase.auth.getUser()).data.user;
-
       if (!user) {
         throw new Error("No se encontró un usuario activo.");
       }
 
       await updateProfile({
         id: user.id,
-        full_name: fullName,
-        document_id: documentId,
+        full_name: fullName.trim(),
+        document_id: documentId.trim(),
         user_type: userType,
         onboarded: true,
-        store_name: userType === "hardware" ? fullName : null,
-        sector: userType === "hardware" ? "Alma Rosa I" : null,
-        delivery_coverage: userType === "hardware" ? ["Alma Rosa I", "Alma Rosa II"] : [],
-        is_public: userType === "hardware",
-        rating: userType === "hardware" ? 5 : 0,
+        store_name: userType === "hardware" ? fullName.trim() : null,
+        sector: null,
+        delivery_coverage: [],
+        is_public: false,
+        rating: 0,
         reviews_count: 0,
       });
 
       await refreshProfile();
       dismissToast(toastId);
-      showSuccess("¡Perfil configurado con éxito!");
+      showSuccess("Perfil configurado con éxito.");
       navigate("/", { replace: true });
     } catch (err: any) {
       dismissToast(toastId);
@@ -220,14 +207,7 @@ export const Auth: React.FC = () => {
                     <label className="section-label block">Correo electrónico</label>
                     <div className="relative">
                       <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        type="email"
-                        required
-                        placeholder="ejemplo@correo.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="pl-11"
-                      />
+                      <Input type="email" required placeholder="ejemplo@correo.com" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-11" />
                     </div>
                   </div>
 
@@ -235,14 +215,7 @@ export const Auth: React.FC = () => {
                     <label className="section-label block">Contraseña</label>
                     <div className="relative">
                       <Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        type="password"
-                        required
-                        placeholder="••••••••"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="pl-11"
-                      />
+                      <Input type="password" required placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} className="pl-11" />
                     </div>
                   </div>
 
@@ -250,13 +223,9 @@ export const Auth: React.FC = () => {
                     {loading ? (
                       <span className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
                     ) : isSignUp ? (
-                      <>
-                        <UserPlus className="h-4 w-4" />Registrarse
-                      </>
+                      <><UserPlus className="h-4 w-4" />Registrarse</>
                     ) : (
-                      <>
-                        <LogIn className="h-4 w-4" />Ingresar
-                      </>
+                      <><LogIn className="h-4 w-4" />Ingresar</>
                     )}
                   </Button>
 
@@ -290,14 +259,7 @@ export const Auth: React.FC = () => {
                     <label className="section-label block">Nombre o razón social</label>
                     <div className="relative">
                       <User className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        type="text"
-                        required
-                        placeholder="Ej: Ing. Juan Pérez / Ferretería El Sol"
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                        className="pl-11"
-                      />
+                      <Input type="text" required placeholder="Ej: Ing. Juan Pérez / Ferretería El Sol" value={fullName} onChange={(e) => setFullName(e.target.value)} className="pl-11" />
                     </div>
                   </div>
 
@@ -305,14 +267,7 @@ export const Auth: React.FC = () => {
                     <label className="section-label block">RNC o cédula</label>
                     <div className="relative">
                       <FileText className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        type="text"
-                        required
-                        placeholder="Ej: 131-XXXXX-X"
-                        value={documentId}
-                        onChange={(e) => setDocumentId(e.target.value)}
-                        className="pl-11"
-                      />
+                      <Input type="text" required placeholder="Ej: 131-XXXXX-X" value={documentId} onChange={(e) => setDocumentId(e.target.value)} className="pl-11" />
                     </div>
                   </div>
 
@@ -338,24 +293,15 @@ export const Auth: React.FC = () => {
                                 : "border-border bg-card hover:bg-[hsl(var(--surface-2))]",
                             )}
                           >
-                            <div className="flex items-start justify-between gap-2">
-                              <div
-                                className={cn(
-                                  "flex h-11 w-11 items-center justify-center rounded-[1.1rem]",
-                                  isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
-                                )}
-                              >
-                                <Icon className="h-5 w-5" />
-                              </div>
-                              {isSelected && (
-                                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_12px_20px_-16px_hsl(var(--primary)/0.8)]">
-                                  <Check className="h-3.5 w-3.5" />
-                                </span>
-                              )}
+                            <div className="flex h-11 w-11 items-center justify-center rounded-[1.1rem] bg-[hsl(var(--primary)/0.14)] text-primary">
+                              <Icon className="h-5 w-5" />
                             </div>
                             <div>
-                              <p className="font-display text-sm font-semibold text-foreground">{option.title}</p>
-                              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{option.description}</p>
+                              <div className="flex items-center justify-between gap-2">
+                                <h3 className="font-display text-sm font-semibold text-foreground">{option.title}</h3>
+                                {isSelected ? <span className="data-chip data-chip-accent">Activo</span> : null}
+                              </div>
+                              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{option.description}</p>
                             </div>
                           </button>
                         );
@@ -363,15 +309,15 @@ export const Auth: React.FC = () => {
                     </div>
                   </div>
 
-                  <Button type="submit" disabled={loading || !userType} className="w-full justify-center">
-                    {loading ? (
-                      <span className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                    ) : (
-                      <>
-                        Completar registro
-                        <ArrowRight className="h-4 w-4" />
-                      </>
-                    )}
+                  <div className="panel-muted p-4">
+                    <p className="section-label">Importante</p>
+                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                      Después del registro podrás completar sector, cobertura y visibilidad desde tu cuenta. Ya no precargamos datos ficticios en el perfil inicial.
+                    </p>
+                  </div>
+
+                  <Button type="submit" disabled={loading} className="w-full justify-center">
+                    {loading ? <span className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" /> : "Guardar perfil"}
                   </Button>
                 </form>
               )}

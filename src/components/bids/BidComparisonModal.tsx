@@ -1,74 +1,36 @@
-import React, { useState } from "react";
-import { Check, CheckCircle2, Info, MessageSquare, Phone, ShoppingBag, Store, X } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Check, CheckCircle2, Info, Store, X } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { BidRequest, HardwareBid, mockBidsForRequest1 } from "@/lib/mockData";
+import { useCompleteBidRequestMutation } from "@/hooks/useBidRequests";
+import { useRequestBids } from "@/hooks/useRequestBids";
+import { BidRequest } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { showSuccess } from "@/utils/toast";
+import { showError, showSuccess } from "@/utils/toast";
 
 interface BidComparisonModalProps {
   isOpen: boolean;
   onClose: () => void;
   request: BidRequest | null;
-  onCompleteOrder: (requestId: string) => void;
 }
 
-const STORE_CONTACTS: Record<string, { phone: string; whatsapp: string }> = {
-  "store-1": { phone: "+18095550123", whatsapp: "18095550123" },
-  "store-2": { phone: "+18295550456", whatsapp: "18295550456" },
-  "store-3": { phone: "+18495550789", whatsapp: "18495550789" },
-};
-
-export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, onClose, request, onCompleteOrder }) => {
-  if (!isOpen || !request) return null;
-
-  const bids: HardwareBid[] =
-    request.id === "req-1"
-      ? mockBidsForRequest1
-      : [
-          {
-            storeId: "store-1",
-            storeName: "Ferretería El Progreso SDE",
-            rating: 4.8,
-            deliveryTime: "Mismo día (4-6 horas)",
-            offers: request.items.map((item) => ({
-              itemName: item.name,
-              unitPrice: Math.round(100 + Math.random() * 500),
-              isAvailable: true,
-            })),
-          },
-          {
-            storeId: "store-2",
-            storeName: "Mega Ferretería Oriental",
-            rating: 4.5,
-            deliveryTime: "Siguiente día (24 horas)",
-            offers: request.items.map((item) => ({
-              itemName: item.name,
-              unitPrice: Math.round(90 + Math.random() * 520),
-              isAvailable: Math.random() > 0.15,
-            })),
-          },
-        ];
-
-  const [selections, setSelections] = useState<Record<string, string>>(() => {
-    const initialSelections: Record<string, string> = {};
-    request.items.forEach((item) => {
-      const availableBid = bids.find((bid) => bid.offers.find((offer) => offer.itemName === item.name)?.isAvailable);
-      if (availableBid) {
-        initialSelections[item.name] = availableBid.storeId;
-      }
-    });
-    return initialSelections;
-  });
+export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, onClose, request }) => {
+  const [selections, setSelections] = useState<Record<string, string>>({});
   const [isCheckout, setIsCheckout] = useState(false);
+  const completeRequest = useCompleteBidRequestMutation();
+  const { data: bids = [], isLoading, error } = useRequestBids(request?.id);
 
-  const handleSelectProvider = (itemName: string, storeId: string) => {
-    setSelections((prev) => ({ ...prev, [itemName]: storeId }));
-  };
+  useEffect(() => {
+    setSelections({});
+    setIsCheckout(false);
+  }, [request?.id, isOpen]);
 
-  const getStoreTotals = () => {
+  const storeTotals = useMemo(() => {
+
+    if (!request) return {} as Record<string, { subtotal: number; items: { name: string; qty: number; unit: string; price: number }[] }>;
+
     const totals: Record<string, { subtotal: number; items: { name: string; qty: number; unit: string; price: number }[] }> = {};
-
     bids.forEach((bid) => {
       totals[bid.storeId] = { subtotal: 0, items: [] };
     });
@@ -83,39 +45,43 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
 
       const lineTotal = offer.unitPrice * item.quantity;
       totals[selectedStoreId].subtotal += lineTotal;
-      totals[selectedStoreId].items.push({
-        name: item.name,
-        qty: item.quantity,
-        unit: item.unit,
-        price: offer.unitPrice,
-      });
+      totals[selectedStoreId].items.push({ name: item.name, qty: item.quantity, unit: item.unit, price: offer.unitPrice });
     });
 
     return totals;
-  };
+  }, [bids, request, selections]);
 
-  const storeTotals = getStoreTotals();
+  if (!isOpen || !request) return null;
+
   const generalSubtotal = Object.values(storeTotals).reduce((acc, current) => acc + current.subtotal, 0);
   const generalItbis = generalSubtotal * 0.18;
   const generalTotal = generalSubtotal + generalItbis;
 
-  const handleFinalizePurchase = () => {
-    onCompleteOrder(request.id);
-    showSuccess("¡Pedido mixto formalizado! Órdenes de compra enviadas a cada ferretería.");
-    onClose();
+  const handleSelectProvider = (itemName: string, storeId: string) => {
+    setSelections((prev) => ({ ...prev, [itemName]: storeId }));
   };
+
+  const handleFinalizePurchase = async () => {
+    try {
+      await completeRequest.mutateAsync(request.id);
+      showSuccess("Compra finalizada. El historial y las notificaciones ya se actualizaron.");
+      onClose();
+    } catch (err: any) {
+      showError(err.message || "No se pudo finalizar la compra.");
+    }
+  };
+
+  const selectedStoresCount = Object.values(storeTotals).filter((store) => store.items.length > 0).length;
 
   return (
     <div className="modal-backdrop fixed inset-0 z-50 flex animate-in fade-in-0 duration-200 items-end justify-center">
       <div className="modal-sheet max-h-[92vh] w-full max-w-md overflow-y-auto animate-in fade-in-0 slide-in-from-bottom-4 zoom-in-95 duration-300">
         <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-border bg-[hsl(var(--card)/0.94)] px-6 py-4 backdrop-blur">
           <div>
-            <p className="section-label">Bid matrix</p>
-            <h3 className="font-display text-base font-semibold text-foreground">
-              {isCheckout ? "Confirmar pedido mixto" : "Optimizar compra"}
-            </h3>
+            <p className="section-label">Comparativa real</p>
+            <h3 className="font-display text-base font-semibold text-foreground">{isCheckout ? "Confirmar compra" : "Optimizar compra"}</h3>
             <p className="mt-1 text-xs text-muted-foreground">
-              {isCheckout ? "Desglose por proveedor seleccionado" : "Compara precios por ítem y elige la mejor combinación."}
+              {isCheckout ? "Resumen consolidado de los proveedores seleccionados." : "Sin precios aleatorios: solo ofertas guardadas en la base real."}
             </p>
           </div>
           <Button variant="outline" size="icon" onClick={onClose} aria-label="Cerrar">
@@ -123,240 +89,232 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
           </Button>
         </div>
 
-        {!isCheckout ? (
-          <div className="space-y-5 px-6 py-6 pb-10">
-            <div className="panel-muted p-4">
-              <p className="section-label">Proyecto</p>
-              <h4 className="font-display mt-2 text-sm font-semibold text-foreground">{request.title}</h4>
-              <p className="mt-1 text-xs text-muted-foreground">Destino: {request.deliveryAddress}</p>
-            </div>
+        <div className="space-y-5 px-6 py-6 pb-10">
+          <div className="panel-muted p-4">
+            <p className="section-label">Proyecto</p>
+            <h4 className="font-display mt-2 text-sm font-semibold text-foreground">{request.title}</h4>
+            <p className="mt-1 text-xs text-muted-foreground">Destino: {request.deliveryAddress}</p>
+          </div>
 
+          {isLoading ? (
             <div className="space-y-3">
-              <div className="flex items-center justify-between gap-3">
-                <label className="section-label block">Comparativa de precios</label>
-                <span className="data-chip data-chip-accent">{bids.length} ofertas</span>
-              </div>
+              {Array.from({ length: 2 }).map((_, index) => (
+                <div key={index} className="panel-muted animate-pulse p-4">
+                  <div className="h-4 w-32 rounded-full bg-muted" />
+                  <div className="mt-3 h-16 rounded-[1rem] bg-muted" />
+                </div>
+              ))}
+            </div>
+          ) : error ? (
+            <section className="panel-muted rounded-[1.6rem] border-dashed p-8 text-center">
+              <h4 className="font-display text-sm font-semibold text-foreground">No pudimos cargar las ofertas</h4>
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">Intenta cerrar y volver a abrir esta comparación.</p>
+            </section>
+          ) : bids.length === 0 ? (
+            <section className="panel-muted rounded-[1.6rem] border-dashed p-8 text-center">
+              <h4 className="font-display text-sm font-semibold text-foreground">Aún no hay ofertas reales</h4>
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                Esta solicitud todavía no recibió cotizaciones guardadas en Supabase. Cuando lleguen, se compararán aquí automáticamente.
+              </p>
+            </section>
+          ) : !isCheckout ? (
+            <>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <label className="section-label block">Comparativa de precios</label>
+                  <span className="data-chip data-chip-accent">{bids.length} ofertas</span>
+                </div>
 
-              <div className="-mx-6 overflow-x-auto px-6 pb-2">
-                <Table className="min-w-[720px]">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="sticky left-0 z-20 min-w-[180px] bg-muted/95">Material</TableHead>
-                      {bids.map((bid) => (
-                        <TableHead key={bid.storeId} className="min-w-[180px]">
-                          <div className="space-y-1">
-                            <p className="font-display text-sm font-semibold normal-case tracking-tight text-foreground">{bid.storeName}</p>
-                            <p className="text-[10px] normal-case tracking-normal text-muted-foreground">{bid.deliveryTime}</p>
-                          </div>
-                        </TableHead>
-                      ))}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {request.items.map((item, itemIndex) => (
-                      <TableRow key={itemIndex} className={itemIndex % 2 === 1 ? "bg-[hsl(var(--table-stripe))]" : ""}>
-                        <TableCell className="sticky left-0 z-10 min-w-[180px] border-r border-border bg-card align-top">
-                          <p className="font-display text-sm font-semibold text-foreground">{item.name}</p>
-                          <p className="mono-data mt-1 text-xs text-muted-foreground">
-                            {item.quantity} {item.unit}
-                          </p>
-                        </TableCell>
-                        {bids.map((bid) => {
-                          const offer = bid.offers.find((currentOffer) => currentOffer.itemName === item.name);
-                          const isSelected = selections[item.name] === bid.storeId;
+                <div className="-mx-6 overflow-x-auto px-6 pb-2">
+                  <Table className="min-w-[720px]">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="sticky left-0 z-20 min-w-[180px] bg-muted/95">Material</TableHead>
+                        {bids.map((bid) => (
+                          <TableHead key={bid.id} className="min-w-[180px]">
+                            <div className="space-y-1">
+                              <p className="font-display text-sm font-semibold normal-case tracking-tight text-foreground">{bid.storeName}</p>
+                              <p className="text-[10px] normal-case tracking-normal text-muted-foreground">{bid.deliveryTime}</p>
+                            </div>
+                          </TableHead>
+                        ))}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {request.items.map((item, itemIndex) => (
+                        <TableRow key={item.id ?? item.name} className={itemIndex % 2 === 1 ? "bg-[hsl(var(--table-stripe))]" : ""}>
+                          <TableCell className="sticky left-0 z-10 min-w-[180px] border-r border-border bg-card align-top">
+                            <p className="font-display text-sm font-semibold text-foreground">{item.name}</p>
+                            <p className="mono-data mt-1 text-xs text-muted-foreground">{item.quantity} {item.unit}</p>
+                          </TableCell>
+                          {bids.map((bid) => {
+                            const offer = bid.offers.find((currentOffer) => currentOffer.itemName === item.name);
+                            const isSelected = selections[item.name] === bid.storeId;
 
-                          if (!offer || !offer.isAvailable) {
+                            if (!offer || !offer.isAvailable) {
+                              return (
+                                <TableCell key={bid.id} className="align-top">
+                                  <div className="rounded-2xl border border-dashed border-border bg-muted/70 p-3 text-center text-xs text-muted-foreground">
+                                    <p className="font-display text-sm font-semibold text-foreground/60">N/D</p>
+                                    <p className="mt-1">Sin disponibilidad</p>
+                                  </div>
+                                </TableCell>
+                              );
+                            }
+
                             return (
-                              <TableCell key={bid.storeId} className="align-top">
-                                <div className="rounded-2xl border border-dashed border-border bg-muted/70 p-3 text-center text-xs text-muted-foreground">
-                                  <p className="font-display text-sm font-semibold text-foreground/60">N/D</p>
-                                  <p className="mt-1">Sin disponibilidad</p>
-                                </div>
+                              <TableCell key={bid.id} className="align-top">
+                                <button
+                                  type="button"
+                                  onClick={() => handleSelectProvider(item.name, bid.storeId)}
+                                  className={cn(
+                                    "flex min-h-[116px] w-full flex-col justify-between rounded-[1.15rem] border p-3 text-left transition-[transform,box-shadow,border-color,background-color] duration-200",
+                                    isSelected
+                                      ? "border-[hsl(var(--success))] bg-[hsl(var(--success)/0.10)] shadow-[0_16px_30px_-24px_hsl(var(--success)/0.45)]"
+                                      : "border-border bg-card hover:-translate-y-0.5 hover:border-primary/20 hover:bg-accent/40",
+                                  )}
+                                >
+                                  <div className="flex items-start justify-between gap-2">
+                                    <span className="section-label text-[10px]">Oferta</span>
+                                    {isSelected && <Check className="h-4 w-4 text-[hsl(var(--success))]" />}
+                                  </div>
+                                  <div>
+                                    <p className="mono-data text-base font-semibold text-foreground">RD$ {offer.unitPrice.toLocaleString()}</p>
+                                    <p className="mono-data mt-1 text-xs text-muted-foreground">
+                                      Total: RD$ {(offer.unitPrice * item.quantity).toLocaleString()}
+                                    </p>
+                                  </div>
+                                </button>
                               </TableCell>
                             );
-                          }
-
-                          return (
-                            <TableCell key={bid.storeId} className="align-top">
-                              <button
-                                type="button"
-                                onClick={() => handleSelectProvider(item.name, bid.storeId)}
-                                className={cn(
-                                  "flex min-h-[116px] w-full flex-col justify-between rounded-[1.15rem] border p-3 text-left transition-[transform,box-shadow,border-color,background-color] duration-200",
-                                  isSelected
-                                    ? "border-[hsl(var(--success))] bg-[hsl(var(--success)/0.10)] shadow-[0_16px_30px_-24px_hsl(var(--success)/0.45)]"
-                                    : "border-border bg-card hover:-translate-y-0.5 hover:border-primary/20 hover:bg-accent/40",
-                                )}
-                              >
-                                <div className="flex items-start justify-between gap-2">
-                                  <span className="section-label text-[10px]">Oferta</span>
-                                  {isSelected && <Check className="h-4 w-4 text-[hsl(var(--success))]" />}
-                                </div>
-                                <div>
-                                  <p className="mono-data text-base font-semibold text-foreground">RD$ {offer.unitPrice}</p>
-                                  <p className="mono-data mt-1 text-xs text-muted-foreground">
-                                    Total: RD$ {(offer.unitPrice * item.quantity).toLocaleString()}
-                                  </p>
-                                </div>
-                              </button>
-                            </TableCell>
-                          );
-                        })}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                          })}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <label className="section-label block">Distribución del pedido</label>
               <div className="space-y-2">
+                <label className="section-label block">Distribución del pedido</label>
+                <div className="space-y-2">
+                  {bids.map((bid) => {
+                    const totalAllocated = storeTotals[bid.storeId]?.subtotal || 0;
+                    const itemsCount = storeTotals[bid.storeId]?.items.length || 0;
+                    if (itemsCount === 0) return null;
+
+                    return (
+                      <div key={bid.id} className="panel-muted flex items-center justify-between p-3.5">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-[1rem] bg-[hsl(var(--primary)/0.14)] text-primary">
+                            <Store className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <p className="font-display text-sm font-semibold text-foreground">{bid.storeName}</p>
+                            <p className="text-xs text-muted-foreground">{itemsCount} materiales asignados</p>
+                          </div>
+                        </div>
+                        <p className="mono-data text-sm font-semibold text-foreground">RD$ {totalAllocated.toLocaleString()}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="panel-strong rounded-[1.5rem] p-4">
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Subtotal neto</span>
+                  <span className="mono-data">RD$ {generalSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="mt-2 flex justify-between text-sm text-muted-foreground">
+                  <span>ITBIS (18%)</span>
+                  <span className="mono-data">RD$ {generalItbis.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="my-3 border-t border-border" />
+                <div className="flex items-center justify-between">
+                  <span className="font-display text-sm font-semibold text-primary">Total estimado</span>
+                  <span className="mono-data text-lg font-semibold text-foreground">RD$ {generalTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+
+              <Button type="button" onClick={() => setIsCheckout(true)} disabled={generalSubtotal <= 0} className="w-full justify-center">
+                Confirmar selección
+              </Button>
+            </>
+          ) : (
+            <>
+              <div className="panel-strong rounded-[1.5rem] border-primary/20 bg-[hsl(var(--primary)/0.1)] p-4">
+                <div className="flex gap-3">
+                  <Info className="mt-0.5 h-5 w-5 text-primary" />
+                  <div>
+                    <h4 className="font-display text-sm font-semibold text-foreground">Resumen real de compra</h4>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      Vas a cerrar la solicitud con {selectedStoresCount} proveedor{selectedStoresCount === 1 ? "" : "es"} seleccionado{selectedStoresCount === 1 ? "" : "s"}. Al confirmar, el estado pasará a compra finalizada y se emitirán notificaciones reales.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
                 {bids.map((bid) => {
-                  const totalAllocated = storeTotals[bid.storeId]?.subtotal || 0;
-                  const itemsCount = storeTotals[bid.storeId]?.items.length || 0;
-                  if (itemsCount === 0) return null;
+                  const data = storeTotals[bid.storeId];
+                  if (!data || data.items.length === 0) return null;
 
                   return (
-                    <div key={bid.storeId} className="panel-muted flex items-center justify-between p-3.5">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-[1rem] bg-[hsl(var(--primary)/0.14)] text-primary">
-                          <Store className="h-4 w-4" />
+                    <div key={bid.id} className="app-shell p-4">
+                      <div className="flex items-center justify-between gap-3 border-b border-border pb-3">
+                        <div className="flex items-center gap-2">
+                          <Store className="h-4 w-4 text-primary" />
+                          <span className="font-display text-sm font-semibold text-foreground">{bid.storeName}</span>
                         </div>
-                        <div>
-                          <p className="font-display text-sm font-semibold text-foreground">{bid.storeName}</p>
-                          <p className="text-xs text-muted-foreground">{itemsCount} materiales asignados</p>
-                        </div>
+                        <span className="section-label">{bid.deliveryTime}</span>
                       </div>
-                      <p className="mono-data text-sm font-semibold text-foreground">RD$ {totalAllocated.toLocaleString()}</p>
+
+                      <ul className="mt-3 space-y-2">
+                        {data.items.map((item) => (
+                          <li key={`${bid.id}-${item.name}`} className="flex items-center justify-between gap-3 text-sm">
+                            <span className="text-foreground">{item.name} ({item.qty} {item.unit})</span>
+                            <span className="mono-data text-xs text-muted-foreground">RD$ {(item.price * item.qty).toLocaleString()}</span>
+                          </li>
+                        ))}
+                      </ul>
+
+                      <div className="panel-muted mt-4 flex items-center justify-between px-3 py-3 text-sm">
+                        <span className="font-display font-semibold text-foreground">Subtotal orden</span>
+                        <span className="mono-data font-semibold text-foreground">RD$ {data.subtotal.toLocaleString()}</span>
+                      </div>
                     </div>
                   );
                 })}
               </div>
-            </div>
 
-            <div className="panel-strong rounded-[1.5rem] p-4">
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Subtotal neto</span>
-                <span className="mono-data">RD$ {generalSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-              </div>
-              <div className="mt-2 flex justify-between text-sm text-muted-foreground">
-                <span>ITBIS (18%)</span>
-                <span className="mono-data">RD$ {generalItbis.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-              </div>
-              <div className="my-3 border-t border-border" />
-              <div className="flex items-center justify-between">
-                <span className="font-display text-sm font-semibold text-primary">Total estimado</span>
-                <span className="mono-data text-lg font-semibold text-foreground">
-                  RD$ {generalTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </span>
-              </div>
-            </div>
-
-            <Button type="button" onClick={() => setIsCheckout(true)} className="w-full justify-center">
-              <ShoppingBag className="h-4 w-4" />Contactar proveedores
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-5 px-6 py-6 pb-10">
-            <div className="panel-strong rounded-[1.5rem] border-primary/20 bg-[hsl(var(--primary)/0.1)] p-4">
-              <div className="flex gap-3">
-                <Info className="mt-0.5 h-5 w-5 text-primary" />
-                <div>
-                  <h4 className="font-display text-sm font-semibold text-foreground">Órdenes múltiples</h4>
-                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                    Se generarán órdenes de compra independientes para cada ferretería seleccionada. Cada una recibirá únicamente los materiales asignados.
-                  </p>
+              <div className="panel-strong rounded-[1.5rem] p-4">
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Subtotal consolidado</span>
+                  <span className="mono-data">RD$ {generalSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="mt-2 flex justify-between text-sm text-muted-foreground">
+                  <span>ITBIS consolidado</span>
+                  <span className="mono-data">RD$ {generalItbis.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="my-3 border-t border-border" />
+                <div className="flex items-center justify-between">
+                  <span className="font-display text-sm font-semibold text-primary">Total consolidado</span>
+                  <span className="mono-data text-lg font-semibold text-foreground">RD$ {generalTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                 </div>
               </div>
-            </div>
 
-            <div className="space-y-3">
-              <label className="section-label block">Desglose de órdenes</label>
-              {bids.map((bid) => {
-                const data = storeTotals[bid.storeId];
-                if (!data || data.items.length === 0) return null;
-
-                const contact = STORE_CONTACTS[bid.storeId] || { phone: "+18095550100", whatsapp: "18095550100" };
-                const orderReference = `OC-${request.id.slice(-4)}-${bid.storeId.slice(-1)}`;
-
-                return (
-                  <div key={bid.storeId} className="app-shell p-4">
-                    <div className="flex items-center justify-between gap-3 border-b border-border pb-3">
-                      <div className="flex items-center gap-2">
-                        <Store className="h-4 w-4 text-primary" />
-                        <span className="font-display text-sm font-semibold text-foreground">{bid.storeName}</span>
-                      </div>
-                      <span className="section-label">{orderReference}</span>
-                    </div>
-
-                    <ul className="mt-3 space-y-2">
-                      {data.items.map((item, index) => (
-                        <li key={index} className="flex items-center justify-between gap-3 text-sm">
-                          <span className="text-foreground">
-                            {item.name} ({item.qty} {item.unit})
-                          </span>
-                          <span className="mono-data text-xs text-muted-foreground">
-                            RD$ {(item.price * item.qty).toLocaleString()}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-
-                    <div className="panel-muted mt-4 flex items-center justify-between px-3 py-3 text-sm">
-                      <span className="font-display font-semibold text-foreground">Subtotal orden</span>
-                      <span className="mono-data font-semibold text-foreground">RD$ {data.subtotal.toLocaleString()}</span>
-                    </div>
-
-                    <div className="mt-4 grid grid-cols-2 gap-2">
-                      <a
-                        href={`tel:${contact.phone}`}
-                        className="font-display inline-flex min-h-[42px] items-center justify-center gap-2 rounded-2xl border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground transition-[transform,background-color,border-color] duration-200 hover:-translate-y-0.5 hover:bg-[hsl(var(--surface-2))]"
-                      >
-                        <Phone className="h-3.5 w-3.5 text-primary" />Llamar
-                      </a>
-                      <a
-                        href={`https://wa.me/${contact.whatsapp}?text=Hola,%20me%20gustaría%20coordinar%20la%20entrega%20del%20pedido%20de%20PIDO.`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-display inline-flex min-h-[42px] items-center justify-center gap-2 rounded-2xl border border-transparent bg-[hsl(var(--success))] px-3 py-2 text-xs font-semibold text-[hsl(var(--success-foreground))] transition-[transform,opacity] duration-200 hover:-translate-y-0.5 hover:opacity-90"
-                      >
-                        <MessageSquare className="h-3.5 w-3.5" />WhatsApp
-                      </a>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="panel-strong rounded-[1.5rem] p-4">
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Subtotal consolidado</span>
-                <span className="mono-data">RD$ {generalSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              <div className="grid grid-cols-2 gap-3">
+                <Button type="button" variant="outline" onClick={() => setIsCheckout(false)}>
+                  Atrás
+                </Button>
+                <Button type="button" onClick={handleFinalizePurchase} disabled={completeRequest.isPending}>
+                  {completeRequest.isPending ? <span className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" /> : <><CheckCircle2 className="h-4 w-4" />Finalizar compra</>}
+                </Button>
               </div>
-              <div className="mt-2 flex justify-between text-sm text-muted-foreground">
-                <span>ITBIS consolidado</span>
-                <span className="mono-data">RD$ {generalItbis.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-              </div>
-              <div className="my-3 border-t border-border" />
-              <div className="flex items-center justify-between">
-                <span className="font-display text-sm font-semibold text-primary">Total consolidado</span>
-                <span className="mono-data text-lg font-semibold text-foreground">
-                  RD$ {generalTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <Button type="button" variant="outline" onClick={() => setIsCheckout(false)}>
-                Atrás
-              </Button>
-              <Button type="button" onClick={handleFinalizePurchase}>
-                <CheckCircle2 className="h-4 w-4" />Finalizar compra
-              </Button>
-            </div>
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

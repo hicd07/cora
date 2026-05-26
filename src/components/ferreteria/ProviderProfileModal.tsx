@@ -11,26 +11,15 @@ interface ProviderProfileModalProps {
   onClose: () => void;
 }
 
-const SECTORS = [
-  "Alma Rosa I",
-  "Alma Rosa II",
-  "Ensanche Ozama",
-  "Lucerna",
-  "San Isidro",
-  "El Almirante",
-  "Carretera Mella",
-  "Av. España",
-];
-
+const SECTORS = ["Alma Rosa I", "Alma Rosa II", "Ensanche Ozama", "Lucerna", "San Isidro", "El Almirante", "Carretera Mella", "Av. España"];
 const fieldClassName = "field-soft appearance-none pr-10";
 
 export const ProviderProfileModal: React.FC<ProviderProfileModalProps> = ({ isOpen, onClose }) => {
   const { profile, updateProfile } = useSessionContext();
-
   const [storeName, setStoreName] = useState(profile?.store_name || profile?.full_name || "");
-  const [sector, setSector] = useState(profile?.sector || SECTORS[0]);
+  const [sector, setSector] = useState(profile?.sector || "");
   const [deliveryCoverage, setDeliveryCoverage] = useState<string[]>(profile?.delivery_coverage || []);
-  const [isPublic, setIsPublic] = useState<boolean>(profile?.is_public !== undefined ? profile.is_public : true);
+  const [isPublic, setIsPublic] = useState<boolean>(profile?.is_public ?? false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen || !profile) return null;
@@ -50,15 +39,15 @@ export const ProviderProfileModal: React.FC<ProviderProfileModalProps> = ({ isOp
 
     setIsSubmitting(true);
     await updateProfile({
-      store_name: storeName,
-      full_name: storeName,
-      sector,
+      store_name: storeName.trim(),
+      full_name: profile.full_name,
+      sector: sector || null,
       delivery_coverage: deliveryCoverage,
       is_public: isPublic,
     });
 
     setIsSubmitting(false);
-    showSuccess("¡Perfil de ferretería actualizado con éxito!");
+    showSuccess("Perfil de ferretería actualizado.");
     onClose();
   };
 
@@ -84,13 +73,7 @@ export const ProviderProfileModal: React.FC<ProviderProfileModalProps> = ({ isOp
         <form onSubmit={handleSubmit} className="space-y-5 px-6 py-6 pb-10">
           <div className="space-y-1.5">
             <label className="section-label block">Nombre de la ferretería</label>
-            <Input
-              type="text"
-              required
-              placeholder="Ej: Ferretería El Progreso SDE"
-              value={storeName}
-              onChange={(e) => setStoreName(e.target.value)}
-            />
+            <Input type="text" required placeholder="Ej: Ferretería El Progreso SDE" value={storeName} onChange={(e) => setStoreName(e.target.value)} />
           </div>
 
           <div className="space-y-1.5">
@@ -98,6 +81,7 @@ export const ProviderProfileModal: React.FC<ProviderProfileModalProps> = ({ isOp
               <MapPin className="h-3.5 w-3.5 text-primary" />Sector principal (SDE)
             </label>
             <select value={sector} onChange={(e) => setSector(e.target.value)} className={fieldClassName}>
+              <option value="">Selecciona un sector</option>
               {SECTORS.map((sectorItem) => (
                 <option key={sectorItem} value={sectorItem}>
                   {sectorItem}
@@ -150,10 +134,7 @@ export const ProviderProfileModal: React.FC<ProviderProfileModalProps> = ({ isOp
               <button
                 type="button"
                 onClick={() => setIsPublic(!isPublic)}
-                className={cn(
-                  "toggle-track shrink-0",
-                  isPublic ? "border-primary/20 bg-[hsl(var(--primary)/0.16)]" : "border-border bg-muted",
-                )}
+                className={cn("toggle-track shrink-0", isPublic ? "border-primary/20 bg-[hsl(var(--primary)/0.16)]" : "border-border bg-muted")}
                 aria-label="Cambiar visibilidad"
               >
                 <span className={cn("toggle-thumb", isPublic ? "translate-x-7" : "translate-x-0")} />
@@ -161,7 +142,7 @@ export const ProviderProfileModal: React.FC<ProviderProfileModalProps> = ({ isOp
             </div>
 
             <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
-              Si tu perfil es <strong className="text-foreground">Público</strong>, aparecerás en la sección de Mercado y los compradores podrán ver tu información comercial y zonas de cobertura.
+              Si tu perfil es <strong className="text-foreground">Público</strong>, aparecerás en Mercado con los datos reales que completes aquí.
             </p>
           </div>
 
@@ -170,13 +151,7 @@ export const ProviderProfileModal: React.FC<ProviderProfileModalProps> = ({ isOp
               Cancelar
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <span className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-              ) : (
-                <>
-                  <ShieldCheck className="h-4 w-4" />Guardar perfil
-                </>
-              )}
+              {isSubmitting ? <span className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" /> : <><ShieldCheck className="h-4 w-4" />Guardar perfil</>}
             </Button>
           </div>
         </form>

@@ -1,12 +1,16 @@
 import React from "react";
 import { Bell, HardHat, Moon, Store, SunMedium } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useSessionContext } from "@/components/auth/SessionContext";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { Button } from "@/components/ui/button";
+import { useNotifications } from "@/hooks/useNotifications";
 
 export const Header: React.FC = () => {
+  const navigate = useNavigate();
   const { profile } = useSessionContext();
   const { theme, toggleTheme } = useTheme();
+  const { unreadCount } = useNotifications();
   const isProvider = profile?.user_type === "hardware";
 
   return (
@@ -33,9 +37,19 @@ export const Header: React.FC = () => {
           >
             {theme === "dark" ? <SunMedium className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
-          <Button variant="outline" size="icon" className="relative bg-[hsl(var(--surface-1)/0.88)]" aria-label="Notificaciones">
+          <Button
+            variant="outline"
+            size="icon"
+            className="relative bg-[hsl(var(--surface-1)/0.88)]"
+            aria-label="Abrir notificaciones"
+            onClick={() => navigate("/notifications")}
+          >
             <Bell className="h-4 w-4" />
-            <span className="absolute right-2.5 top-2.5 h-2.5 w-2.5 rounded-full bg-primary shadow-[0_0_0_4px_hsl(var(--primary)/0.2)]" />
+            {unreadCount > 0 ? (
+              <span className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground shadow-[0_0_0_5px_hsl(var(--background))]">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            ) : null}
           </Button>
         </div>
       </div>
@@ -58,8 +72,8 @@ export const Header: React.FC = () => {
             </p>
             <p className="text-[11px] leading-relaxed text-muted-foreground">
               {isProvider
-                ? "Recibe oportunidades cercanas y gestiona tu perfil comercial."
-                : "Publica subastas, compara ofertas y optimiza tus compras."}
+                ? "Recibe oportunidades reales y gestiona tu presencia comercial."
+                : "Publica solicitudes reales, compara ofertas y consolida compras."}
             </p>
           </div>
         </div>

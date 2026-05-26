@@ -1,20 +1,9 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Session, User } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { Session, User } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
+import { AppProfile } from "@/lib/types";
 
-export interface Profile {
-  id: string;
-  full_name: string | null;
-  document_id: string | null;
-  user_type: 'engineer' | 'hardware' | null;
-  onboarded: boolean;
-  store_name?: string | null;
-  sector?: string | null;
-  delivery_coverage?: string[];
-  is_public?: boolean;
-  rating?: number;
-  reviews_count?: number;
-}
+export type Profile = AppProfile;
 
 interface SessionContextType {
   session: Session | null;
@@ -36,32 +25,21 @@ const SessionContext = createContext<SessionContextType>({
   signOut: async () => {},
 });
 
-const getLocalProfile = (userId: string): Profile | null => {
-  const localProfileStr = localStorage.getItem(`profile_${userId}`);
-  return localProfileStr ? JSON.parse(localProfileStr) : null;
-};
-
-const saveLocalProfile = (userId: string, profile: Profile) => {
-  localStorage.setItem(`profile_${userId}`, JSON.stringify(profile));
-};
-
-const isProfileCompleted = (profile: Partial<Profile> | null | undefined) => {
-  return Boolean(profile?.full_name && profile?.document_id && profile?.user_type);
-};
-
-const buildFallbackProfile = (userId: string, localProfile?: Profile | null): Profile => ({
+const createEmptyProfile = (userId: string): Profile => ({
   id: userId,
-  full_name: localProfile?.full_name ?? null,
-  document_id: localProfile?.document_id ?? null,
-  user_type: localProfile?.user_type ?? null,
-  onboarded: localProfile?.onboarded ?? isProfileCompleted(localProfile),
-  store_name: localProfile?.store_name ?? null,
-  sector: localProfile?.sector ?? 'Alma Rosa I',
-  delivery_coverage: localProfile?.delivery_coverage ?? ['Alma Rosa I', 'Alma Rosa II'],
-  is_public: localProfile?.is_public ?? true,
-  rating: localProfile?.rating ?? 5.0,
-  reviews_count: localProfile?.reviews_count ?? 0,
+  full_name: null,
+  document_id: null,
+  user_type: null,
+  onboarded: false,
+  store_name: null,
+  sector: null,
+  delivery_coverage: [],
+  is_public: false,
+  rating: null,
+  reviews_count: 0,
 });
+
+const isProfileCompleted = (profile: Partial<Profile> | null | undefined) => Boolean(profile?.full_name && profile?.document_id && profile?.user_type);
 
 export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
@@ -69,105 +47,85 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async (userId: string) => {
-    const localProfile = getLocalProfile(userId);
-    const fallbackProfile = buildFallbackProfile(userId, localProfile);
-
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
+  const fetchProfile = useCallback(async (userId: string) => {
+    const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
 
     if (error || !data) {
-      setProfile(fallbackProfile);
-      if (localProfile) {
-        saveLocalProfile(userId, fallbackProfile);
-      }
-      return fallbackProfile;
+      const emptyProfile = createEmptyProfile(userId);
+      setProfile(emptyProfile);
+      return emptyProfile;
     }
 
-    const mergedProfile: Profile = {
+    const mappedProfile: Profile = {
       id: data.id,
-      full_name: data.full_name ?? localProfile?.full_name ?? null,
-      document_id: data.document_id ?? localProfile?.document_id ?? null,
-      user_type: data.user_type ?? localProfile?.user_type ?? null,
-      onboarded:
-        data.onboarded ??
-        localProfile?.onboarded ??
-        isProfileCompleted({
-          full_name: data.full_name ?? localProfile?.full_name,
-          document_id: data.document_id ?? localProfile?.document_id,
-          user_type: data.user_type ?? localProfile?.user_type,
-        }),
-      store_name: data.store_name ?? localProfile?.store_name ?? data.full_name ?? null,
-      sector: data.sector ?? localProfile?.sector ?? 'Alma Rosa I',
-      delivery_coverage: data.delivery_coverage ?? localProfile?.delivery_coverage ?? ['Alma Rosa I', 'Alma Rosa II'],
-      is_public: data.is_public ?? localProfile?.is_public ?? true,
-      rating: data.rating ?? localProfile?.rating ?? 5.0,
-      reviews_count: data.reviews_count ?? localProfile?.reviews_count ?? 0,
+      full_name: data.full_name ?? null,
+      document_id: data.document_id ?? null,
+      user_type: data.user_type ?? null,
+      onboarded: Boolean(data.onboarded ?? isProfileCompleted(data)),
+      store_name: data.store_name ?? null,
+      sector: data.sector ?? null,
+      delivery_coverage: data.delivery_coverage ?? [],
+      is_public: Boolean(data.is_public),
+      rating: data.rating && Number(data.rating) > 0 ? Number(data.rating) : null,
+      reviews_count: data.reviews_count ?? 0,
     };
 
-    setProfile(mergedProfile);
-    saveLocalProfile(userId, mergedProfile);
-    return mergedProfile;
-  };
+    setProfile(mappedProfile);
+    return mappedProfile;
+  }, []);
 
-  const refreshProfile = async () => {
+  const refreshProfile = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     await fetchProfile(user.id);
     setLoading(false);
-  };
+  }, [fetchProfile, user]);
 
-  const updateProfile = async (updates: Partial<Profile>) => {
-    if (!user) return;
+  const updateProfile = useCallback(
+    async (updates: Partial<Profile>) => {
+      if (!user) return;
 
-    const completedProfile = {
-      ...profile,
-      ...updates,
-      id: user.id,
-    } as Profile;
+      const nextProfile: Profile = {
+        ...(profile ?? createEmptyProfile(user.id)),
+        ...updates,
+        id: user.id,
+      };
 
-    const updatedProfile: Profile = {
-      ...completedProfile,
-      onboarded: completedProfile.onboarded || isProfileCompleted(completedProfile),
-    };
+      const onboarded = nextProfile.onboarded || isProfileCompleted(nextProfile);
 
-    const { error } = await supabase
-      .from('profiles')
-      .upsert(
+      const { error } = await supabase.from("profiles").upsert(
         {
           id: user.id,
-          full_name: updatedProfile.full_name,
-          document_id: updatedProfile.document_id,
-          user_type: updatedProfile.user_type,
-          onboarded: updatedProfile.onboarded,
-          store_name: updatedProfile.store_name,
-          sector: updatedProfile.sector,
-          delivery_coverage: updatedProfile.delivery_coverage,
-          is_public: updatedProfile.is_public,
-          rating: updatedProfile.rating,
-          reviews_count: updatedProfile.reviews_count,
+          full_name: nextProfile.full_name,
+          document_id: nextProfile.document_id,
+          user_type: nextProfile.user_type,
+          onboarded,
+          store_name: nextProfile.store_name,
+          sector: nextProfile.sector,
+          delivery_coverage: nextProfile.delivery_coverage ?? [],
+          is_public: nextProfile.is_public ?? false,
+          rating: nextProfile.rating ?? 0,
+          reviews_count: nextProfile.reviews_count ?? 0,
           updated_at: new Date().toISOString(),
         },
-        { onConflict: 'id' }
+        { onConflict: "id" },
       );
 
-    if (error) {
-      throw error;
-    }
+      if (error) {
+        throw error;
+      }
 
-    saveLocalProfile(user.id, updatedProfile);
-    setProfile(updatedProfile);
-  };
+      setProfile({ ...nextProfile, onboarded });
+    },
+    [profile, user],
+  );
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     setSession(null);
     setUser(null);
     setProfile(null);
-  };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -219,13 +177,9 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [fetchProfile]);
 
-  return (
-    <SessionContext.Provider value={{ session, user, profile, loading, refreshProfile, updateProfile, signOut }}>
-      {children}
-    </SessionContext.Provider>
-  );
+  return <SessionContext.Provider value={{ session, user, profile, loading, refreshProfile, updateProfile, signOut }}>{children}</SessionContext.Provider>;
 };
 
 export const useSessionContext = () => useContext(SessionContext);

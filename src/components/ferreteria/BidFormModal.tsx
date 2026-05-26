@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import { AlertTriangle, Check, Clock, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { BidRequest } from "@/lib/mockData";
+import { useCreateRequestBidMutation } from "@/hooks/useRequestBids";
+import { BidRequest } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { showError, showSuccess } from "@/utils/toast";
 
@@ -11,7 +11,6 @@ interface BidFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   request: BidRequest | null;
-  onSubmitBid: (requestId: string) => void;
 }
 
 interface ItemQuote {
@@ -24,10 +23,10 @@ interface ItemQuote {
 
 const fieldClassName = "field-soft appearance-none pr-10";
 
-export const BidFormModal: React.FC<BidFormModalProps> = ({ isOpen, onClose, request, onSubmitBid }) => {
+export const BidFormModal: React.FC<BidFormModalProps> = ({ isOpen, onClose, request }) => {
+  const createBid = useCreateRequestBidMutation();
   const [items, setItems] = useState<ItemQuote[]>([]);
   const [deliveryTime, setDeliveryTime] = useState("Mismo día (4-6 horas)");
-  const [notes, setNotes] = useState("");
 
   useEffect(() => {
     if (request) {
@@ -40,24 +39,37 @@ export const BidFormModal: React.FC<BidFormModalProps> = ({ isOpen, onClose, req
           isAvailable: true,
         })),
       );
+      setDeliveryTime("Mismo día (4-6 horas)");
     }
   }, [request]);
 
   if (!isOpen || !request) return null;
 
   const handlePriceChange = (index: number, price: string) => {
-    const updatedItems = [...items];
-    updatedItems[index].unitPrice = Number.parseFloat(price) || 0;
-    setItems(updatedItems);
+    setItems((current) =>
+      current.map((item, currentIndex) =>
+        currentIndex === index
+          ? {
+              ...item,
+              unitPrice: Number.parseFloat(price) || 0,
+            }
+          : item,
+      ),
+    );
   };
 
   const handleAvailabilityToggle = (index: number) => {
-    const updatedItems = [...items];
-    updatedItems[index].isAvailable = !updatedItems[index].isAvailable;
-    if (!updatedItems[index].isAvailable) {
-      updatedItems[index].unitPrice = 0;
-    }
-    setItems(updatedItems);
+    setItems((current) =>
+      current.map((item, currentIndex) =>
+        currentIndex === index
+          ? {
+              ...item,
+              isAvailable: !item.isAvailable,
+              unitPrice: item.isAvailable ? 0 : item.unitPrice,
+            }
+          : item,
+      ),
+    );
   };
 
   const subtotal = items.reduce((accumulator, item) => {
@@ -67,7 +79,7 @@ export const BidFormModal: React.FC<BidFormModalProps> = ({ isOpen, onClose, req
   const itbis = subtotal * 0.18;
   const total = subtotal + itbis;
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
     const activeItems = items.filter((item) => item.isAvailable);
@@ -82,9 +94,21 @@ export const BidFormModal: React.FC<BidFormModalProps> = ({ isOpen, onClose, req
       return;
     }
 
-    onSubmitBid(request.id);
-    showSuccess("¡Cotización enviada con éxito al ingeniero!");
-    onClose();
+    try {
+      await createBid.mutateAsync({
+        requestId: request.id,
+        deliveryTime,
+        offers: items.map((item) => ({
+          itemName: item.name,
+          unitPrice: item.unitPrice,
+          isAvailable: item.isAvailable,
+        })),
+      });
+      showSuccess("Oferta enviada con datos reales.");
+      onClose();
+    } catch (error: any) {
+      showError(error.message || "No se pudo enviar la cotización.");
+    }
   };
 
   return (
@@ -107,7 +131,7 @@ export const BidFormModal: React.FC<BidFormModalProps> = ({ isOpen, onClose, req
             <div className="space-y-3">
               {items.map((item, index) => (
                 <div
-                  key={index}
+                  key={`${item.name}-${index}`}
                   className={cn(
                     "rounded-[1.4rem] border p-4 transition-[transform,background-color,border-color,box-shadow] duration-200",
                     item.isAvailable
@@ -134,9 +158,7 @@ export const BidFormModal: React.FC<BidFormModalProps> = ({ isOpen, onClose, req
                   {item.isAvailable ? (
                     <div className="mt-3 flex items-center gap-3">
                       <div className="relative flex-1">
-                        <span className="mono-data pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                          RD$
-                        </span>
+                        <span className="mono-data pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">RD$</span>
                         <Input
                           type="number"
                           required
@@ -158,7 +180,7 @@ export const BidFormModal: React.FC<BidFormModalProps> = ({ isOpen, onClose, req
                   ) : (
                     <div className="mt-3 flex items-center gap-2 text-xs text-destructive">
                       <AlertTriangle className="h-4 w-4" />
-                      <span>Este ítem no se incluirá en el total general.</span>
+                      <span>Este ítem no se incluirá en la oferta persistida.</span>
                     </div>
                   )}
                 </div>
@@ -178,16 +200,6 @@ export const BidFormModal: React.FC<BidFormModalProps> = ({ isOpen, onClose, req
             </select>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="section-label block">Notas y condiciones</label>
-            <Textarea
-              placeholder="Ej: precios válidos por 5 días, incluye descarga a pie de camión..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={4}
-            />
-          </div>
-
           <div className="panel-strong rounded-[1.5rem] p-4">
             <div className="flex justify-between text-sm text-muted-foreground">
               <span>Subtotal neto</span>
@@ -200,9 +212,7 @@ export const BidFormModal: React.FC<BidFormModalProps> = ({ isOpen, onClose, req
             <div className="my-3 border-t border-border" />
             <div className="flex items-center justify-between">
               <span className="font-display text-sm font-semibold text-primary">Total cotizado</span>
-              <span className="mono-data text-lg font-semibold text-foreground">
-                RD$ {total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-              </span>
+              <span className="mono-data text-lg font-semibold text-foreground">RD$ {total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
             </div>
           </div>
 
@@ -210,8 +220,8 @@ export const BidFormModal: React.FC<BidFormModalProps> = ({ isOpen, onClose, req
             <Button type="button" variant="outline" onClick={onClose}>
               Cancelar
             </Button>
-            <Button type="submit">
-              <Check className="h-4 w-4" />Enviar oferta
+            <Button type="submit" disabled={createBid.isPending}>
+              {createBid.isPending ? <span className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" /> : <><Check className="h-4 w-4" />Enviar oferta</>}
             </Button>
           </div>
         </form>
