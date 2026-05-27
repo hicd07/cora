@@ -1,6 +1,8 @@
+"use client";
+
 import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ArrowRight, Calendar, ClipboardList, Eye, EyeOff, MapPin, Package, Plus, Settings, Store, TriangleAlert } from "lucide-react";
+import { ArrowRight, Calendar, ClipboardList, Eye, EyeOff, MapPin, Package, Plus, RefreshCw, Settings, Store, TriangleAlert } from "lucide-react";
 import BidComparisonModal from "@/components/bids/BidComparisonModal";
 import CreateBidModal from "@/components/bids/CreateBidModal";
 import { useSessionContext } from "@/components/auth/SessionContext";
@@ -167,8 +169,15 @@ const Index = () => {
           <EmptyState
             icon={TriangleAlert}
             title="No pudimos cargar tus solicitudes"
-            description="La consulta falló temporalmente. Puedes refrescar la vista o crear una nueva solicitud mientras tanto."
-            action={<Button onClick={() => setIsCreateModalOpen(true)}>Crear solicitud</Button>}
+            description="La consulta falló temporalmente debido a un error de conexión o de políticas de seguridad."
+            action={
+              <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+                <Button onClick={() => bidRequestsQuery.refetch()} variant="outline" className="gap-2">
+                  <RefreshCw className="h-4 w-4" /> Reintentar
+                </Button>
+                <Button onClick={() => setIsCreateModalOpen(true)}>Crear solicitud</Button>
+              </div>
+            }
           />
         ) : engineerRequests.length === 0 ? (
           <EmptyState
@@ -334,7 +343,18 @@ const Index = () => {
     }
 
     if (marketplaceStoresQuery.error) {
-      return <EmptyState icon={TriangleAlert} title="No pudimos cargar el marketplace" description="Ocurrió un problema consultando las ferreterías públicas." />;
+      return (
+        <EmptyState
+          icon={TriangleAlert}
+          title="No pudimos cargar el marketplace"
+          description="Ocurrió un problema consultando las ferreterías públicas."
+          action={
+            <Button onClick={() => marketplaceStoresQuery.refetch()} className="gap-2">
+              <RefreshCw className="h-4 w-4" /> Reintentar
+            </Button>
+          }
+        />
+      );
     }
 
     if (marketplaceStores.length === 0) {
