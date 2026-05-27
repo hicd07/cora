@@ -258,7 +258,7 @@
   }
 
   .data-chip-accent {
-    background-color: hsl(var(--primary) / 0.18);
+    background-color: hsl(var(--primary) / 0.95);
     color: hsl(var(--warning-foreground));
     border-color: hsl(var(--primary) / 0.34);
   }

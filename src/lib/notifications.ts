@@ -22,7 +22,7 @@ export const getNotificationMeta = (notification: AppNotification): {
     case "bid_updated":
       return {
         icon: BellRing,
-        accent: "text-[hsl(var(--warning-foreground))] bg-[hsl(var(--warning)/0.18)]",
+        accent: "text-[hsl(var(--warning-foreground))] bg-[hsl(var(--warning)/0.95)]",
         actionLabel: "Ver cambios",
         href: notification.entityId ? `/?tab=bids&requestId=${notification.entityId}` : "/",
         eyebrow: "Cambio en subasta",
