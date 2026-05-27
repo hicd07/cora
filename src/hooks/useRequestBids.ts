@@ -40,6 +40,7 @@ export const useRequestBids = (requestId?: string | null) =>
     queryKey: requestBidsKey(requestId),
     queryFn: () => fetchRequestBids(requestId as string),
     enabled: Boolean(requestId),
+    retry: 1,
   });
 
 interface CreateRequestBidInput {

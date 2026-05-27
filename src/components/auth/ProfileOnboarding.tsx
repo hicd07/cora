@@ -9,7 +9,7 @@ import { dismissToast, showError, showLoading, showSuccess } from "@/utils/toast
 import { cn } from "@/lib/utils";
 
 export const ProfileOnboarding: React.FC = () => {
-  const { profile, updateProfile, refreshProfile } = useSessionContext();
+  const { profile, updateProfile } = useSessionContext();
   const [fullName, setFullName] = useState("");
   const [documentId, setDocumentId] = useState("");
   const [userType, setUserType] = useState<"engineer" | "hardware" | null>(null);
@@ -55,7 +55,9 @@ export const ProfileOnboarding: React.FC = () => {
         reviews_count: 0,
       });
 
-      await refreshProfile();
+      // updateProfile already updates the local profile state with onboarded=true,
+      // so we don't need to refetch — that avoids a redundant network call that
+      // could leave the user stuck on the global loader if Supabase is slow.
       dismissToast(toastId);
       showSuccess("Perfil configurado con éxito.");
     } catch (error: any) {

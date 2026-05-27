@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Check, CheckCircle2, Info, Store, X } from "lucide-react";
+import { Check, CheckCircle2, Info, RefreshCw, Store, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -19,7 +19,7 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
   const [selections, setSelections] = useState<Record<string, string>>({});
   const [isCheckout, setIsCheckout] = useState(false);
   const completeRequest = useCompleteBidRequestMutation();
-  const { data: bids = [], isLoading, error } = useRequestBids(request?.id);
+  const { data: bids = [], isLoading, error, refetch, isFetching } = useRequestBids(request?.id);
 
   useEffect(() => {
     setSelections({});
@@ -108,7 +108,13 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
           ) : error ? (
             <section className="panel-muted rounded-[1.6rem] border-dashed p-8 text-center">
               <h4 className="font-display text-sm font-semibold text-foreground">No pudimos cargar las ofertas</h4>
-              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">Intenta cerrar y volver a abrir esta comparación.</p>
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                La consulta a la base falló. Verifica tu conexión y reintenta sin cerrar la pantalla.
+              </p>
+              <Button type="button" variant="outline" onClick={() => refetch()} disabled={isFetching} className="mt-4 gap-2">
+                <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
+                Reintentar
+              </Button>
             </section>
           ) : bids.length === 0 ? (
             <section className="panel-muted rounded-[1.6rem] border-dashed p-8 text-center">

@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { AppProfile } from "@/lib/types";
@@ -10,6 +10,7 @@ interface SessionContextType {
   user: User | null;
   profile: Profile | null;
   loading: boolean;
+  profileError: boolean;
   refreshProfile: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<void>;
   signOut: () => Promise<void>;
@@ -20,6 +21,7 @@ const SessionContext = createContext<SessionContextType>({
   user: null,
   profile: null,
   loading: true,
+  profileError: false,
   refreshProfile: async () => {},
   updateProfile: async () => {},
   signOut: async () => {},
@@ -39,39 +41,83 @@ const createEmptyProfile = (userId: string): Profile => ({
   reviews_count: 0,
 });
 
-const isProfileCompleted = (profile: Partial<Profile> | null | undefined) => Boolean(profile?.full_name && profile?.document_id && profile?.user_type);
+const isProfileCompleted = (profile: Partial<Profile> | null | undefined) =>
+  Boolean(profile?.full_name && profile?.document_id && profile?.user_type);
+
+// Wraps a promise with a hard timeout so the UI never gets stuck on "Cargando PIDO"
+const withTimeout = <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> =>
+  new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`Timeout: ${label} (${ms}ms)`)), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
 
 export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileError, setProfileError] = useState(false);
+
+  // Avoid re-fetching the profile on every auth event (e.g. TOKEN_REFRESHED on tab focus)
+  const lastFetchedUserIdRef = useRef<string | null>(null);
 
   const fetchProfile = useCallback(async (userId: string) => {
-    const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+    setProfileError(false);
+    try {
+      const query = Promise.resolve(
+        supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
+      );
+      const { data, error } = await withTimeout(query, 10000, "fetchProfile");
 
-    if (error || !data) {
+      if (error) {
+        // If the profile row is missing or RLS blocks read, fall back to an empty profile
+        // so the user can still complete onboarding instead of seeing an infinite loader.
+        console.error("Error fetching profile:", error);
+        const emptyProfile = createEmptyProfile(userId);
+        setProfile(emptyProfile);
+        return emptyProfile;
+      }
+
+      if (!data) {
+        const emptyProfile = createEmptyProfile(userId);
+        setProfile(emptyProfile);
+        return emptyProfile;
+      }
+
+      const mappedProfile: Profile = {
+        id: data.id,
+        full_name: data.full_name ?? null,
+        document_id: data.document_id ?? null,
+        user_type: data.user_type ?? null,
+        onboarded: Boolean(data.onboarded ?? isProfileCompleted(data)),
+        store_name: data.store_name ?? null,
+        sector: data.sector ?? null,
+        delivery_coverage: data.delivery_coverage ?? [],
+        is_public: Boolean(data.is_public),
+        rating: data.rating && Number(data.rating) > 0 ? Number(data.rating) : null,
+        reviews_count: data.reviews_count ?? 0,
+      };
+
+      setProfile(mappedProfile);
+      lastFetchedUserIdRef.current = userId;
+      return mappedProfile;
+    } catch (error) {
+      console.error("Profile fetch failed or timed out:", error);
+      // Surface the error and still hydrate a fallback profile so ProtectedRoute can render.
+      setProfileError(true);
       const emptyProfile = createEmptyProfile(userId);
       setProfile(emptyProfile);
       return emptyProfile;
     }
-
-    const mappedProfile: Profile = {
-      id: data.id,
-      full_name: data.full_name ?? null,
-      document_id: data.document_id ?? null,
-      user_type: data.user_type ?? null,
-      onboarded: Boolean(data.onboarded ?? isProfileCompleted(data)),
-      store_name: data.store_name ?? null,
-      sector: data.sector ?? null,
-      delivery_coverage: data.delivery_coverage ?? [],
-      is_public: Boolean(data.is_public),
-      rating: data.rating && Number(data.rating) > 0 ? Number(data.rating) : null,
-      reviews_count: data.reviews_count ?? 0,
-    };
-
-    setProfile(mappedProfile);
-    return mappedProfile;
   }, []);
 
   const refreshProfile = useCallback(async () => {
@@ -128,6 +174,7 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
     setSession(null);
     setUser(null);
     setProfile(null);
+    lastFetchedUserIdRef.current = null;
   }, []);
 
   useEffect(() => {
@@ -136,7 +183,7 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
     const initialize = async () => {
       setLoading(true);
       try {
-        const { data } = await supabase.auth.getSession();
+        const { data } = await withTimeout(supabase.auth.getSession(), 8000, "getSession");
         const currentSession = data.session;
 
         if (!mounted) return;
@@ -148,9 +195,16 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
           await fetchProfile(currentSession.user.id);
         } else {
           setProfile(null);
+          lastFetchedUserIdRef.current = null;
         }
       } catch (error) {
         console.error("Error initializing session:", error);
+        // Make sure we don't stay stuck on the loader if Supabase is unreachable.
+        if (mounted) {
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+        }
       } finally {
         if (mounted) {
           setLoading(false);
@@ -162,26 +216,54 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, currentSession) => {
+    } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       if (!mounted) return;
 
-      // Solo disparamos carga si hay un cambio real de sesión detectado
-      setLoading(true);
-      try {
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
+      // Always keep session/user in sync, but avoid triggering a full-screen loader
+      // for background events that shouldn't unmount the app (TOKEN_REFRESHED, USER_UPDATED,
+      // or INITIAL_SESSION when we already have the same user loaded).
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
 
-        if (currentSession?.user) {
-          await fetchProfile(currentSession.user.id);
-        } else {
-          setProfile(null);
+      if (event === "SIGNED_OUT") {
+        setProfile(null);
+        lastFetchedUserIdRef.current = null;
+        setLoading(false);
+        return;
+      }
+
+      const nextUserId = currentSession?.user?.id ?? null;
+
+      // Background refresh events: do NOT toggle global loading.
+      if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
+        return;
+      }
+
+      // Initial session for the same user we already hydrated → no need to reload.
+      if (
+        event === "INITIAL_SESSION" &&
+        nextUserId &&
+        lastFetchedUserIdRef.current === nextUserId
+      ) {
+        return;
+      }
+
+      // Real sign-in or user change → fetch profile with a visible loader.
+      if (nextUserId && nextUserId !== lastFetchedUserIdRef.current) {
+        setLoading(true);
+        try {
+          await fetchProfile(nextUserId);
+        } catch (error) {
+          console.error("Error during auth state change:", error);
+        } finally {
+          if (mounted) {
+            setLoading(false);
+          }
         }
-      } catch (error) {
-        console.error("Error during auth state change:", error);
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
+      } else if (!nextUserId) {
+        setProfile(null);
+        lastFetchedUserIdRef.current = null;
+        setLoading(false);
       }
     });
 
@@ -191,7 +273,13 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
     };
   }, [fetchProfile]);
 
-  return <SessionContext.Provider value={{ session, user, profile, loading, refreshProfile, updateProfile, signOut }}>{children}</SessionContext.Provider>;
+  return (
+    <SessionContext.Provider
+      value={{ session, user, profile, loading, profileError, refreshProfile, updateProfile, signOut }}
+    >
+      {children}
+    </SessionContext.Provider>
+  );
 };
 
 export const useSessionContext = () => useContext(SessionContext);
