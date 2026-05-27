@@ -39,6 +39,7 @@ const createEmptyProfile = (userId: string): Profile => ({
   is_public: false,
   rating: null,
   reviews_count: 0,
+  cover_url: null,
 });
 
 const isProfileCompleted = (profile: Partial<Profile> | null | undefined) =>
@@ -105,6 +106,7 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
         is_public: Boolean(data.is_public),
         rating: data.rating && Number(data.rating) > 0 ? Number(data.rating) : null,
         reviews_count: data.reviews_count ?? 0,
+        cover_url: data.cover_url ?? null,
       };
 
       setProfile(mappedProfile);
@@ -155,6 +157,7 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
           is_public: nextProfile.is_public ?? false,
           rating: nextProfile.rating ?? 0,
           reviews_count: nextProfile.reviews_count ?? 0,
+          cover_url: nextProfile.cover_url ?? null,
           updated_at: new Date().toISOString(),
         },
         { onConflict: "id" },

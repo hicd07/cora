@@ -49,6 +49,7 @@ interface ProfileRow {
   rating: number | null;
   reviews_count: number | null;
   is_public: boolean;
+  cover_url?: string | null;
 }
 
 export const mapRequestItemRow = (row: BidRequestItemRow): QuoteItem => ({
@@ -105,4 +106,5 @@ export const mapHardwareStoreRow = (row: ProfileRow): HardwareStore => ({
   sector: row.sector,
   deliveryCoverage: row.delivery_coverage ?? [],
   isVerified: row.is_public,
+  coverUrl: row.cover_url,
 });

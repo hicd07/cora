@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Check, Eye, EyeOff, MapPin, ShieldCheck, Store, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CoverImagePicker } from "./CoverImagePicker";
 import { useSessionContext } from "@/components/auth/SessionContext";
 import { cn } from "@/lib/utils";
 import { showSuccess } from "@/utils/toast";
@@ -20,6 +21,7 @@ export const ProviderProfileModal: React.FC<ProviderProfileModalProps> = ({ isOp
   const [sector, setSector] = useState(profile?.sector || "");
   const [deliveryCoverage, setDeliveryCoverage] = useState<string[]>(profile?.delivery_coverage || []);
   const [isPublic, setIsPublic] = useState<boolean>(profile?.is_public ?? false);
+  const [coverUrl, setCoverUrl] = useState<string | null>(profile?.cover_url || null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen || !profile) return null;
@@ -44,6 +46,7 @@ export const ProviderProfileModal: React.FC<ProviderProfileModalProps> = ({ isOp
       sector: sector || null,
       delivery_coverage: deliveryCoverage,
       is_public: isPublic,
+      cover_url: coverUrl,
     });
 
     setIsSubmitting(false);
@@ -71,6 +74,14 @@ export const ProviderProfileModal: React.FC<ProviderProfileModalProps> = ({ isOp
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5 px-6 py-6 pb-10">
+          <div className="space-y-1.5">
+            <label className="section-label block text-primary/70">Identidad visual</label>
+            <CoverImagePicker 
+              currentUrl={coverUrl} 
+              onUploadComplete={(url) => setCoverUrl(url)} 
+            />
+          </div>
+
           <div className="space-y-1.5">
             <label className="section-label block">Nombre de la ferretería</label>
             <Input type="text" required placeholder="Ej: Ferretería El Progreso SDE" value={storeName} onChange={(e) => setStoreName(e.target.value)} />

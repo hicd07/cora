@@ -6,7 +6,7 @@ import { HardwareStore } from "@/lib/types";
 const fetchMarketplaceStores = async (): Promise<HardwareStore[]> => {
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, full_name, store_name, sector, delivery_coverage, rating, reviews_count, is_public")
+    .select("id, full_name, store_name, sector, delivery_coverage, rating, reviews_count, is_public, cover_url")
     .eq("user_type", "hardware")
     .eq("is_public", true)
     .order("rating", { ascending: false });

@@ -200,7 +200,7 @@ const Index = () => {
                             <Skeleton className="h-4 w-3/4" />
                             <Skeleton className="h-4 w-1/2" />
                         </div>
-                    </div>))}
+                    </div>))} 
                 </div>) : bidRequestsQuery.error ? (<EmptyState
                     icon={TriangleAlert}
                     title="No pudimos cargar tus solicitudes"
@@ -242,7 +242,7 @@ const Index = () => {
                                         <span className="mono-data text-xs text-muted-foreground">
                                             {item.quantity} {item.unit}
                                         </span>
-                                    </li>))}
+                                    </li>))} 
                                 </ul>) : (<p className="mt-3 text-sm text-muted-foreground">Esta solicitud todavía no tiene ítems visibles.</p>)}
                             </div>
                             <div className="space-y-2 text-sm text-muted-foreground">
@@ -394,24 +394,39 @@ const Index = () => {
                     {marketplaceStores.map(store => (<article
                         key={store.id}
                         onClick={() => handleOpenStoreDetail(store)}
-                        className="app-shell interactive-card cursor-pointer p-5">
-                        <div className="flex items-start justify-between gap-3">
-                            <div>
-                                <div className="flex items-center gap-2">
-                                    <h3 className="font-display text-base font-semibold text-foreground">{store.name}</h3>
-                                    {store.isVerified && <span className="data-chip data-chip-accent">Visible</span>}
-                                </div>
-                                <p className="mt-1 text-sm text-muted-foreground">{store.sector || "Sector pendiente"}</p>
+                        className="app-shell interactive-card cursor-pointer overflow-hidden !p-0">
+                        {store.coverUrl ? (
+                            <div className="aspect-[16/7] w-full overflow-hidden">
+                                <img 
+                                    src={store.coverUrl} 
+                                    alt={store.name} 
+                                    className="h-full w-full object-cover"
+                                />
                             </div>
-                            <span className="data-chip data-chip-accent">{store.rating ? `★ ${store.rating.toFixed(1)}` : "Sin rating"}</span>
-                        </div>
-                        <div className="mt-4 border-t border-border/80 pt-4">
-                            <p className="section-label">Cobertura de entrega</p>
-                            {store.deliveryCoverage.length > 0 ? (<div className="mt-3 flex flex-wrap gap-2">
-                                {store.deliveryCoverage.map(coverage => (<span key={coverage} className="data-chip">
-                                    {coverage}
-                                </span>))}
-                            </div>) : (<p className="mt-3 text-sm text-muted-foreground">Esta ferretería aún no ha definido su cobertura.</p>)}
+                        ) : (
+                            <div className="flex aspect-[16/7] w-full items-center justify-center bg-gradient-to-br from-[hsl(var(--primary)/0.08)] to-[hsl(var(--primary)/0.03)]">
+                                <Store className="h-8 w-8 text-primary/20" />
+                            </div>
+                        )}
+                        <div className="p-5 pt-4">
+                            <div className="flex items-start justify-between gap-3">
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <h3 className="font-display text-base font-semibold text-foreground">{store.name}</h3>
+                                        {store.isVerified && <span className="data-chip data-chip-accent">Visible</span>}
+                                    </div>
+                                    <p className="mt-1 text-sm text-muted-foreground">{store.sector || "Sector pendiente"}</p>
+                                </div>
+                                <span className="data-chip data-chip-accent">{store.rating ? `★ ${store.rating.toFixed(1)}` : "Sin rating"}</span>
+                            </div>
+                            <div className="mt-4 border-t border-border/80 pt-4">
+                                <p className="section-label">Cobertura de entrega</p>
+                                {store.deliveryCoverage.length > 0 ? (<div className="mt-3 flex flex-wrap gap-2">
+                                    {store.deliveryCoverage.map(coverage => (<span key={coverage} className="data-chip">
+                                        {coverage}
+                                    </span>))}
+                                </div>) : (<p className="mt-3 text-sm text-muted-foreground">Esta ferretería aún no ha definido su cobertura.</p>)}
+                            </div>
                         </div>
                     </article>))}
                 </div>

@@ -29,6 +29,7 @@ export interface HardwareStore {
   sector: string | null;
   deliveryCoverage: string[];
   isVerified: boolean;
+  coverUrl?: string | null;
 }
 
 export interface ItemOffer {
@@ -78,4 +79,5 @@ export interface AppProfile {
   is_public: boolean;
   rating: number | null;
   reviews_count: number | null;
+  cover_url?: string | null;
 }
