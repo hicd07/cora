@@ -1,4 +1,3 @@
-Pedidos, Pedidos -> Historial">
 import React from "react";
 import { ClipboardList, Gavel, Store, User } from "lucide-react";
 import { cn } from "@/lib/utils";
