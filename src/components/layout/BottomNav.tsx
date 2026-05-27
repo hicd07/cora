@@ -1,3 +1,4 @@
+Pedidos, Pedidos -> Historial">
 import React from "react";
 import { ClipboardList, Gavel, Store, User } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -10,9 +11,9 @@ interface BottomNavProps {
 
 export const BottomNav: React.FC<BottomNavProps> = ({ role, activeTab, setActiveTab }) => {
   const navItems = [
-    { id: "bids", label: "Subastas", icon: Gavel },
+    { id: "bids", label: "Pedidos", icon: Gavel },
     { id: "market", label: role === "hardware" ? "Mi empresa" : "Mercado", icon: Store },
-    { id: "orders", label: "Pedidos", icon: ClipboardList },
+    { id: "orders", label: "Historial", icon: ClipboardList },
     { id: "account", label: "Cuenta", icon: User },
   ];
 

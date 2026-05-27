@@ -172,8 +172,8 @@ const Index = () => {
             <div className="space-y-4">
                 <div className="flex items-end justify-between gap-3">
                     <div>
-                        <p className="section-label">Centro de subastas</p>
-                        <h2 className="font-display text-lg font-semibold text-foreground">Solicitudes activas</h2>
+                        <p className="section-label">Centro de pedidos</p>
+                        <h2 className="font-display text-lg font-semibold text-foreground">Pedidos activos</h2>
                         <p
                             className="mt-1 max-w-[260px] text-sm leading-relaxed text-muted-foreground">Mostrando una carga inicial más ligera para consultar tus pedidos más recientes.
                                         </p>
@@ -447,7 +447,7 @@ const Index = () => {
         return (
             <div className="space-y-3">
                 <div>
-                    <p className="section-label">Pedidos</p>
+                    <p className="section-label">Historial</p>
                     <h2 className="font-display text-lg font-semibold text-foreground">Historial finalizado</h2>
                 </div>
                 {orders.map(request => (<article key={request.id} className="app-shell p-5">
