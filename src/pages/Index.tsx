@@ -506,7 +506,7 @@ const Index = () => {
         )}
 
         <div className="mt-4 space-y-2">
-          {profile?.user_type === "hardware" ? (
+          {profile?.user_type === "hardware" && (
             <button
               onClick={() => setIsProfileModalOpen(true)}
               className="interactive-row flex min-h-[48px] w-full items-center gap-2 rounded-[1.1rem] px-4 py-3 text-left text-sm text-foreground hover:bg-[hsl(var(--surface-2))]"
@@ -514,13 +514,15 @@ const Index = () => {
               <Settings className="h-4 w-4 text-primary" />
               Configurar mi ferretería
             </button>
-          ) : null}
-          <button
-            onClick={() => role === "hardware" && setActiveTab("market")}
-            className="interactive-row flex min-h-[48px] w-full items-center rounded-[1.1rem] px-4 py-3 text-left text-sm text-foreground hover:bg-[hsl(var(--surface-2))]"
-          >
-            Mi perfil de empresa
-          </button>
+          )}
+          {role === "hardware" && (
+            <button
+              onClick={() => setActiveTab("market")}
+              className="interactive-row flex min-h-[48px] w-full items-center rounded-[1.1rem] px-4 py-3 text-left text-sm text-foreground hover:bg-[hsl(var(--surface-2))]"
+            >
+              Mi perfil de empresa
+            </button>
+          )}
           <button onClick={signOut} className="interactive-row flex min-h-[48px] w-full items-center rounded-[1.1rem] px-4 py-3 text-left text-sm text-destructive hover:bg-destructive/10">
             Cerrar sesión
           </button>
