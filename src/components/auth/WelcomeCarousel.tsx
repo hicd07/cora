@@ -1,14 +1,9 @@
-/* Background gradients */
-/* Top bar */
-/* Main Content */
-/* Footer / Controls */
 import React, { useEffect, useState } from "react";
-import { HardHat, ShieldCheck, Truck, Check, Star, MapPin, Clock } from "lucide-react";
+import { HardHat, ShieldCheck, Truck, Check, Star, MapPin, Clock, Sparkles, SunMedium, Moon } from "lucide-react";
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from "@/components/ui/carousel";
 import { Button } from "@/components/ui/button";
 import AppLogo from "@/components/branding/AppLogo";
 import { useTheme } from "@/components/theme/ThemeProvider";
-import { SunMedium, Moon } from "lucide-react";
 import { WelcomeSlide } from "./WelcomeSlide";
 import { WelcomeDots } from "./WelcomeDots";
 
@@ -17,7 +12,27 @@ interface WelcomeCarouselProps {
     onSignup: () => void;
 }
 
-const slides = [{
+const slides = [
+  {
+    id: "welcome",
+    icon: Sparkles,
+    title: "Bienvenido a PIDO!",
+    description: "Realiza cotizaciones de materiales de construcción desde un solo lugar.",
+    mockup: (
+      <div className="panel-strong w-full aspect-video flex flex-col items-center justify-center p-8 interactive-card relative overflow-hidden bg-gradient-to-br from-primary/5 to-accent/5">
+        <div className="relative animate-float">
+          <div className="absolute -inset-4 bg-primary/20 rounded-full blur-xl animate-pulse" />
+          <AppLogo size={120} variant="symbol" className="relative z-10 drop-shadow-2xl" />
+        </div>
+        <div className="mt-8 flex gap-2">
+          <div className="h-1.5 w-12 rounded-full bg-primary/30" />
+          <div className="h-1.5 w-8 rounded-full bg-primary/10" />
+          <div className="h-1.5 w-4 rounded-full bg-primary/5" />
+        </div>
+      </div>
+    )
+  },
+  {
     id: "compare",
     icon: HardHat,
     title: "Compara ofertas reales",
@@ -137,12 +152,11 @@ export const WelcomeCarousel: React.FC<WelcomeCarouselProps> = (
     return (
         <div
             className="flex min-h-[100dvh] w-full flex-col bg-background relative overflow-hidden">
-            {}
             <div
                 className="absolute top-0 -left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl opacity-50 pointer-events-none" />
             <div
                 className="absolute bottom-40 -right-10 w-96 h-96 bg-accent/30 rounded-full blur-3xl opacity-50 pointer-events-none" />
-            {}
+            
             <header
                 className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 md:px-8 animate-fade-down"
                 style={{
@@ -156,7 +170,7 @@ export const WelcomeCarousel: React.FC<WelcomeCarouselProps> = (
                     {theme === "dark" ? <SunMedium className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
                 </button>
             </header>
-            {}
+            
             <main
                 className="flex-1 flex flex-col items-center justify-center w-full max-w-2xl mx-auto pt-16 pb-32">
                 <Carousel
@@ -176,7 +190,7 @@ export const WelcomeCarousel: React.FC<WelcomeCarouselProps> = (
                     </CarouselContent>
                 </Carousel>
             </main>
-            {}
+            
             <div
                 className="fixed bottom-0 left-0 right-0 z-50 flex flex-col items-center bg-gradient-to-t from-background via-background to-transparent pb-8 pt-12 px-6">
                 <div className="w-full max-w-md mx-auto space-y-8">
