@@ -16,6 +16,15 @@ const SECTORS = ["Alma Rosa I", "Alma Rosa II", "Ensanche Ozama", "Lucerna", "Sa
 const UNITS = ["Fundas", "Varillas", "Metros Cúbicos", "Unidades", "Pies", "Cajas", "Quintales"];
 const fieldClassName = "field-soft appearance-none pr-10";
 
+const generateId = () => Math.random().toString(36).slice(2) + Date.now();
+
+const createEmptyItem = (): QuoteItem => ({
+  id: generateId(),
+  name: "",
+  quantity: 1,
+  unit: UNITS[0],
+});
+
 export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose }) => {
   const createBidRequest = useCreateBidRequestMutation();
   const [title, setTitle] = useState("");
@@ -24,7 +33,7 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose 
   const [address, setAddress] = useState("");
   const [budget, setBudget] = useState("");
   const [expiresIn, setExpiresIn] = useState("24");
-  const [items, setItems] = useState<QuoteItem[]>([{ name: "", quantity: 1, unit: UNITS[0] }]);
+  const [items, setItems] = useState<QuoteItem[]>([createEmptyItem()]);
 
   if (!isOpen) return null;
 
@@ -35,11 +44,11 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose 
     setAddress("");
     setBudget("");
     setExpiresIn("24");
-    setItems([{ name: "", quantity: 1, unit: UNITS[0] }]);
+    setItems([createEmptyItem()]);
   };
 
   const handleAddItem = () => {
-    setItems((current) => [...current, { name: "", quantity: 1, unit: UNITS[0] }]);
+    setItems((current) => [...current, createEmptyItem()]);
   };
 
   const handleRemoveItem = (index: number) => {
@@ -138,7 +147,7 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose 
 
             <div className="space-y-2.5">
               {items.map((item, index) => (
-                <div key={`${item.name}-${index}`} className="panel-muted p-3.5">
+                <div key={item.id || index} className="panel-muted p-3.5">
                   <div className="grid grid-cols-[1fr_78px_98px_auto] items-center gap-2">
                     <Input type="text" required placeholder="Material" value={item.name} onChange={(e) => handleItemChange(index, "name", e.target.value)} />
                     <Input

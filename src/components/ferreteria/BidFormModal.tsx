@@ -131,7 +131,7 @@ export const BidFormModal: React.FC<BidFormModalProps> = ({ isOpen, onClose, req
             <div className="space-y-3">
               {items.map((item, index) => (
                 <div
-                  key={`${item.name}-${index}`}
+                  key={item.name + index}
                   className={cn(
                     "rounded-[1.4rem] border p-4 transition-[transform,background-color,border-color,box-shadow] duration-200",
                     item.isAvailable
