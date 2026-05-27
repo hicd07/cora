@@ -1,7 +1,6 @@
 import React from "react";
-import { Bell, HardHat, Moon, Store, SunMedium } from "lucide-react";
+import { Bell, Moon, SunMedium } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useSessionContext } from "@/components/auth/SessionContext";
 import AppLogo from "@/components/branding/AppLogo";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { Button } from "@/components/ui/button";
@@ -9,10 +8,8 @@ import { useNotifications } from "@/hooks/useNotifications";
 
 export const Header: React.FC = () => {
   const navigate = useNavigate();
-  const { profile } = useSessionContext();
   const { theme, toggleTheme } = useTheme();
   const { unreadCount } = useNotifications();
-  const isProvider = profile?.user_type === "hardware";
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-[hsl(var(--surface-1)/0.9)] px-4 py-4 backdrop-blur-xl">
@@ -54,32 +51,6 @@ export const Header: React.FC = () => {
             ) : null}
           </Button>
         </div>
-      </div>
-
-      <div className="panel-muted mt-4 flex items-center justify-between gap-4 px-4 py-3.5">
-        <div className="flex items-center gap-3">
-          <div
-            className={`flex h-10 w-10 items-center justify-center rounded-[1.05rem] ${
-              isProvider
-                ? "bg-[hsl(var(--accent))] text-sky-700 dark:text-sky-300"
-                : "bg-[hsl(var(--primary)/0.14)] text-[hsl(var(--warning-foreground))]"
-            }`}
-          >
-            {isProvider ? <Store className="h-[18px] w-[18px]" /> : <HardHat className="h-[18px] w-[18px]" />}
-          </div>
-
-          <div>
-            <p className="font-display text-sm font-semibold text-foreground">
-              {isProvider ? "Modo Ferretería Activo" : "Modo Ingeniero Activo"}
-            </p>
-            <p className="text-[11px] leading-relaxed text-muted-foreground">
-              {isProvider
-                ? "Recibe oportunidades reales y gestiona tu presencia comercial."
-                : "Publica solicitudes reales, compara ofertas y consolida compras."}
-            </p>
-          </div>
-        </div>
-        <span className={`data-chip ${isProvider ? "" : "data-chip-accent"}`}>{isProvider ? "Proveedor" : "Cliente"}</span>
       </div>
     </header>
   );
