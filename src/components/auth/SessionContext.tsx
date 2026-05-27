@@ -77,8 +77,11 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
   const refreshProfile = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    await fetchProfile(user.id);
-    setLoading(false);
+    try {
+      await fetchProfile(user.id);
+    } finally {
+      setLoading(false);
+    }
   }, [fetchProfile, user]);
 
   const updateProfile = useCallback(
@@ -132,22 +135,26 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
 
     const initialize = async () => {
       setLoading(true);
-      const { data } = await supabase.auth.getSession();
-      const currentSession = data.session;
+      try {
+        const { data } = await supabase.auth.getSession();
+        const currentSession = data.session;
 
-      if (!mounted) return;
+        if (!mounted) return;
 
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
 
-      if (currentSession?.user) {
-        await fetchProfile(currentSession.user.id);
-      } else {
-        setProfile(null);
-      }
-
-      if (mounted) {
-        setLoading(false);
+        if (currentSession?.user) {
+          await fetchProfile(currentSession.user.id);
+        } else {
+          setProfile(null);
+        }
+      } catch (error) {
+        console.error("Error initializing session:", error);
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
@@ -158,18 +165,23 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
     } = supabase.auth.onAuthStateChange(async (_event, currentSession) => {
       if (!mounted) return;
 
+      // Solo disparamos carga si hay un cambio real de sesión detectado
       setLoading(true);
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
+      try {
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
 
-      if (currentSession?.user) {
-        await fetchProfile(currentSession.user.id);
-      } else {
-        setProfile(null);
-      }
-
-      if (mounted) {
-        setLoading(false);
+        if (currentSession?.user) {
+          await fetchProfile(currentSession.user.id);
+        } else {
+          setProfile(null);
+        }
+      } catch (error) {
+        console.error("Error during auth state change:", error);
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
       }
     });
 
