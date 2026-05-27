@@ -64,13 +64,8 @@ const slides = [{
 
     mockup: (<div
         className="app-shell flex flex-col items-center justify-center p-6 interactive-card relative overflow-hidden">
-        <div className="absolute top-0 h-16 w-full bg-primary/10"></div>
         <div
             className="relative mt-4 flex h-20 w-20 items-center justify-center rounded-2xl bg-surface-2 border-2 border-primary/20 text-3xl font-bold text-primary shadow-sm">F
-                      <div
-                className="absolute -bottom-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground border-2 border-surface-1">
-                <Check className="h-3 w-3" />
-            </div>
         </div>
         <h3 className="mt-4 font-semibold text-foreground">Ferretería El Fuerte</h3>
         <div
