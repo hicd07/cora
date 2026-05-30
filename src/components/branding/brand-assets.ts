@@ -32,7 +32,7 @@ export const resolveBrandAsset = ({
   if (variant === "symbol") {
     return {
       src: brandAssets.symbol,
-      alt: "Cora",
+      alt: "CORA",
     };
   }
 
@@ -40,7 +40,7 @@ export const resolveBrandAsset = ({
 
   return {
     src: brandAssets.full[resolvedContext],
-    alt: "Logo de Cora",
+    alt: "Logo de CORA",
   };
 };
 
