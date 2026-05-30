@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Check, CheckCircle2, Info, RefreshCw, Store, X } from "lucide-react";
+import { Check, CheckCircle2, Info, RefreshCw, Store, X, Award, AlertTriangle, TrendingDown } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useCompleteBidRequestMutation } from "@/hooks/useBidRequests";
 import { useRequestBids } from "@/hooks/useRequestBids";
 import { BidRequest } from "@/lib/types";
@@ -26,8 +25,31 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
     setIsCheckout(false);
   }, [request?.id, isOpen]);
 
-  const storeTotals = useMemo(() => {
+  // Auto-select the cheapest option for each item when bids load to improve UX
+  useEffect(() => {
+    if (request && bids.length > 0 && Object.keys(selections).length === 0) {
+      const initialSelections: Record<string, string> = {};
+      request.items.forEach((item) => {
+        let cheapestStoreId = "";
+        let minPrice = Number.MAX_VALUE;
 
+        bids.forEach((bid) => {
+          const offer = bid.offers.find((o) => o.itemName === item.name);
+          if (offer && offer.isAvailable && offer.unitPrice < minPrice) {
+            minPrice = offer.unitPrice;
+            cheapestStoreId = bid.storeId;
+          }
+        });
+
+        if (cheapestStoreId) {
+          initialSelections[item.name] = cheapestStoreId;
+        }
+      });
+      setSelections(initialSelections);
+    }
+  }, [bids, request]);
+
+  const storeTotals = useMemo(() => {
     if (!request) return {} as Record<string, { subtotal: number; items: { name: string; qty: number; unit: string; price: number }[] }>;
 
     const totals: Record<string, { subtotal: number; items: { name: string; qty: number; unit: string; price: number }[] }> = {};
@@ -50,6 +72,26 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
 
     return totals;
   }, [bids, request, selections]);
+
+  // Helper to find the cheapest price for a specific item
+  const cheapestPrices = useMemo(() => {
+    const cheapest: Record<string, number> = {};
+    if (!request) return cheapest;
+
+    request.items.forEach((item) => {
+      let minPrice = Number.MAX_VALUE;
+      bids.forEach((bid) => {
+        const offer = bid.offers.find((o) => o.itemName === item.name);
+        if (offer && offer.isAvailable && offer.unitPrice < minPrice) {
+          minPrice = offer.unitPrice;
+        }
+      });
+      if (minPrice !== Number.MAX_VALUE) {
+        cheapest[item.name] = minPrice;
+      }
+    });
+    return cheapest;
+  }, [bids, request]);
 
   if (!isOpen || !request) return null;
 
@@ -75,16 +117,16 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
 
   return (
     <div className="modal-backdrop fixed inset-0 z-50 flex animate-in fade-in-0 duration-200 items-end justify-center">
-      <div className="modal-sheet max-h-[92vh] w-full max-w-md overflow-y-auto animate-in fade-in-0 slide-in-from-bottom-4 zoom-in-95 duration-300">
+      <div className="modal-sheet max-h-[94vh] w-full max-w-md overflow-y-auto animate-in fade-in-0 slide-in-from-bottom-4 zoom-in-95 duration-300">
         <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-border bg-[hsl(var(--card)/0.94)] px-6 py-4 backdrop-blur">
           <div>
             <p className="section-label">Comparativa real</p>
             <h3 className="font-display text-base font-semibold text-foreground">{isCheckout ? "Confirmar compra" : "Optimizar compra"}</h3>
             <p className="mt-1 text-xs text-muted-foreground">
-              {isCheckout ? "Resumen consolidado de los proveedores seleccionados." : "Sin precios aleatorios: solo ofertas guardadas en la base real."}
+              {isCheckout ? "Resumen consolidado de los proveedores seleccionados." : "Selecciona la mejor oferta para cada material de tu lista."}
             </p>
           </div>
-          <Button variant="outline" size="icon" onClick={onClose} aria-label="Cerrar">
+          <Button variant="outline" size="icon" onClick={onClose} aria-label="Cerrar" className="rounded-full">
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -92,8 +134,8 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
         <div className="space-y-5 px-6 py-6 pb-10">
           <div className="panel-muted p-4">
             <p className="section-label">Proyecto</p>
-            <h4 className="font-display mt-2 text-sm font-semibold text-foreground">{request.title}</h4>
-            <p className="mt-1 text-xs text-muted-foreground">Destino: {request.deliveryAddress}</p>
+            <h4 className="font-display mt-1 text-sm font-semibold text-foreground">{request.title}</h4>
+            <p className="mt-0.5 text-xs text-muted-foreground">Destino: {request.deliveryAddress}</p>
           </div>
 
           {isLoading ? (
@@ -125,83 +167,104 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
             </section>
           ) : !isCheckout ? (
             <>
-              <div className="space-y-3">
+              {/* Mobile-First Vertical Comparison List */}
+              <div className="space-y-5">
                 <div className="flex items-center justify-between gap-3">
-                  <label className="section-label block">Comparativa de precios</label>
+                  <label className="section-label block">Materiales y Ofertas</label>
                   <span className="data-chip data-chip-accent">{bids.length} ofertas</span>
                 </div>
 
-                <div className="-mx-6 overflow-x-auto px-6 pb-2">
-                  <Table className="min-w-[720px]">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="sticky left-0 z-20 min-w-[180px] bg-muted/95">Material</TableHead>
-                        {bids.map((bid) => (
-                          <TableHead key={bid.id} className="min-w-[180px]">
-                            <div className="space-y-1">
-                              <p className="font-display text-sm font-semibold normal-case tracking-tight text-foreground">{bid.storeName}</p>
-                              <p className="text-[10px] normal-case tracking-normal text-muted-foreground">{bid.deliveryTime}</p>
-                            </div>
-                          </TableHead>
-                        ))}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {request.items.map((item, itemIndex) => (
-                        <TableRow key={item.id ?? item.name} className={itemIndex % 2 === 1 ? "bg-[hsl(var(--table-stripe))]" : ""}>
-                          <TableCell className="sticky left-0 z-10 min-w-[180px] border-r border-border bg-card align-top">
-                            <p className="font-display text-sm font-semibold text-foreground">{item.name}</p>
-                            <p className="mono-data mt-1 text-xs text-muted-foreground">{item.quantity} {item.unit}</p>
-                          </TableCell>
-                          {bids.map((bid) => {
-                            const offer = bid.offers.find((currentOffer) => currentOffer.itemName === item.name);
-                            const isSelected = selections[item.name] === bid.storeId;
+                {request.items.map((item, itemIndex) => {
+                  const selectedStoreId = selections[item.name];
+                  const cheapestPrice = cheapestPrices[item.name];
 
-                            if (!offer || !offer.isAvailable) {
-                              return (
-                                <TableCell key={bid.id} className="align-top">
-                                  <div className="rounded-2xl border border-dashed border-border bg-muted/70 p-3 text-center text-xs text-muted-foreground">
-                                    <p className="font-display text-sm font-semibold text-foreground/60">N/D</p>
-                                    <p className="mt-1">Sin disponibilidad</p>
-                                  </div>
-                                </TableCell>
-                              );
-                            }
+                  return (
+                    <div key={item.id ?? item.name} className="app-shell p-4 space-y-3 border-border/80">
+                      {/* Item Header */}
+                      <div className="flex items-start justify-between gap-2 border-b border-border/50 pb-2.5">
+                        <div>
+                          <h4 className="font-display text-sm font-bold text-foreground">{item.name}</h4>
+                          <p className="text-xs text-muted-foreground mt-0.5">Cantidad requerida</p>
+                        </div>
+                        <span className="data-chip bg-primary/10 text-primary border-primary/20">
+                          {item.quantity} {item.unit}
+                        </span>
+                      </div>
 
+                      {/* Offers List for this Item */}
+                      <div className="space-y-2">
+                        {bids.map((bid) => {
+                          const offer = bid.offers.find((o) => o.itemName === item.name);
+                          const isSelected = selectedStoreId === bid.storeId;
+                          const isCheapest = offer && offer.isAvailable && offer.unitPrice === cheapestPrice;
+
+                          if (!offer || !offer.isAvailable) {
                             return (
-                              <TableCell key={bid.id} className="align-top">
-                                <button
-                                  type="button"
-                                  onClick={() => handleSelectProvider(item.name, bid.storeId)}
-                                  className={cn(
-                                    "flex min-h-[116px] w-full flex-col justify-between rounded-[1.15rem] border p-3 text-left transition-[transform,box-shadow,border-color,background-color] duration-200",
-                                    isSelected
-                                      ? "border-[hsl(var(--success))] bg-[hsl(var(--success)/0.10)] shadow-[0_16px_30px_-24px_hsl(var(--success)/0.45)]"
-                                      : "border-border bg-card hover:-translate-y-0.5 hover:border-primary/20 hover:bg-accent/40",
-                                  )}
-                                >
-                                  <div className="flex items-start justify-between gap-2">
-                                    <span className="section-label text-[10px]">Oferta</span>
-                                    {isSelected && <Check className="h-4 w-4 text-[hsl(var(--success))]" />}
-                                  </div>
-                                  <div>
-                                    <p className="mono-data text-base font-semibold text-foreground">RD$ {offer.unitPrice.toLocaleString()}</p>
-                                    <p className="mono-data mt-1 text-xs text-muted-foreground">
-                                      Total: RD$ {(offer.unitPrice * item.quantity).toLocaleString()}
-                                    </p>
-                                  </div>
-                                </button>
-                              </TableCell>
+                              <div
+                                key={bid.id}
+                                className="flex items-center justify-between rounded-xl border border-dashed border-border bg-muted/30 p-3 opacity-60"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Store className="h-3.5 w-3.5 text-muted-foreground" />
+                                  <span className="text-xs font-medium text-muted-foreground">{bid.storeName}</span>
+                                </div>
+                                <span className="text-[10px] font-semibold text-destructive uppercase tracking-wider">No disponible</span>
+                              </div>
                             );
-                          })}
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                          }
+
+                          const lineTotal = offer.unitPrice * item.quantity;
+
+                          return (
+                            <button
+                              key={bid.id}
+                              type="button"
+                              onClick={() => handleSelectProvider(item.name, bid.storeId)}
+                              className={cn(
+                                "w-full flex flex-col p-3 rounded-xl border text-left transition-all duration-200 relative overflow-hidden",
+                                isSelected
+                                  ? "border-[hsl(var(--success))] bg-[hsl(var(--success)/0.06)] shadow-[0_8px_20px_-12px_hsl(var(--success)/0.3)]"
+                                  : "border-border bg-card hover:border-primary/30 hover:bg-accent/10"
+                              )}
+                            >
+                              <div className="flex items-start justify-between gap-2 w-full">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <Store className={cn("h-3.5 w-3.5 shrink-0", isSelected ? "text-[hsl(var(--success))]" : "text-muted-foreground")} />
+                                  <span className="text-xs font-semibold text-foreground truncate">{bid.storeName}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  {isCheapest && (
+                                    <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[9px] font-bold text-emerald-600 uppercase tracking-wider">
+                                      <TrendingDown className="h-2.5 w-2.5" /> Mejor Precio
+                                    </span>
+                                  )}
+                                  {isSelected && (
+                                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[hsl(var(--success))] text-white">
+                                      <Check className="h-2.5 w-2.5 stroke-[3]" />
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="mt-2 flex items-baseline justify-between w-full">
+                                <p className="text-xs text-muted-foreground">
+                                  RD$ {offer.unitPrice.toLocaleString()} / {item.unit}
+                                </p>
+                                <p className="mono-data text-sm font-bold text-foreground">
+                                  Total: RD$ {lineTotal.toLocaleString()}
+                                </p>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
-              <div className="space-y-2">
+              {/* Distribution Summary */}
+              <div className="space-y-2 pt-2">
                 <label className="section-label block">Distribución del pedido</label>
                 <div className="space-y-2">
                   {bids.map((bid) => {
@@ -210,50 +273,51 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
                     if (itemsCount === 0) return null;
 
                     return (
-                      <div key={bid.id} className="panel-muted flex items-center justify-between p-3.5">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-[1rem] bg-[hsl(var(--primary)/0.14)] text-primary">
+                      <div key={bid.id} className="panel-muted flex items-center justify-between p-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[hsl(var(--primary)/0.1)] text-primary">
                             <Store className="h-4 w-4" />
                           </div>
                           <div>
-                            <p className="font-display text-sm font-semibold text-foreground">{bid.storeName}</p>
-                            <p className="text-xs text-muted-foreground">{itemsCount} materiales asignados</p>
+                            <p className="font-display text-xs font-bold text-foreground">{bid.storeName}</p>
+                            <p className="text-[10px] text-muted-foreground">{itemsCount} materiales asignados</p>
                           </div>
                         </div>
-                        <p className="mono-data text-sm font-semibold text-foreground">RD$ {totalAllocated.toLocaleString()}</p>
+                        <p className="mono-data text-xs font-bold text-foreground">RD$ {totalAllocated.toLocaleString()}</p>
                       </div>
                     );
                   })}
                 </div>
               </div>
 
-              <div className="panel-strong rounded-[1.5rem] p-4">
-                <div className="flex justify-between text-sm text-muted-foreground">
+              {/* Totals Card */}
+              <div className="panel-strong rounded-[1.5rem] p-4 space-y-2.5">
+                <div className="flex justify-between text-xs text-muted-foreground">
                   <span>Subtotal neto</span>
                   <span className="mono-data">RD$ {generalSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                 </div>
-                <div className="mt-2 flex justify-between text-sm text-muted-foreground">
+                <div className="flex justify-between text-xs text-muted-foreground">
                   <span>ITBIS (18%)</span>
                   <span className="mono-data">RD$ {generalItbis.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                 </div>
-                <div className="my-3 border-t border-border" />
+                <div className="border-t border-border/60 my-1" />
                 <div className="flex items-center justify-between">
-                  <span className="font-display text-sm font-semibold text-primary">Total estimado</span>
-                  <span className="mono-data text-lg font-semibold text-foreground">RD$ {generalTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  <span className="font-display text-sm font-bold text-primary">Total estimado</span>
+                  <span className="mono-data text-base font-bold text-foreground">RD$ {generalTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                 </div>
               </div>
 
-              <Button type="button" onClick={() => setIsCheckout(true)} disabled={generalSubtotal <= 0} className="w-full justify-center">
+              <Button type="button" onClick={() => setIsCheckout(true)} disabled={generalSubtotal <= 0} className="w-full h-12 rounded-xl justify-center text-sm font-semibold">
                 Confirmar selección
               </Button>
             </>
           ) : (
             <>
-              <div className="panel-strong rounded-[1.5rem] border-primary/20 bg-[hsl(var(--primary)/0.1)] p-4">
+              <div className="panel-strong rounded-[1.5rem] border-primary/20 bg-[hsl(var(--primary)/0.06)] p-4">
                 <div className="flex gap-3">
-                  <Info className="mt-0.5 h-5 w-5 text-primary" />
+                  <Info className="mt-0.5 h-5 w-5 text-primary shrink-0" />
                   <div>
-                    <h4 className="font-display text-sm font-semibold text-foreground">Resumen real de compra</h4>
+                    <h4 className="font-display text-sm font-bold text-foreground">Resumen real de compra</h4>
                     <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                       Vas a cerrar la solicitud con {selectedStoresCount} proveedor{selectedStoresCount === 1 ? "" : "es"} seleccionado{selectedStoresCount === 1 ? "" : "s"}. Al confirmar, el estado pasará a compra finalizada y se emitirán notificaciones reales.
                     </p>
@@ -311,10 +375,10 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <Button type="button" variant="outline" onClick={() => setIsCheckout(false)}>
+                <Button type="button" variant="outline" onClick={() => setIsCheckout(false)} className="h-12 rounded-xl">
                   Atrás
                 </Button>
-                <Button type="button" onClick={handleFinalizePurchase} disabled={completeRequest.isPending}>
+                <Button type="button" onClick={handleFinalizePurchase} disabled={completeRequest.isPending} className="h-12 rounded-xl">
                   {completeRequest.isPending ? <span className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" /> : <><CheckCircle2 className="h-4 w-4" />Finalizar compra</>}
                 </Button>
               </div>
