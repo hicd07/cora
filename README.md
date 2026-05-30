@@ -1,6 +1,6 @@
-# PIDO 🏗️ Gavel • B2B Marketplace de Construcción (SDE)
+# CORA 🏗️ • B2B Marketplace de Construcción (SDE)
 
-**PIDO** es una plataforma web mobile-first diseñada para revolucionar la adquisición de materiales de construcción en Santo Domingo Este (SDE), República Dominicana. Conecta de manera eficiente a **Ingenieros de Obra** con **Ferreterías Locales**, permitiendo optimizar costos y logística mediante un sistema de subastas inversas y cotizaciones detalladas por ítem.
+**CORA** es una plataforma web mobile-first diseñada para revolucionar la cotización de materiales de construcción en Santo Domingo Este (SDE), República Dominicana. Conecta de manera eficiente a **Ingenieros de Obra** con **Ferreterías Locales**, permitiendo optimizar costos y logística mediante un sistema de subastas inversas y cotizaciones detalladas por ítem.
 
 ---
 
@@ -36,7 +36,7 @@
 
 1. Clona este repositorio:
    ```bash
-   git clone https://github.com/tu-usuario/pido.git
+   git clone https://github.com/tu-usuario/CORA.git
    ```
 2. Instala las dependencias:
 
