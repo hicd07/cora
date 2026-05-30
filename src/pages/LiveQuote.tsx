@@ -43,7 +43,7 @@ export default function LiveQuote() {
   });
 
   const { data: realBids = [], isLoading: isLoadingBids } = useRequestBids(id);
-  const { data: conversations = [], isLoading: isLoadingConversations } = useWaConversations(id);
+  const { data: realConversations = [], isLoading: isLoadingConversations } = useWaConversations(id);
 
   // Inject mock WhatsApp bids if the ID matches the requested one
   const bids = useMemo(() => {
@@ -99,6 +99,46 @@ export default function LiveQuote() {
     }
     return realBids;
   }, [id, realBids, request]);
+
+  // Inject mock WhatsApp conversations if the ID matches
+  const conversations = useMemo(() => {
+    if (id === "ecbaceee-cb21-4b12-a40d-e7947bebb6e6") {
+      const mockConversations = [
+        {
+          id: "mock-conv-1",
+          state: "REPLIED",
+          wa_phone_number: "+18095550101",
+          updated_at: new Date().toISOString(),
+          external_stores: {
+            name: "Ferretería El Lápiz (WhatsApp)",
+            address: "Av. Sabana Larga #42, SDE",
+          },
+        },
+        {
+          id: "mock-conv-2",
+          state: "ACTIVE", // Escalated to human
+          wa_phone_number: "+18095550102",
+          updated_at: new Date().toISOString(),
+          external_stores: {
+            name: "Materiales SDE (WhatsApp)",
+            address: "Carretera Mella Km 7, SDE",
+          },
+        },
+        {
+          id: "mock-conv-3",
+          state: "REPLIED",
+          wa_phone_number: "+18095550103",
+          updated_at: new Date().toISOString(),
+          external_stores: {
+            name: "Ferretería Hermanos Díaz (WhatsApp)",
+            address: "Calle Club de Leones #15, SDE",
+          },
+        },
+      ];
+      return [...realConversations, ...mockConversations];
+    }
+    return realConversations;
+  }, [id, realConversations]);
 
   // Separate bids by channel
   const portalBids = bids.filter((bid) => bid.bidderUserId);

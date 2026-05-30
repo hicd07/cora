@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Send, Bot, User } from "lucide-react";
+import { X, Send, Bot } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -12,15 +12,84 @@ interface ConversationDrawerProps {
   onClose: () => void;
 }
 
+// Mock message histories for the 3 mock conversations
+const MOCK_MESSAGES: Record<string, any[]> = {
+  "mock-conv-1": [
+    {
+      id: "m1-1",
+      direction: "outbound",
+      content_type: "template",
+      body: "Hola, un ingeniero en Alma Rosa I necesita cotizar materiales de construcción. ¿Tienes disponibilidad?",
+      created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
+    },
+    {
+      id: "m1-2",
+      direction: "inbound",
+      content_type: "text",
+      body: "Hola! Sí claro, tenemos cemento gris a RD$ 480 la funda y arena a RD$ 1,200 el metro.",
+      created_at: new Date(Date.now() - 3600000 * 1.8).toISOString(),
+    },
+    {
+      id: "m1-3",
+      direction: "outbound",
+      content_type: "text",
+      body: "Excelente, ¿tienen entrega para hoy mismo?",
+      created_at: new Date(Date.now() - 3600000 * 1.5).toISOString(),
+    },
+    {
+      id: "m1-4",
+      direction: "inbound",
+      content_type: "text",
+      body: "Sí, si confirmas antes de las 2 PM te lo enviamos hoy mismo sin costo adicional.",
+      created_at: new Date(Date.now() - 3600000 * 1.4).toISOString(),
+    }
+  ],
+  "mock-conv-2": [
+    {
+      id: "m2-1",
+      direction: "outbound",
+      content_type: "template",
+      body: "Hola, un ingeniero en Alma Rosa I necesita cotizar materiales de construcción. ¿Tienes disponibilidad?",
+      created_at: new Date(Date.now() - 3600000 * 3).toISOString(),
+    },
+    {
+      id: "m2-2",
+      direction: "inbound",
+      content_type: "text",
+      body: "Buenas, solo me queda cemento blanco. ¿Te sirve ese o necesitas gris obligatoriamente? Avísame para ver si te consigo con un colega.",
+      created_at: new Date(Date.now() - 3600000 * 2.8).toISOString(),
+    }
+  ],
+  "mock-conv-3": [
+    {
+      id: "m3-1",
+      direction: "outbound",
+      content_type: "template",
+      body: "Hola, un ingeniero en Alma Rosa I necesita cotizar materiales de construcción. ¿Tienes disponibilidad?",
+      created_at: new Date(Date.now() - 3600000 * 4).toISOString(),
+    },
+    {
+      id: "m3-2",
+      direction: "inbound",
+      content_type: "text",
+      body: "Saludos. Sí, tenemos disponibilidad de todo. Cemento a RD$ 495 y arena a RD$ 1,150. Despacho inmediato.",
+      created_at: new Date(Date.now() - 3600000 * 3.8).toISOString(),
+    }
+  ]
+};
+
 export function ConversationDrawer({ conversationId, storeName, onClose }: ConversationDrawerProps) {
   const queryClient = useQueryClient();
   const [newMessage, setNewMessage] = useState("");
+  const [localMessages, setLocalMessages] = useState<any[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const { data: messages = [], isLoading } = useQuery({
+  const isMock = conversationId?.startsWith("mock-");
+
+  const { data: dbMessages = [], isLoading } = useQuery({
     queryKey: ["wa-messages", conversationId],
     queryFn: async () => {
-      if (!conversationId) return [];
+      if (!conversationId || isMock) return [];
       const { data, error } = await supabase
         .from("wa_messages")
         .select("*")
@@ -33,9 +102,22 @@ export function ConversationDrawer({ conversationId, storeName, onClose }: Conve
     enabled: Boolean(conversationId),
   });
 
-  // Suscribirse a mensajes nuevos
+  // Sync local messages with DB or Mock data
   useEffect(() => {
-    if (!conversationId) return;
+    if (conversationId) {
+      if (isMock) {
+        setLocalMessages(MOCK_MESSAGES[conversationId] || []);
+      } else {
+        setLocalMessages(dbMessages);
+      }
+    } else {
+      setLocalMessages([]);
+    }
+  }, [conversationId, dbMessages, isMock]);
+
+  // Suscribirse a mensajes nuevos reales
+  useEffect(() => {
+    if (!conversationId || isMock) return;
 
     const channel = supabase
       .channel(`wa_messages_${conversationId}`)
@@ -58,20 +140,37 @@ export function ConversationDrawer({ conversationId, storeName, onClose }: Conve
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [conversationId, queryClient]);
+  }, [conversationId, queryClient, isMock]);
 
   // Auto-scroll al fondo
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [localMessages]);
 
   const sendMessageMutation = useMutation({
     mutationFn: async (body: string) => {
       if (!conversationId) return;
       
-      // Llamar al Edge Function wa-reply
+      if (isMock) {
+        // Simulate mock reply delay
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            const userMsg = {
+              id: `mock-user-${Date.now()}`,
+              direction: "outbound",
+              content_type: "text",
+              body,
+              created_at: new Date().toISOString()
+            };
+            setLocalMessages(prev => [...prev, userMsg]);
+            resolve(true);
+          }, 300);
+        });
+      }
+
+      // Llamar al Edge Function wa-reply real
       const { data, error } = await supabase.functions.invoke("wa-reply", {
         body: { conversationId, body },
       });
@@ -110,12 +209,12 @@ export function ConversationDrawer({ conversationId, storeName, onClose }: Conve
             <div className="text-center text-muted-foreground text-sm mt-10">
               Cargando mensajes...
             </div>
-          ) : messages.length === 0 ? (
+          ) : localMessages.length === 0 ? (
             <div className="text-center text-muted-foreground text-sm mt-10">
               No hay mensajes aún.
             </div>
           ) : (
-            messages.map((msg: any) => {
+            localMessages.map((msg: any) => {
               const isOutbound = msg.direction === "outbound";
               return (
                 <div 
