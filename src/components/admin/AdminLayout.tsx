@@ -5,13 +5,9 @@ import { Button } from "@/components/ui/button";
 import AppLogo from "@/components/branding/AppLogo";
 import { useSessionContext } from "@/components/auth/SessionContext";
 
-import { LayoutDashboard, Settings, Users, Mail, ShieldCheck, ArrowLeft, LogOut, Store, Gavel } from "lucide-react";
-
 const navItems = [
   { to: "/admin", label: "Resumen", icon: LayoutDashboard, end: true },
   { to: "/admin/users", label: "Usuarios", icon: Users, end: false },
-  { to: "/admin/stores", label: "Ferreterías", icon: Store, end: false },
-  { to: "/admin/quotes", label: "Cotizaciones", icon: Gavel, end: false },
   { to: "/admin/invitations", label: "Invitaciones", icon: Mail, end: false },
   { to: "/admin/requests", label: "Solicitudes", icon: ShieldCheck, end: false },
   { to: "/admin/settings", label: "Configuración", icon: Settings, end: false },

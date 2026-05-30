@@ -179,42 +179,6 @@ serve(async (req) => {
         return json({ ok: true });
       }
 
-      /* ---------- BUSINESS DATA ---------- */
-      case "list_stores": {
-        // Union of internal hardware profiles and external stores
-        const { data: internal, error: iErr } = await service
-          .from("profiles")
-          .select("*")
-          .eq("user_type", "hardware");
-        
-        const { data: external, error: eErr } = await service
-          .from("external_stores")
-          .select("*");
-        
-        if (iErr || eErr) throw iErr || eErr;
-
-        return json({
-          stores: [
-            ...(internal ?? []).map(s => ({ ...s, source: 'internal' })),
-            ...(external ?? []).map(s => ({ ...s, source: 'external' }))
-          ]
-        });
-      }
-
-      case "list_quotes": {
-        const { data, error } = await service
-          .from("bid_requests")
-          .select(`
-            *,
-            owner:profiles!bid_requests_owner_user_id_fkey(full_name),
-            items:bid_request_items(count)
-          `)
-          .order("created_at", { ascending: false });
-        
-        if (error) throw error;
-        return json({ quotes: data });
-      }
-
       default:
         return json({ error: `Unknown action: ${action}` }, 400);
     }

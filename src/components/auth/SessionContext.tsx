@@ -266,13 +266,6 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
 
       const nextUserId = currentSession?.user?.id ?? null;
 
-      // When a user clicks a recovery link, Supabase sets the session
-      if (event === "PASSWORD_RECOVERY") {
-        console.log("Password recovery event triggered");
-        // Ensure the AuthSheet opens in recovery mode
-        return;
-      }
-
       // Background refresh events: do NOT toggle global loading.
       if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
         return;

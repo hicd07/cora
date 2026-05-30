@@ -136,25 +136,6 @@ export const useSignupRequests = () =>
     },
   });
 
-/* ---------- BUSINESS DATA CRUD ---------- */
-export const useAdminStores = () =>
-  useQuery({
-    queryKey: ["admin-stores"],
-    queryFn: async () => {
-      const res = await adminInvoke<{ stores: any[] }>("list_stores");
-      return res.stores;
-    },
-  });
-
-export const useAdminQuotes = () =>
-  useQuery({
-    queryKey: ["admin-quotes"],
-    queryFn: async () => {
-      const res = await adminInvoke<{ quotes: any[] }>("list_quotes");
-      return res.quotes;
-    },
-  });
-
 export const useReviewSignupRequest = () => {
   const qc = useQueryClient();
   return useMutation({
