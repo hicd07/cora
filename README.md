@@ -1,4 +1,4 @@
-# CORA 🏗️ • B2B Marketplace de Construcción (SDE)
+# CORA 🏗️ • Marketplace Inverso de Materiales de Construcción
 
 **CORA** es una plataforma web mobile-first diseñada para revolucionar la cotización de materiales de construcción en Santo Domingo Este (SDE), República Dominicana. Conecta de manera eficiente a **Ingenieros de Obra** con **Ferreterías Locales**, permitiendo optimizar costos y logística mediante un sistema de subastas inversas y cotizaciones detalladas por ítem.
 
