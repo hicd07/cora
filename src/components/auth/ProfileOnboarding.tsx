@@ -86,7 +86,7 @@ export const ProfileOnboarding: React.FC = () => {
             Completa tu perfil
           </h1>
           <p className="text-muted-foreground">
-            Define tu tipo de operación para activar tu experiencia en PIDO.
+            Define tu tipo de operación para activar tu experiencia en Cora.
           </p>
         </div>
 

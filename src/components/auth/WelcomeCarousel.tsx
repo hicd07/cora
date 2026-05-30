@@ -16,7 +16,7 @@ const slides = [
   {
     id: "welcome",
     icon: Sparkles,
-    title: "Bienvenido a PIDO!",
+    title: "¡Bienvenido a Cora!",
     description: "Realiza cotizaciones de materiales de construcción desde un solo lugar.",
     mockup: (
       <div className="panel-strong w-full aspect-video flex flex-col items-center justify-center p-8 interactive-card relative overflow-hidden bg-gradient-to-br from-primary/5 to-accent/5">

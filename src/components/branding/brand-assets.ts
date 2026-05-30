@@ -32,7 +32,7 @@ export const resolveBrandAsset = ({
   if (variant === "symbol") {
     return {
       src: brandAssets.symbol,
-      alt: "PIDO",
+      alt: "Cora",
     };
   }
 
@@ -40,7 +40,7 @@ export const resolveBrandAsset = ({
 
   return {
     src: brandAssets.full[resolvedContext],
-    alt: "Logo de PIDO",
+    alt: "Logo de Cora",
   };
 };
 

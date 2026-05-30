@@ -89,7 +89,7 @@ export const AuthSheet: React.FC<AuthSheetProps> = ({
       </div>
       
       <div className="text-center space-y-2">
-        <h2 className="font-display text-2xl font-bold tracking-tight">Bienvenido a PIDO</h2>
+        <h2 className="font-display text-2xl font-bold tracking-tight">Bienvenido a Cora</h2>
         <p className="text-sm text-muted-foreground">
           {mode === "login" ? "Ingresa a tu cuenta para continuar." : "Crea tu cuenta gratis hoy mismo."}
         </p>
@@ -166,7 +166,7 @@ export const AuthSheet: React.FC<AuthSheetProps> = ({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl border-border px-6 pt-6 pb-12 sm:max-w-md mx-auto modal-sheet">
           <SheetHeader className="hidden">
-            <SheetTitle>Acceso a PIDO</SheetTitle>
+            <SheetTitle>Acceso a Cora</SheetTitle>
           </SheetHeader>
           {Content}
         </SheetContent>
@@ -178,7 +178,7 @@ export const AuthSheet: React.FC<AuthSheetProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md rounded-[2rem] p-6 border-border modal-backdrop app-shell">
         <DialogHeader className="hidden">
-          <DialogTitle>Acceso a PIDO</DialogTitle>
+          <DialogTitle>Acceso a Cora</DialogTitle>
         </DialogHeader>
         {Content}
       </DialogContent>

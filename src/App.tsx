@@ -25,7 +25,7 @@ const FullScreenLoader = () => (
           <AppLogo variant="symbol" context="header" size={34} className="relative" />
         </div>
       </div>
-      <p className="font-display mt-5 text-base font-semibold text-foreground">Cargando PIDO</p>
+      <p className="font-display mt-5 text-base font-semibold text-foreground">Cargando Cora</p>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">Preparando tu panel de compras, oportunidades y comparativas.</p>
     </div>
   </div>
@@ -39,7 +39,7 @@ const ProfileErrorScreen = ({ onRetry, onSignOut }: { onRetry: () => void; onSig
       </div>
       <p className="font-display mt-5 text-base font-semibold text-foreground">No pudimos cargar tu perfil</p>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-        Hubo un problema consultando tu cuenta. Verifica tu conexión y vuelve a intentarlo.
+        Hubo un problema consultando tu cuenta en Cora. Verifica tu conexión y vuelve a intentarlo.
       </p>
       <div className="mt-5 flex flex-col gap-2">
         <Button onClick={onRetry} className="w-full justify-center">

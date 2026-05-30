@@ -73,7 +73,7 @@ const Notifications = () => {
                   <div className="flex h-8 w-8 items-center justify-center rounded-[0.95rem] border border-[hsl(var(--foreground)/0.08)] bg-[hsl(var(--surface-1))] shadow-[0_12px_22px_-18px_hsl(var(--foreground)/0.35)]">
                     <AppLogo variant="symbol" context="header" size={18} />
                   </div>
-                  <p className="section-label">Inbox PIDO</p>
+                  <p className="section-label">Inbox Cora</p>
                 </div>
                 <h1 className="font-display text-xl font-semibold text-foreground">Notificaciones</h1>
                 <p className="text-xs text-muted-foreground">Historial en tiempo real de eventos clave en tus compras y subastas.</p>
