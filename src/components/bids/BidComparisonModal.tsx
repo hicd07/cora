@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Check, CheckCircle2, Info, RefreshCw, Store, X, Award, AlertTriangle, TrendingDown } from "lucide-react";
+import { Check, CheckCircle2, Info, RefreshCw, Store, X, Award, AlertTriangle, TrendingDown, Clock } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useCompleteBidRequestMutation } from "@/hooks/useBidRequests";
@@ -13,6 +13,26 @@ interface BidComparisonModalProps {
   onClose: () => void;
   request: BidRequest | null;
 }
+
+// Helper to map delivery time strings to numeric hours for comparison
+const getDeliveryWeight = (time: string): number => {
+  const t = time.toLowerCase();
+  if (t.includes("1-2") || t.includes("inmediato")) return 2;
+  if (t.includes("4-6") || t.includes("mismo d")) return 6;
+  if (t.includes("24") || t.includes("siguiente d")) return 24;
+  if (t.includes("48")) return 48;
+  if (t.includes("72")) return 72;
+  return 120; // Default fallback / "A coordinar"
+};
+
+const getFriendlyDeliveryTime = (weight: number): string => {
+  if (weight <= 2) return "Inmediato (1-2 horas)";
+  if (weight <= 6) return "Mismo día (4-6 horas)";
+  if (weight <= 24) return "Siguiente día (24 horas)";
+  if (weight <= 48) return "48 horas";
+  if (weight <= 72) return "72 horas";
+  return "A coordinar / Variable";
+};
 
 export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, onClose, request }) => {
   const [selections, setSelections] = useState<Record<string, string>>({});
@@ -72,6 +92,26 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
 
     return totals;
   }, [bids, request, selections]);
+
+  // Calculate the maximum delivery time among all selected providers (parallel delivery)
+  const totalDeliveryTime = useMemo(() => {
+    let maxWeight = 0;
+    let hasSelection = false;
+
+    bids.forEach((bid) => {
+      const allocatedItems = storeTotals[bid.storeId]?.items.length || 0;
+      if (allocatedItems > 0) {
+        hasSelection = true;
+        const weight = getDeliveryWeight(bid.deliveryTime);
+        if (weight > maxWeight) {
+          maxWeight = weight;
+        }
+      }
+    });
+
+    if (!hasSelection) return "Sin selección";
+    return getFriendlyDeliveryTime(maxWeight);
+  }, [bids, storeTotals]);
 
   // Helper to find the cheapest price for a specific item
   const cheapestPrices = useMemo(() => {
@@ -229,8 +269,13 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
                             >
                               <div className="flex items-start justify-between gap-2 w-full">
                                 <div className="flex items-center gap-1.5 min-w-0">
-                                  <Store className={cn("h-3.5 w-3.5 shrink-0", isSelected ? "text-[hsl(var(--success))]" : "text-muted-foreground")} />
-                                  <span className="text-xs font-semibold text-foreground truncate">{bid.storeName}</span>
+                                  <Store className={cn("h-3.5 w-3.5 shrink-0 mt-0.5", isSelected ? "text-[hsl(var(--success))]" : "text-muted-foreground")} />
+                                  <div className="min-w-0">
+                                    <span className="text-xs font-semibold text-foreground truncate block">{bid.storeName}</span>
+                                    <span className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                                      <Clock className="h-3 w-3 text-primary" /> {bid.deliveryTime}
+                                    </span>
+                                  </div>
                                 </div>
                                 <div className="flex items-center gap-1.5 shrink-0">
                                   {isCheapest && (
@@ -246,7 +291,7 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
                                 </div>
                               </div>
 
-                              <div className="mt-2 flex items-baseline justify-between w-full">
+                              <div className="mt-2.5 flex items-baseline justify-between w-full border-t border-border/40 pt-2">
                                 <p className="text-xs text-muted-foreground">
                                   RD$ {offer.unitPrice.toLocaleString()} / {item.unit}
                                 </p>
@@ -280,7 +325,9 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
                           </div>
                           <div>
                             <p className="font-display text-xs font-bold text-foreground">{bid.storeName}</p>
-                            <p className="text-[10px] text-muted-foreground">{itemsCount} materiales asignados</p>
+                            <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                              <Clock className="h-3 w-3 text-primary" /> {bid.deliveryTime}
+                            </p>
                           </div>
                         </div>
                         <p className="mono-data text-xs font-bold text-foreground">RD$ {totalAllocated.toLocaleString()}</p>
@@ -299,6 +346,12 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>ITBIS (18%)</span>
                   <span className="mono-data">RD$ {generalItbis.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Entrega estimada total</span>
+                  <span className="font-semibold text-foreground flex items-center gap-1">
+                    <Clock className="h-3.5 w-3.5 text-primary" /> {totalDeliveryTime}
+                  </span>
                 </div>
                 <div className="border-t border-border/60 my-1" />
                 <div className="flex items-center justify-between">
@@ -337,7 +390,9 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
                           <Store className="h-4 w-4 text-primary" />
                           <span className="font-display text-sm font-semibold text-foreground">{bid.storeName}</span>
                         </div>
-                        <span className="section-label">{bid.deliveryTime}</span>
+                        <span className="section-label flex items-center gap-1">
+                          <Clock className="h-3 w-3 text-primary" /> {bid.deliveryTime}
+                        </span>
                       </div>
 
                       <ul className="mt-3 space-y-2">
@@ -358,14 +413,20 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
                 })}
               </div>
 
-              <div className="panel-strong rounded-[1.5rem] p-4">
+              <div className="panel-strong rounded-[1.5rem] p-4 space-y-2.5">
                 <div className="flex justify-between text-sm text-muted-foreground">
                   <span>Subtotal consolidado</span>
                   <span className="mono-data">RD$ {generalSubtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                 </div>
-                <div className="mt-2 flex justify-between text-sm text-muted-foreground">
+                <div className="flex justify-between text-sm text-muted-foreground">
                   <span>ITBIS consolidado</span>
                   <span className="mono-data">RD$ {generalItbis.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Entrega estimada total</span>
+                  <span className="font-semibold text-foreground flex items-center gap-1">
+                    <Clock className="h-3.5 w-3.5 text-primary" /> {totalDeliveryTime}
+                  </span>
                 </div>
                 <div className="my-3 border-t border-border" />
                 <div className="flex items-center justify-between">
