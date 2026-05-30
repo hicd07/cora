@@ -31,6 +31,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useBidRequests } from "@/hooks/useBidRequests";
 import { useMarketplaceStores } from "@/hooks/useMarketplaceStores";
+import { usePushSubscription } from "@/hooks/usePushSubscription";
 import { BidRequest, HardwareStore } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { showError, showSuccess } from "@/utils/toast";
@@ -81,6 +82,10 @@ const Index = () => {
     const [isStoreDetailOpen, setIsStoreDetailOpen] = useState(false);
     const bidRequestsQuery = useBidRequests();
     const marketplaceStoresQuery = useMarketplaceStores();
+    
+    // Register for push notifications if logged in
+    usePushSubscription();
+
     const bidRequests = bidRequestsQuery.data ?? [];
     const marketplaceStores = marketplaceStoresQuery.data ?? [];
 

@@ -3,7 +3,9 @@ import { Calendar, DollarSign, HardHat, PackagePlus, MapPin, X } from "lucide-re
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
+import { Badge } from "@/components/ui/badge";
 import { useCreateBidRequestMutation } from "@/hooks/useBidRequests";
+import { usePlacesSearch } from "@/hooks/usePlacesSearch";
 import { QuoteItem } from "@/lib/types";
 import { showError, showSuccess } from "@/utils/toast";
 
@@ -38,6 +40,12 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose 
   const [lat, setLat] = useState<number | null>(18.4861); // Default to Santo Domingo
   const [lng, setLng] = useState<number | null>(-69.9312);
   const [items, setItems] = useState<QuoteItem[]>([createEmptyItem()]);
+
+  const { data: places = [], isLoading: isLoadingPlaces } = usePlacesSearch({
+    lat,
+    lng,
+    radiusKm,
+  });
 
   if (!isOpen) return null;
 
@@ -217,6 +225,20 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose 
               <p className="text-xs text-muted-foreground leading-relaxed">
                 Buscaremos ferreterías en este radio desde tu sector para enviar la solicitud.
               </p>
+              
+              <div className="mt-3 p-3 bg-primary/5 border border-primary/10 rounded-lg flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Ferreterías candidatas</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Se invitarán automáticamente</p>
+                </div>
+                {isLoadingPlaces ? (
+                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                ) : (
+                  <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20">
+                    {places.length} aliadas
+                  </Badge>
+                )}
+              </div>
             </div>
           </div>
 
