@@ -80,7 +80,7 @@ export const useCreateBidRequestMutation = () => {
           delivery_address: input.deliveryAddress,
           sector: input.sector,
           status: "active",
-          state: "AWAITING_RESPONSES",
+          state: (input.lat && input.lng) ? "BROADCASTING" : "AWAITING_RESPONSES",
           lat: input.lat ?? null,
           lng: input.lng ?? null,
           radius_km: input.radiusKm,
@@ -111,6 +111,22 @@ export const useCreateBidRequestMutation = () => {
       if (itemsError) {
         await supabase.from("bid_requests").delete().eq("id", request.id);
         throw itemsError;
+      }
+
+      // Invoke WA send Edge Function if coords exist (Broadcast to WhatsApp)
+      if (input.lat && input.lng) {
+        // Change state to BROADCASTING (or it might be already BROADCASTING, we set it above)
+        try {
+          // We invoke without waiting if we don't want to block the UI, but await is safer for consistency
+          await supabase.functions.invoke("wa-send", {
+            body: { bidRequestId: request.id },
+          });
+          
+          // Optionally transition to AWAITING_RESPONSES after broadcasting
+          await supabase.from("bid_requests").update({ state: "AWAITING_RESPONSES" }).eq("id", request.id);
+        } catch (waError) {
+          console.error("Error sending WA broadcast:", waError);
+        }
       }
 
       return request;

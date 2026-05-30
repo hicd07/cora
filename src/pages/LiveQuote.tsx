@@ -1,13 +1,15 @@
-import React from "react";
+import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Clock, MapPin, Store, BrainCircuit, MessageSquare, Bot } from "lucide-react";
+import { ArrowLeft, Clock, MapPin, Store, Bot, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRequestBids } from "@/hooks/useRequestBids";
+import { useWaConversations } from "@/hooks/useWaConversations";
 import { mapBidRequestRow } from "@/lib/mappers/bidRequests";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { ConversationDrawer } from "@/components/ferreteria/ConversationDrawer";
 
 const fetchBidRequest = async (id: string) => {
   const { data: request, error } = await supabase
@@ -31,6 +33,7 @@ const fetchBidRequest = async (id: string) => {
 export default function LiveQuote() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [activeConversation, setActiveConversation] = useState<{ id: string; storeName: string } | null>(null);
 
   const { data: request, isLoading: isLoadingRequest } = useQuery({
     queryKey: ["bid-request", id],
@@ -39,6 +42,7 @@ export default function LiveQuote() {
   });
 
   const { data: bids = [], isLoading: isLoadingBids } = useRequestBids(id);
+  const { data: conversations = [], isLoading: isLoadingConversations } = useWaConversations(id);
 
   if (isLoadingRequest) {
     return (
@@ -102,6 +106,41 @@ export default function LiveQuote() {
                   </div>
                 ))}
               </div>
+            </div>
+
+            <div className="panel-muted p-5">
+              <h2 className="font-semibold text-sm mb-4">Conversaciones Externas (WhatsApp)</h2>
+              {isLoadingConversations ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                </div>
+              ) : conversations.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-4">No hay conversaciones activas.</p>
+              ) : (
+                <div className="space-y-3">
+                  {conversations.map((conv) => (
+                    <div
+                      key={conv.id}
+                      className="flex items-center justify-between p-3 bg-background rounded-lg border cursor-pointer hover:border-primary transition-colors"
+                      onClick={() => setActiveConversation({ id: conv.id, storeName: conv.external_stores?.name || conv.wa_phone_number })}
+                    >
+                      <div className="overflow-hidden">
+                        <p className="text-sm font-medium truncate">
+                          {conv.external_stores?.name || conv.wa_phone_number}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                          <MessageCircle className="h-3 w-3" />
+                          {conv.state}
+                        </p>
+                      </div>
+                      <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8">
+                        <ArrowLeft className="h-4 w-4 rotate-180" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -178,6 +217,12 @@ export default function LiveQuote() {
           </div>
         </div>
       </main>
+
+      <ConversationDrawer
+        conversationId={activeConversation?.id || null}
+        storeName={activeConversation?.storeName || ""}
+        onClose={() => setActiveConversation(null)}
+      />
     </div>
   );
 }
