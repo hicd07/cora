@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Clock, MapPin, Store, Bot, MessageCircle } from "lucide-react";
+import { ArrowLeft, Clock, MapPin, Store, Bot, MessageCircle, ShieldCheck, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRequestBids } from "@/hooks/useRequestBids";
 import { useWaConversations } from "@/hooks/useWaConversations";
@@ -43,6 +43,10 @@ export default function LiveQuote() {
 
   const { data: bids = [], isLoading: isLoadingBids } = useRequestBids(id);
   const { data: conversations = [], isLoading: isLoadingConversations } = useWaConversations(id);
+
+  // Separate bids by channel
+  const portalBids = bids.filter((bid) => bid.bidderUserId);
+  const aiBids = bids.filter((bid) => !bid.bidderUserId);
 
   if (isLoadingRequest) {
     return (
@@ -145,11 +149,7 @@ export default function LiveQuote() {
             </div>
           </div>
 
-          <div className="lg:col-span-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold">Ofertas Recibidas ({bids.length})</h2>
-            </div>
-            
+          <div className="lg:col-span-8 space-y-8">
             {isLoadingBids ? (
               <div className="space-y-4">
                 {[1, 2].map((i) => <Skeleton key={i} className="h-32 w-full" />)}
@@ -161,60 +161,139 @@ export default function LiveQuote() {
                 <p className="text-sm text-muted-foreground mt-1">Las cotizaciones aparecerán aquí en tiempo real.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {bids.map((bid) => {
-                  const total = bid.offers.reduce((acc, offer) => acc + offer.unitPrice * (request.items.find(i => i.name === offer.itemName)?.quantity || 1), 0);
-                  
-                  // If there's no bidderUserId, it means it's an external bid (WhatsApp AI)
-                  const channel = bid.bidderUserId ? 'portal' : 'whatsapp_ai';
-                  
-                  return (
-                    <div key={bid.id} className="panel p-5 animate-in fade-in zoom-in-95 duration-300">
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="flex items-center gap-2">
-                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                            <Store className="h-4 w-4 text-primary" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-sm">{bid.storeName}</p>
-                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                              <Clock className="h-3 w-3" /> {bid.deliveryTime}
+              <>
+                {/* Section 1: Verified Providers (Portal) */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="h-5 w-5 text-emerald-500" />
+                      <h2 className="font-display font-bold text-base text-foreground">
+                        Proveedores Verificados (Portal)
+                      </h2>
+                    </div>
+                    <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
+                      {portalBids.length} {portalBids.length === 1 ? "oferta" : "ofertas"}
+                    </Badge>
+                  </div>
+
+                  {portalBids.length === 0 ? (
+                    <div className="panel-muted p-6 text-center text-sm text-muted-foreground">
+                      Aún no se han recibido ofertas de proveedores registrados en el portal.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {portalBids.map((bid) => {
+                        const total = bid.offers.reduce((acc, offer) => acc + offer.unitPrice * (request.items.find(i => i.name === offer.itemName)?.quantity || 1), 0);
+                        return (
+                          <div key={bid.id} className="panel-strong p-5 border-emerald-500/10 bg-emerald-500/[0.01] animate-in fade-in zoom-in-95 duration-300">
+                            <div className="flex justify-between items-start mb-3">
+                              <div className="flex items-center gap-2">
+                                <div className="h-8 w-8 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                                  <Store className="h-4 w-4 text-emerald-600" />
+                                </div>
+                                <div>
+                                  <p className="font-medium text-sm">{bid.storeName}</p>
+                                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                    <Clock className="h-3 w-3" /> {bid.deliveryTime}
+                                  </div>
+                                </div>
+                              </div>
+                              <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
+                                Portal
+                              </Badge>
+                            </div>
+                            
+                            <div className="space-y-2 mt-4">
+                              {bid.offers.slice(0, 3).map((offer, idx) => (
+                                <div key={idx} className="flex justify-between text-sm">
+                                  <span className="text-muted-foreground truncate mr-2">{offer.itemName}</span>
+                                  <span className="font-medium whitespace-nowrap">RD$ {offer.unitPrice.toLocaleString()}</span>
+                                </div>
+                              ))}
+                              {bid.offers.length > 3 && (
+                                <p className="text-xs text-muted-foreground mt-2 text-center border-t pt-2">
+                                  +{bid.offers.length - 3} artículos más
+                                </p>
+                              )}
+                            </div>
+                            
+                            <div className="mt-4 pt-4 border-t flex justify-between items-center">
+                              <span className="text-xs text-muted-foreground uppercase font-semibold tracking-wider">Total</span>
+                              <span className="font-display font-semibold text-lg text-primary">RD$ {total.toLocaleString()}</span>
                             </div>
                           </div>
-                        </div>
-                        {channel === 'whatsapp_ai' ? (
-                          <Badge variant="secondary" className="bg-purple-500/10 text-purple-600 border-purple-500/20">
-                            <Bot className="h-3 w-3 mr-1" /> IA
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 border-blue-500/20">
-                            <Store className="h-3 w-3 mr-1" /> Portal
-                          </Badge>
-                        )}
-                      </div>
-                      
-                      <div className="space-y-2 mt-4">
-                        {bid.offers.slice(0, 3).map((offer, idx) => (
-                          <div key={idx} className="flex justify-between text-sm">
-                            <span className="text-muted-foreground truncate mr-2">{offer.itemName}</span>
-                            <span className="font-medium whitespace-nowrap">RD$ {offer.unitPrice.toLocaleString()}</span>
-                          </div>
-                        ))}
-                        {bid.offers.length > 3 && (
-                          <p className="text-xs text-muted-foreground mt-2 text-center border-t pt-2">
-                            +{bid.offers.length - 3} artículos más
-                          </p>
-                        )}
-                      </div>
-                      
-                      <div className="mt-4 pt-4 border-t flex justify-between items-center">
-                        <span className="text-xs text-muted-foreground uppercase font-semibold tracking-wider">Total</span>
-                        <span className="font-display font-semibold text-lg text-primary">RD$ {total.toLocaleString()}</span>
-                      </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
-              </div>
+                  )}
+                </div>
+
+                {/* Section 2: WhatsApp AI Bids */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-purple-500" />
+                      <h2 className="font-display font-bold text-base text-foreground">
+                        Ofertas vía WhatsApp (IA)
+                      </h2>
+                    </div>
+                    <Badge variant="secondary" className="bg-purple-500/10 text-purple-600 border-purple-500/20">
+                      {aiBids.length} {aiBids.length === 1 ? "oferta" : "ofertas"}
+                    </Badge>
+                  </div>
+
+                  {aiBids.length === 0 ? (
+                    <div className="panel-muted p-6 text-center text-sm text-muted-foreground">
+                      Aún no se han recibido ofertas estructuradas por WhatsApp.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {aiBids.map((bid) => {
+                        const total = bid.offers.reduce((acc, offer) => acc + offer.unitPrice * (request.items.find(i => i.name === offer.itemName)?.quantity || 1), 0);
+                        return (
+                          <div key={bid.id} className="panel-strong p-5 border-purple-500/10 bg-purple-500/[0.01] animate-in fade-in zoom-in-95 duration-300">
+                            <div className="flex justify-between items-start mb-3">
+                              <div className="flex items-center gap-2">
+                                <div className="h-8 w-8 rounded-full bg-purple-500/10 flex items-center justify-center">
+                                  <Bot className="h-4 w-4 text-purple-600" />
+                                </div>
+                                <div>
+                                  <p className="font-medium text-sm">{bid.storeName}</p>
+                                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                    <Clock className="h-3 w-3" /> {bid.deliveryTime}
+                                  </div>
+                                </div>
+                              </div>
+                              <Badge variant="secondary" className="bg-purple-500/10 text-purple-600 border-purple-500/20">
+                                WhatsApp IA
+                              </Badge>
+                            </div>
+                            
+                            <div className="space-y-2 mt-4">
+                              {bid.offers.slice(0, 3).map((offer, idx) => (
+                                <div key={idx} className="flex justify-between text-sm">
+                                  <span className="text-muted-foreground truncate mr-2">{offer.itemName}</span>
+                                  <span className="font-medium whitespace-nowrap">RD$ {offer.unitPrice.toLocaleString()}</span>
+                                </div>
+                              ))}
+                              {bid.offers.length > 3 && (
+                                <p className="text-xs text-muted-foreground mt-2 text-center border-t pt-2">
+                                  +{bid.offers.length - 3} artículos más
+                                </p>
+                              )}
+                            </div>
+                            
+                            <div className="mt-4 pt-4 border-t flex justify-between items-center">
+                              <span className="text-xs text-muted-foreground uppercase font-semibold tracking-wider">Total</span>
+                              <span className="font-display font-semibold text-lg text-primary">RD$ {total.toLocaleString()}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </>
             )}
           </div>
         </div>
