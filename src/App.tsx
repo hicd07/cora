@@ -18,6 +18,8 @@ import AdminUsers from "./pages/admin/AdminUsers";
 import AdminInvitations from "./pages/admin/AdminInvitations";
 import AdminRequests from "./pages/admin/AdminRequests";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminStores from "./pages/admin/AdminStores";
+import AdminQuotes from "./pages/admin/AdminQuotes";
 
 const queryClient = new QueryClient();
 
@@ -138,6 +140,22 @@ const AppRoutes = () => (
       element={
         <AdminRoute>
           <AdminUsers />
+        </AdminRoute>
+      }
+    />
+    <Route
+      path="/admin/stores"
+      element={
+        <AdminRoute>
+          <AdminStores />
+        </AdminRoute>
+      }
+    />
+    <Route
+      path="/admin/quotes"
+      element={
+        <AdminRoute>
+          <AdminQuotes />
         </AdminRoute>
       }
     />
