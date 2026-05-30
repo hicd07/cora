@@ -13,6 +13,10 @@ export interface BidRequest {
   deliveryAddress: string;
   sector: string;
   status: "active" | "closed" | "completed";
+  state: "DRAFT" | "BROADCASTING" | "AWAITING_RESPONSES" | "CLOSED_WON" | "CLOSED_LOST" | "EXPIRED";
+  lat?: number | null;
+  lng?: number | null;
+  radiusKm: number;
   items: QuoteItem[];
   itemsCount: number;
   budgetLimit?: number | null;

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSessionContext } from "@/components/auth/SessionContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,13 +36,53 @@ const fetchRequestBids = async (requestId: string): Promise<HardwareBid[]> => {
   return bids.map((bid) => mapHardwareBidRow(bid, offers ?? []));
 };
 
-export const useRequestBids = (requestId?: string | null) =>
-  useQuery({
+export const useRequestBids = (requestId?: string | null) => {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!requestId) return;
+
+    const channel = supabase
+      .channel(`bids-for-${requestId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "hardware_bids",
+          filter: `request_id=eq.${requestId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: requestBidsKey(requestId) });
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "bid_offers",
+        },
+        () => {
+          // A bit broad, but valid. bid_offers has no request_id,
+          // we just invalidate whenever offers change.
+          queryClient.invalidateQueries({ queryKey: requestBidsKey(requestId) });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [requestId, queryClient]);
+
+  return useQuery({
     queryKey: requestBidsKey(requestId),
     queryFn: () => fetchRequestBids(requestId as string),
     enabled: Boolean(requestId),
     retry: 1,
   });
+};
 
 interface CreateRequestBidInput {
   requestId: string;

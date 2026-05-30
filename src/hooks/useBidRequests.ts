@@ -53,6 +53,9 @@ interface CreateBidRequestInput {
   category: string;
   deliveryAddress: string;
   sector: string;
+  lat?: number | null;
+  lng?: number | null;
+  radiusKm: number;
   budgetLimit?: number | null;
   expiresAt: string;
   items: QuoteItem[];
@@ -77,6 +80,10 @@ export const useCreateBidRequestMutation = () => {
           delivery_address: input.deliveryAddress,
           sector: input.sector,
           status: "active",
+          state: "AWAITING_RESPONSES",
+          lat: input.lat ?? null,
+          lng: input.lng ?? null,
+          radius_km: input.radiusKm,
           budget_limit: input.budgetLimit ?? null,
           expires_at: input.expiresAt,
         })

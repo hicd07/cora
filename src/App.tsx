@@ -12,6 +12,7 @@ import Auth from "./pages/Auth";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Notifications from "./pages/Notifications";
+import LiveQuote from "./pages/LiveQuote";
 
 const queryClient = new QueryClient();
 
@@ -98,6 +99,14 @@ const AppRoutes = () => (
       element={
         <ProtectedRoute>
           <Notifications />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/quote/:id/live"
+      element={
+        <ProtectedRoute>
+          <LiveQuote />
         </ProtectedRoute>
       }
     />

@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { Calendar, DollarSign, HardHat, PackagePlus, X } from "lucide-react";
+import { Calendar, DollarSign, HardHat, PackagePlus, MapPin, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
 import { useCreateBidRequestMutation } from "@/hooks/useBidRequests";
 import { QuoteItem } from "@/lib/types";
 import { showError, showSuccess } from "@/utils/toast";
@@ -33,6 +34,9 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose 
   const [address, setAddress] = useState("");
   const [budget, setBudget] = useState("");
   const [expiresIn, setExpiresIn] = useState("24");
+  const [radiusKm, setRadiusKm] = useState(5);
+  const [lat, setLat] = useState<number | null>(18.4861); // Default to Santo Domingo
+  const [lng, setLng] = useState<number | null>(-69.9312);
   const [items, setItems] = useState<QuoteItem[]>([createEmptyItem()]);
 
   if (!isOpen) return null;
@@ -44,6 +48,7 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose 
     setAddress("");
     setBudget("");
     setExpiresIn("24");
+    setRadiusKm(5);
     setItems([createEmptyItem()]);
   };
 
@@ -88,6 +93,9 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose 
         category,
         sector,
         deliveryAddress: address.trim(),
+        lat,
+        lng,
+        radiusKm,
         budgetLimit: budget ? Number.parseFloat(budget) : null,
         expiresAt: new Date(Date.now() + Number.parseInt(expiresIn, 10) * 60 * 60 * 1000).toISOString(),
         items: validItems,
@@ -190,6 +198,25 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose 
             <div className="mt-4 space-y-1.5">
               <label className="section-label block">Dirección exacta de obra</label>
               <Input type="text" required placeholder="Calle, número y referencia" value={address} onChange={(e) => setAddress(e.target.value)} />
+            </div>
+
+            <div className="mt-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="section-label flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5 text-primary" /> Radio de búsqueda
+                </label>
+                <span className="text-sm font-medium text-foreground">{radiusKm} km</span>
+              </div>
+              <Slider
+                value={[radiusKm]}
+                onValueChange={([val]) => setRadiusKm(val)}
+                max={50}
+                min={1}
+                step={1}
+              />
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Buscaremos ferreterías en este radio desde tu sector para enviar la solicitud.
+              </p>
             </div>
           </div>
 

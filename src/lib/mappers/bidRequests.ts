@@ -8,6 +8,10 @@ interface BidRequestRow {
   delivery_address: string;
   sector: string;
   status: string;
+  state?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  radius_km?: number | null;
   budget_limit?: number | null;
   created_at: string;
   expires_at: string;
@@ -70,6 +74,10 @@ export const mapBidRequestRow = (row: BidRequestRow, allItems: BidRequestItemRow
     deliveryAddress: row.delivery_address,
     sector: row.sector,
     status: row.status as BidRequest["status"],
+    state: (row.state as BidRequest["state"]) || "DRAFT",
+    lat: row.lat ?? null,
+    lng: row.lng ?? null,
+    radiusKm: row.radius_km ?? 5,
     items,
     itemsCount: items.length,
     budgetLimit: row.budget_limit ?? null,

@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useSearchParams } from "react-router-dom";
 
 import {
@@ -68,6 +69,7 @@ const Index = () => {
     const role = profile?.user_type === "hardware" ? "hardware" : "engineer";
     const [searchParams] = useSearchParams();
     const [activeTab, setActiveTab] = useState<string>(searchParams.get("tab") || "bids");
+    const navigate = useNavigate();
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [selectedRequestForBid, setSelectedRequestForBid] = useState<BidRequest | null>(null);
     const [isBidModalOpen, setIsBidModalOpen] = useState(false);
@@ -263,12 +265,20 @@ const Index = () => {
                                         {request.budgetLimit ? `RD$ ${request.budgetLimit.toLocaleString()}` : "Sin tope definido"}
                                     </p>
                                 </div>
-                                {request.status !== "completed" && (<Button
-                                    variant="ghost"
-                                    onClick={() => handleOpenComparisonModal(request)}
-                                    className="px-1 text-primary hover:bg-transparent">Ver detalles
-                                                          <ArrowRight className="h-4 w-4" />
-                                </Button>)}
+                                {request.status !== "completed" && (<div className="flex items-center gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => navigate(`/quote/${request.id}/live`)}
+                                        className="h-8">En vivo
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        onClick={() => handleOpenComparisonModal(request)}
+                                        className="px-1 h-8 text-primary hover:bg-transparent">Detalles
+                                        <ArrowRight className="h-4 w-4" />
+                                    </Button>
+                                </div>)}
                             </div>
                         </article>)
                     )}
