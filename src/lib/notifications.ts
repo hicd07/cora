@@ -1,6 +1,6 @@
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
-import { BellRing, CheckCircle2, Gavel, LucideIcon } from "lucide-react";
+import { BellRing, CheckCircle2, Gavel, LucideIcon, MessageCircleWarning } from "lucide-react";
 import { AppNotification } from "@/lib/types";
 
 export const getNotificationMeta = (notification: AppNotification): {
@@ -34,6 +34,14 @@ export const getNotificationMeta = (notification: AppNotification): {
         actionLabel: "Ver pedido",
         href: notification.entityId ? `/?tab=orders&requestId=${notification.entityId}` : "/?tab=orders",
         eyebrow: "Estado de orden",
+      };
+    case "human_escalation":
+      return {
+        icon: MessageCircleWarning,
+        accent: "text-destructive bg-destructive/10",
+        actionLabel: "Atender chat",
+        href: notification.entityId ? `/quote/${notification.entityId}/live` : "/",
+        eyebrow: "Intervención requerida",
       };
     default:
       return {

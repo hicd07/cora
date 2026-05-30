@@ -129,12 +129,13 @@ export default function LiveQuote() {
                         <p className="text-sm font-medium truncate">
                           {conv.external_stores?.name || conv.wa_phone_number}
                         </p>
-                        <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                        <p className={`text-xs mt-0.5 flex items-center gap-1 ${conv.state === 'ACTIVE' ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
                           <MessageCircle className="h-3 w-3" />
-                          {conv.state}
+                          {conv.state === 'ACTIVE' ? 'Requiere Atención (Humano)' : conv.state}
                         </p>
                       </div>
                       <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8">
+                        {conv.state === 'ACTIVE' && <div className="h-2 w-2 rounded-full bg-destructive absolute top-2 right-2 animate-pulse" />}
                         <ArrowLeft className="h-4 w-4 rotate-180" />
                       </Button>
                     </div>
@@ -163,8 +164,9 @@ export default function LiveQuote() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {bids.map((bid) => {
                   const total = bid.offers.reduce((acc, offer) => acc + offer.unitPrice * (request.items.find(i => i.name === offer.itemName)?.quantity || 1), 0);
-                  // We simulate channel badge since it's not yet in the DB
-                  const channel = Math.random() > 0.5 ? 'portal' : 'whatsapp_ai';
+                  
+                  // If there's no bidderUserId, it means it's an external bid (WhatsApp AI)
+                  const channel = bid.bidderUserId ? 'portal' : 'whatsapp_ai';
                   
                   return (
                     <div key={bid.id} className="panel p-5 animate-in fade-in zoom-in-95 duration-300">

@@ -71,12 +71,27 @@ serve(async (req) => {
                 status: "received",
               });
 
-              // Update conversation state to REPLIED if it was HSM_SENT
-              if (conversation.state === "HSM_SENT") {
+              // Update conversation state to REPLIED if it was PENDING or HSM_SENT
+              if (["PENDING", "HSM_SENT"].includes(conversation.state)) {
                 await supabase
                   .from("wa_conversations")
                   .update({ state: "REPLIED" })
                   .eq("id", conversation.id);
+              }
+
+              // Only trigger AI parsing if the conversation is not already actively managed by human
+              if (conversation.state !== "ACTIVE") {
+                // Trigger AI parsing for this new incoming message
+                console.log(`[wa-webhook] Invoking parse-message for ${conversation.id}`);
+                // We fire and forget or await it. Awaiting is safer to avoid termination, but edge functions have a 2-second CPU limit.
+                // Using Edge Functions `invoke` without await might cancel it.
+                // We will await it for now, since Groq/OpenAI should be fast.
+                await supabase.functions.invoke("parse-message", {
+                  body: {
+                    conversationId: conversation.id,
+                    messageText: text,
+                  },
+                });
               }
 
               console.log(`[wa-webhook] Processed message from ${formattedPhone}`);
