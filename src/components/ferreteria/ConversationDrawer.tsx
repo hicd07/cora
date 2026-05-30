@@ -12,6 +12,8 @@ interface ConversationDrawerProps {
   onClose: () => void;
 }
 
+const EMPTY_ARRAY: any[] = [];
+
 // Mock message histories for the 3 mock conversations
 const MOCK_MESSAGES: Record<string, any[]> = {
   "mock-conv-1": [
@@ -81,15 +83,15 @@ const MOCK_MESSAGES: Record<string, any[]> = {
 export function ConversationDrawer({ conversationId, storeName, onClose }: ConversationDrawerProps) {
   const queryClient = useQueryClient();
   const [newMessage, setNewMessage] = useState("");
-  const [localMessages, setLocalMessages] = useState<any[]>([]);
+  const [localMessages, setLocalMessages] = useState<any[]>(EMPTY_ARRAY);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const isMock = conversationId?.startsWith("mock-");
 
-  const { data: dbMessages = [], isLoading } = useQuery({
+  const { data: dbMessages = EMPTY_ARRAY, isLoading } = useQuery({
     queryKey: ["wa-messages", conversationId],
     queryFn: async () => {
-      if (!conversationId || isMock) return [];
+      if (!conversationId || isMock) return EMPTY_ARRAY;
       const { data, error } = await supabase
         .from("wa_messages")
         .select("*")
@@ -97,7 +99,7 @@ export function ConversationDrawer({ conversationId, storeName, onClose }: Conve
         .order("created_at", { ascending: true });
 
       if (error) throw error;
-      return data;
+      return data || EMPTY_ARRAY;
     },
     enabled: Boolean(conversationId),
   });
@@ -106,12 +108,12 @@ export function ConversationDrawer({ conversationId, storeName, onClose }: Conve
   useEffect(() => {
     if (conversationId) {
       if (isMock) {
-        setLocalMessages(MOCK_MESSAGES[conversationId] || []);
+        setLocalMessages(MOCK_MESSAGES[conversationId] || EMPTY_ARRAY);
       } else {
         setLocalMessages(dbMessages);
       }
     } else {
-      setLocalMessages([]);
+      setLocalMessages(EMPTY_ARRAY);
     }
   }, [conversationId, dbMessages, isMock]);
 
