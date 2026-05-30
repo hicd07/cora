@@ -9,6 +9,8 @@ interface SessionContextType {
   session: Session | null;
   user: User | null;
   profile: Profile | null;
+  roles: string[];
+  isAdmin: boolean;
   loading: boolean;
   profileError: boolean;
   refreshProfile: () => Promise<void>;
@@ -20,6 +22,8 @@ const SessionContext = createContext<SessionContextType>({
   session: null,
   user: null,
   profile: null,
+  roles: [],
+  isAdmin: false,
   loading: true,
   profileError: false,
   refreshProfile: async () => {},
@@ -65,11 +69,30 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [roles, setRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [profileError, setProfileError] = useState(false);
 
   // Avoid re-fetching the profile on every auth event (e.g. TOKEN_REFRESHED on tab focus)
   const lastFetchedUserIdRef = useRef<string | null>(null);
+
+  const fetchRoles = useCallback(async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId);
+      if (error) {
+        console.error("Error fetching roles:", error);
+        setRoles([]);
+        return;
+      }
+      setRoles((data ?? []).map((r) => r.role));
+    } catch (error) {
+      console.error("Roles fetch failed:", error);
+      setRoles([]);
+    }
+  }, []);
 
   const fetchProfile = useCallback(async (userId: string) => {
     setProfileError(false);
@@ -126,11 +149,11 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
     if (!user) return;
     setLoading(true);
     try {
-      await fetchProfile(user.id);
+      await Promise.all([fetchProfile(user.id), fetchRoles(user.id)]);
     } finally {
       setLoading(false);
     }
-  }, [fetchProfile, user]);
+  }, [fetchProfile, fetchRoles, user]);
 
   const updateProfile = useCallback(
     async (updates: Partial<Profile>) => {
@@ -177,6 +200,7 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
     setSession(null);
     setUser(null);
     setProfile(null);
+    setRoles([]);
     lastFetchedUserIdRef.current = null;
   }, []);
 
@@ -195,9 +219,13 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
         setUser(currentSession?.user ?? null);
 
         if (currentSession?.user) {
-          await fetchProfile(currentSession.user.id);
+          await Promise.all([
+            fetchProfile(currentSession.user.id),
+            fetchRoles(currentSession.user.id),
+          ]);
         } else {
           setProfile(null);
+          setRoles([]);
           lastFetchedUserIdRef.current = null;
         }
       } catch (error) {
@@ -230,6 +258,7 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
 
       if (event === "SIGNED_OUT") {
         setProfile(null);
+        setRoles([]);
         lastFetchedUserIdRef.current = null;
         setLoading(false);
         return;
@@ -255,7 +284,7 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
       if (nextUserId && nextUserId !== lastFetchedUserIdRef.current) {
         setLoading(true);
         try {
-          await fetchProfile(nextUserId);
+          await Promise.all([fetchProfile(nextUserId), fetchRoles(nextUserId)]);
         } catch (error) {
           console.error("Error during auth state change:", error);
         } finally {
@@ -265,6 +294,7 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
         }
       } else if (!nextUserId) {
         setProfile(null);
+        setRoles([]);
         lastFetchedUserIdRef.current = null;
         setLoading(false);
       }
@@ -274,11 +304,24 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [fetchProfile]);
+  }, [fetchProfile, fetchRoles]);
+
+  const isAdmin = roles.includes("admin");
 
   return (
     <SessionContext.Provider
-      value={{ session, user, profile, loading, profileError, refreshProfile, updateProfile, signOut }}
+      value={{
+        session,
+        user,
+        profile,
+        roles,
+        isAdmin,
+        loading,
+        profileError,
+        refreshProfile,
+        updateProfile,
+        signOut,
+      }}
     >
       {children}
     </SessionContext.Provider>

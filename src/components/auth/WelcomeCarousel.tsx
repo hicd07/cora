@@ -6,6 +6,7 @@ import AppLogo from "@/components/branding/AppLogo";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { WelcomeSlide } from "./WelcomeSlide";
 import { WelcomeDots } from "./WelcomeDots";
+import { AdminSignupRequestDialog } from "./AdminSignupRequestDialog";
 
 interface WelcomeCarouselProps {
     onLogin: () => void;
@@ -137,6 +138,7 @@ export const WelcomeCarousel: React.FC<WelcomeCarouselProps> = (
 
     const [api, setApi] = useState<CarouselApi>();
     const [current, setCurrent] = useState(0);
+    const [adminRequestOpen, setAdminRequestOpen] = useState(false);
 
     useEffect(() => {
         if (!api)
@@ -213,9 +215,20 @@ export const WelcomeCarousel: React.FC<WelcomeCarouselProps> = (
                             className="w-full text-muted-foreground hover:text-foreground"
                             onClick={onLogin}>Ya tengo cuenta · Iniciar sesión
                                         </Button>
+                        <div className="flex items-center justify-center pt-1">
+                            <button
+                                type="button"
+                                onClick={() => setAdminRequestOpen(true)}
+                                className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground/80 hover:text-primary transition-colors">
+                                <ShieldCheck className="h-3.5 w-3.5" />
+                                Registrarme como administrador
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <AdminSignupRequestDialog open={adminRequestOpen} onOpenChange={setAdminRequestOpen} />
         </div>
     );
 };

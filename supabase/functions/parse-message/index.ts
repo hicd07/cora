@@ -28,13 +28,33 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
-    if (!openaiApiKey) {
-      console.warn("[parse-message] OPENAI_API_KEY not set. AI parsing skipped.");
-      return new Response("Missing OPENAI_API_KEY", { status: 500, headers: corsHeaders });
+    // Load AI configuration from admin_settings (fallback to env vars).
+    const { data: settingsRows } = await supabase
+      .from("admin_settings")
+      .select("key, value")
+      .in("key", ["AI_PROVIDER", "OPENAI_API_KEY", "OPENAI_MODEL", "GOOGLE_API_KEY", "GOOGLE_MODEL"]);
+
+    const settings: Record<string, string> = {};
+    for (const row of settingsRows ?? []) {
+      if (row.value) settings[row.key] = row.value;
     }
 
-    console.log(`[parse-message] Parsing message for conversation ${conversationId}`);
+    const aiProvider = settings.AI_PROVIDER || Deno.env.get("AI_PROVIDER") || "openai";
+    const openaiApiKey = settings.OPENAI_API_KEY || Deno.env.get("OPENAI_API_KEY");
+    const googleApiKey = settings.GOOGLE_API_KEY || Deno.env.get("GOOGLE_API_KEY");
+    const openaiModel = settings.OPENAI_MODEL || "gpt-4o-mini";
+    const googleModel = settings.GOOGLE_MODEL || "gemini-1.5-flash";
+
+    if (aiProvider === "openai" && !openaiApiKey) {
+      console.warn("[parse-message] OPENAI_API_KEY not configured.");
+      return new Response("Missing OPENAI_API_KEY", { status: 500, headers: corsHeaders });
+    }
+    if (aiProvider === "google" && !googleApiKey) {
+      console.warn("[parse-message] GOOGLE_API_KEY not configured.");
+      return new Response("Missing GOOGLE_API_KEY", { status: 500, headers: corsHeaders });
+    }
+
+    console.log(`[parse-message] Parsing message for conversation ${conversationId} using provider=${aiProvider}`);
 
     // Fetch conversation details including requested items
     const { data: conversation, error: convError } = await supabase
@@ -92,36 +112,68 @@ Rules:
 - For items, only include those they explicitly quote or mention. If they say "No tengo X", mark is_available: false and unit_price: 0.
 - Only output valid JSON without any markdown formatting wrappers.`;
 
-    console.log("[parse-message] Calling OpenAI for message parsing...");
-    const aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${openaiApiKey}`
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini", // Use gpt-4o-mini as MVP for Gemma 4 / Ollama
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: `Supplier message: "${messageText}"` }
-        ],
-        temperature: 0.1,
-        response_format: { type: "json_object" }
-      })
-    });
+    const userPrompt = `Supplier message: "${messageText}"`;
+    let rawContent = "";
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error("[parse-message] OpenAI API error:", errorText);
-      return new Response("AI API Error", { status: 502, headers: corsHeaders });
+    if (aiProvider === "google") {
+      console.log(`[parse-message] Calling Google Gemini (${googleModel})...`);
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${googleModel}:generateContent?key=${googleApiKey}`;
+      const aiResponse = await fetch(geminiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }],
+          generationConfig: {
+            temperature: 0.1,
+            responseMimeType: "application/json",
+          },
+        }),
+      });
+
+      if (!aiResponse.ok) {
+        const errorText = await aiResponse.text();
+        console.error("[parse-message] Google Gemini API error:", errorText);
+        return new Response("AI API Error", { status: 502, headers: corsHeaders });
+      }
+
+      const aiData = await aiResponse.json();
+      rawContent = aiData.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+    } else {
+      console.log(`[parse-message] Calling OpenAI (${openaiModel})...`);
+      const aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${openaiApiKey}`,
+        },
+        body: JSON.stringify({
+          model: openaiModel,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          temperature: 0.1,
+          response_format: { type: "json_object" },
+        }),
+      });
+
+      if (!aiResponse.ok) {
+        const errorText = await aiResponse.text();
+        console.error("[parse-message] OpenAI API error:", errorText);
+        return new Response("AI API Error", { status: 502, headers: corsHeaders });
+      }
+
+      const aiData = await aiResponse.json();
+      rawContent = aiData.choices?.[0]?.message?.content ?? "";
     }
 
-    const aiData = await aiResponse.json();
     let parsedContent;
     try {
-      parsedContent = JSON.parse(aiData.choices[0].message.content);
+      // Strip markdown code fences if the model wrapped the JSON.
+      const cleaned = rawContent.replace(/```json|```/g, "").trim();
+      parsedContent = JSON.parse(cleaned);
     } catch (e) {
-      console.error("[parse-message] Failed to parse AI response as JSON:", aiData.choices[0].message.content);
+      console.error("[parse-message] Failed to parse AI response as JSON:", rawContent);
       return new Response("Invalid AI response", { status: 500, headers: corsHeaders });
     }
 

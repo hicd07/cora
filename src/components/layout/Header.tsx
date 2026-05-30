@@ -1,15 +1,17 @@
 import React from "react";
-import { Bell, Moon, SunMedium } from "lucide-react";
+import { Bell, Moon, SunMedium, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AppLogo from "@/components/branding/AppLogo";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { Button } from "@/components/ui/button";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useSessionContext } from "@/components/auth/SessionContext";
 
 export const Header: React.FC = () => {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const { unreadCount } = useNotifications();
+  const { isAdmin } = useSessionContext();
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-[hsl(var(--surface-1)/0.9)] px-4 py-4 backdrop-blur-xl">
@@ -27,6 +29,17 @@ export const Header: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          {isAdmin && (
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => navigate("/admin")}
+              className="bg-[hsl(var(--surface-1)/0.88)] text-primary"
+              aria-label="Panel de administración"
+            >
+              <ShieldCheck className="h-4 w-4" />
+            </Button>
+          )}
           <Button
             variant="outline"
             size="icon"

@@ -13,6 +13,11 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Notifications from "./pages/Notifications";
 import LiveQuote from "./pages/LiveQuote";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminInvitations from "./pages/admin/AdminInvitations";
+import AdminRequests from "./pages/admin/AdminRequests";
+import AdminSettings from "./pages/admin/AdminSettings";
 
 const queryClient = new QueryClient();
 
@@ -84,6 +89,16 @@ const AuthRoute = () => {
   return <Auth />;
 };
 
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const { session, isAdmin, loading } = useSessionContext();
+
+  if (loading) return <FullScreenLoader />;
+  if (!session) return <Navigate to="/auth" replace />;
+  if (!isAdmin) return <Navigate to="/" replace />;
+
+  return <>{children}</>;
+};
+
 const AppRoutes = () => (
   <Routes>
     <Route
@@ -108,6 +123,46 @@ const AppRoutes = () => (
         <ProtectedRoute>
           <LiveQuote />
         </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/admin"
+      element={
+        <AdminRoute>
+          <AdminDashboard />
+        </AdminRoute>
+      }
+    />
+    <Route
+      path="/admin/users"
+      element={
+        <AdminRoute>
+          <AdminUsers />
+        </AdminRoute>
+      }
+    />
+    <Route
+      path="/admin/invitations"
+      element={
+        <AdminRoute>
+          <AdminInvitations />
+        </AdminRoute>
+      }
+    />
+    <Route
+      path="/admin/requests"
+      element={
+        <AdminRoute>
+          <AdminRequests />
+        </AdminRoute>
+      }
+    />
+    <Route
+      path="/admin/settings"
+      element={
+        <AdminRoute>
+          <AdminSettings />
+        </AdminRoute>
       }
     />
     <Route path="/auth" element={<AuthRoute />} />
