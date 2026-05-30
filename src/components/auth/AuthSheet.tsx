@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Mail, Lock, LogIn, UserPlus } from "lucide-react";
+import { Mail, Lock, LogIn, UserPlus, ArrowLeft, Send } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -10,12 +10,12 @@ import AppLogo from "@/components/branding/AppLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { dismissToast, showError, showLoading, showSuccess } from "@/utils/toast";
 
-export type AuthMode = "login" | "signup";
+export type AuthMode = "login" | "signup" | "forgot_password";
 
 interface AuthSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  initialMode: AuthMode;
+  initialMode: "login" | "signup";
   onSuccess?: () => void;
 }
 
@@ -43,13 +43,19 @@ export const AuthSheet: React.FC<AuthSheetProps> = ({
   const handleAuth = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    if (!email || !password) {
+    if (!email || (mode !== "forgot_password" && !password)) {
       showError("Por favor, completa todos los campos.");
       return;
     }
 
     setLoading(true);
-    const toastId = showLoading(mode === "signup" ? "Creando cuenta..." : "Iniciando sesión...");
+    const toastId = showLoading(
+      mode === "signup" 
+        ? "Creando cuenta..." 
+        : mode === "forgot_password" 
+          ? "Enviando enlace..." 
+          : "Iniciando sesión..."
+    );
 
     try {
       if (mode === "signup") {
@@ -65,6 +71,19 @@ export const AuthSheet: React.FC<AuthSheetProps> = ({
           showSuccess("Cuenta creada. Ahora completa tu perfil.");
           onSuccess?.();
         }
+      } else if (mode === "forgot_password") {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/auth?type=recovery`,
+        });
+        dismissToast(toastId);
+
+        if (error) {
+          showError(error.message);
+          return;
+        }
+
+        showSuccess("Enlace enviado. Revisa tu correo electrónico.");
+        setMode("login");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         dismissToast(toastId);
@@ -89,46 +108,98 @@ export const AuthSheet: React.FC<AuthSheetProps> = ({
       </div>
       
       <div className="text-center space-y-2">
-        <h2 className="font-display text-2xl font-bold tracking-tight">Bienvenido a CORA</h2>
+        <h2 className="font-display text-2xl font-bold tracking-tight">
+          {mode === "forgot_password" ? "Recuperar acceso" : "Bienvenido a CORA"}
+        </h2>
         <p className="text-sm text-muted-foreground">
-          {mode === "login" ? "Ingresa a tu cuenta para continuar." : "Crea tu cuenta gratis hoy mismo."}
+          {mode === "login" 
+            ? "Ingresa a tu cuenta para continuar." 
+            : mode === "signup" 
+              ? "Crea tu cuenta gratis hoy mismo."
+              : "Ingresa tu correo para recibir un enlace de restablecimiento."}
         </p>
       </div>
 
-      <Tabs value={mode} onValueChange={(v) => setMode(v as AuthMode)} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-6 h-12 p-1 bg-surface-2 rounded-2xl">
-          <TabsTrigger value="login" className="rounded-xl text-sm font-medium transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
-            Iniciar sesión
-          </TabsTrigger>
-          <TabsTrigger value="signup" className="rounded-xl text-sm font-medium transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
-            Crear cuenta
-          </TabsTrigger>
-        </TabsList>
-        
+      {mode !== "forgot_password" ? (
+        <Tabs value={mode} onValueChange={(v) => setMode(v as AuthMode)} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-6 h-12 p-1 bg-surface-2 rounded-2xl">
+            <TabsTrigger value="login" className="rounded-xl text-sm font-medium transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
+              Iniciar sesión
+            </TabsTrigger>
+            <TabsTrigger value="signup" className="rounded-xl text-sm font-medium transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">
+              Crear cuenta
+            </TabsTrigger>
+          </TabsList>
+          
+          <form onSubmit={handleAuth} className="space-y-4">
+            <div className="space-y-4">
+              <div className="relative group">
+                <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                <Input
+                  type="email"
+                  placeholder="tu@correo.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="field-soft pl-12 h-14 text-base"
+                />
+              </div>
+              <div className="relative group">
+                <Lock className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                <Input
+                  type="password"
+                  placeholder="Tu contraseña"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="field-soft pl-12 h-14 text-base"
+                />
+              </div>
+            </div>
+
+            <Button 
+              type="submit" 
+              className="w-full h-14 rounded-2xl text-[15px] font-semibold mt-2" 
+              disabled={loading}
+            >
+              {mode === "login" ? (
+                <>
+                  <LogIn className="mr-2 h-5 w-5" />
+                  Iniciar sesión
+                </>
+              ) : (
+                <>
+                  <UserPlus className="mr-2 h-5 w-5" />
+                  Crear cuenta gratis
+                </>
+              )}
+            </Button>
+            
+            {mode === "login" && (
+              <div className="text-center mt-4">
+                <button 
+                  type="button" 
+                  onClick={() => setMode("forgot_password")}
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors font-medium"
+                >
+                  ¿Olvidaste tu contraseña?
+                </button>
+              </div>
+            )}
+          </form>
+        </Tabs>
+      ) : (
         <form onSubmit={handleAuth} className="space-y-4">
-          <div className="space-y-4">
-            <div className="relative group">
-              <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
-              <Input
-                type="email"
-                placeholder="tu@correo.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="field-soft pl-12 h-14 text-base"
-              />
-            </div>
-            <div className="relative group">
-              <Lock className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
-              <Input
-                type="password"
-                placeholder="Tu contraseña"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="field-soft pl-12 h-14 text-base"
-              />
-            </div>
+          <div className="relative group">
+            <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
+            <Input
+              type="email"
+              placeholder="tu@correo.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="field-soft pl-12 h-14 text-base"
+            />
           </div>
 
           <Button 
@@ -136,28 +207,22 @@ export const AuthSheet: React.FC<AuthSheetProps> = ({
             className="w-full h-14 rounded-2xl text-[15px] font-semibold mt-2" 
             disabled={loading}
           >
-            {mode === "login" ? (
-              <>
-                <LogIn className="mr-2 h-5 w-5" />
-                Iniciar sesión
-              </>
-            ) : (
-              <>
-                <UserPlus className="mr-2 h-5 w-5" />
-                Crear cuenta gratis
-              </>
-            )}
+            <Send className="mr-2 h-5 w-5" />
+            Enviar enlace
           </Button>
-          
-          {mode === "login" && (
-            <div className="text-center mt-4">
-              <button type="button" className="text-sm text-muted-foreground hover:text-primary transition-colors font-medium">
-                ¿Olvidaste tu contraseña?
-              </button>
-            </div>
-          )}
+
+          <div className="text-center mt-4">
+            <button 
+              type="button" 
+              onClick={() => setMode("login")}
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors font-medium"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Volver al inicio de sesión
+            </button>
+          </div>
         </form>
-      </Tabs>
+      )}
     </div>
   );
 
