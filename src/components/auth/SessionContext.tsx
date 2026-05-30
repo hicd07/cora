@@ -97,15 +97,17 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
   const fetchProfile = useCallback(async (userId: string) => {
     setProfileError(false);
     try {
-      const query = Promise.resolve(
-        supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
-      );
-      const { data, error } = await withTimeout(query, 10000, "fetchProfile");
+      // Convert the thenable query to a standard native Promise safely
+      const query = (async () => {
+        return await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+      })();
+
+      const { data, error } = await withTimeout(query, 15000, "fetchProfile");
 
       if (error) {
         // If the profile row is missing or RLS blocks read, fall back to an empty profile
         // so the user can still complete onboarding instead of seeing an infinite loader.
-        console.error("Error fetching profile:", error);
+        console.error("Error fetching profile from database:", error.message || error, error);
         const emptyProfile = createEmptyProfile(userId);
         setProfile(emptyProfile);
         return emptyProfile;
@@ -135,8 +137,8 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
       setProfile(mappedProfile);
       lastFetchedUserIdRef.current = userId;
       return mappedProfile;
-    } catch (error) {
-      console.error("Profile fetch failed or timed out:", error);
+    } catch (error: any) {
+      console.error("Profile fetch failed or timed out:", error?.message || error, error);
       // Surface the error and still hydrate a fallback profile so ProtectedRoute can render.
       setProfileError(true);
       const emptyProfile = createEmptyProfile(userId);
@@ -228,8 +230,8 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
           setRoles([]);
           lastFetchedUserIdRef.current = null;
         }
-      } catch (error) {
-        console.error("Error initializing session:", error);
+      } catch (error: any) {
+        console.error("Error initializing session:", error?.message || error, error);
         // Make sure we don't stay stuck on the loader if Supabase is unreachable.
         if (mounted) {
           setSession(null);
