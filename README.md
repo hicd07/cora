@@ -1,6 +1,6 @@
-# CORA 🏗️ Gavel • B2B Marketplace de Construcción (SDE)
+# CORA 🏗️ • Marketplace Inverso de Materiales de Construcción (SDE)
 
-**CORA** (Cotizador Rápido) es una plataforma web mobile-first diseñada para revolucionar la adquisición de materiales de construcción en Santo Domingo Este (SDE), República Dominicana. Conecta de manera eficiente a **Ingenieros de Obra** con **Ferreterías Locales**, permitiendo optimizar costos y logística mediante un sistema de subastas inversas y cotizaciones detalladas por ítem.
+**CORA** (Cotizador Rápido) es una plataforma web mobile-first diseñada para revolucionar la adquisición y cotización de materiales de construcción en Santo Domingo Este (SDE), República Dominicana. Conecta de manera eficiente a **Ingenieros de Obra** con **Ferreterías Locales**, permitiendo optimizar costos y logística mediante un sistema de subastas inversas y cotizaciones detalladas por ítem.
 
 ---
 
@@ -36,7 +36,7 @@
 
 1. Clona este repositorio:
    ```bash
-   git clone https://github.com/tu-usuario/cora.git
+   git clone https://github.com/tu-usuario/CORA.git
    ```
 2. Instala las dependencias:
 
