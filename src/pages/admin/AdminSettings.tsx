@@ -103,8 +103,9 @@ export const AdminSettings = () => {
           value: null,
           is_secret: template.is_secret!,
           description: template.description!,
-          has_value: false
-        });
+          has_value: false,
+          updated_at: undefined // Aseguramos que el objeto cumpla con AdminSetting si updated_at es requerido
+        } as AdminSetting);
       }
     });
 

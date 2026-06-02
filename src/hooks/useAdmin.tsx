@@ -17,7 +17,7 @@ export interface AdminSetting {
   is_secret: boolean;
   description: string | null;
   has_value?: boolean;
-  updated_at?: string; // Corrección TS2345: lo hacemos opcional
+  updated_at?: string;
 }
 
 export interface SignupRequest {
