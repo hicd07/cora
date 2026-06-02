@@ -17,6 +17,7 @@ export interface AdminSetting {
   is_secret: boolean;
   description: string | null;
   has_value?: boolean;
+  updated_at?: string; // Corrección TS2345: lo hacemos opcional
 }
 
 export interface SignupRequest {
@@ -68,7 +69,6 @@ export const useUpdateSetting = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ key, value }: { key: string; value: string }) => {
-      // Find if it's a secret to maintain consistency
       const isSecret = key.toLowerCase().includes("key") || key.toLowerCase().includes("secret");
       
       const { error } = await supabase
@@ -211,14 +211,13 @@ export const useAdminActiveBids = () => {
       const { data: items, error: itemError } = await supabase
         .from("bid_request_items")
         .select("*")
-        .in("request_id", requests.map(r => r.id));
+        .in("request_id", (requests || []).map(r => r.id));
 
       if (itemError) throw itemError;
 
-      // Import mapper logic or inline it
-      return requests.map(r => ({
+      return (requests || []).map(r => ({
         ...r,
-        items: items.filter(i => i.request_id === r.id)
+        items: (items || []).filter(i => i.request_id === r.id)
       }));
     },
   });

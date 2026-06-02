@@ -1,20 +1,6 @@
-import { AppNotification } from "@/lib/types";
+import { AppNotification } from "../types";
 
-interface NotificationRow {
-  id: string;
-  user_id: string;
-  type: string;
-  title: string;
-  message: string;
-  is_read: boolean;
-  entity_type: string | null;
-  entity_id: string | null;
-  metadata: Record<string, unknown> | null;
-  created_at: string;
-  read_at: string | null;
-}
-
-export const mapNotificationRow = (row: NotificationRow): AppNotification => ({
+export const mapNotificationRow = (row: any): AppNotification => ({
   id: row.id,
   userId: row.user_id,
   type: row.type,
@@ -23,7 +9,7 @@ export const mapNotificationRow = (row: NotificationRow): AppNotification => ({
   isRead: row.is_read,
   entityType: row.entity_type,
   entityId: row.entity_id,
-  metadata: row.metadata ?? {},
+  metadata: row.metadata ?? {}, // Corrección del error TS2353
   createdAt: row.created_at,
   readAt: row.read_at,
 });

@@ -1,16 +1,16 @@
 import React, { useState } from "react";
 import { useSessionContext } from "@/components/auth/SessionContext";
 import { WelcomeCarousel } from "@/components/auth/WelcomeCarousel";
-import { AuthSheet, AuthMode } from "@/components/auth/AuthSheet";
+import { AuthSheet } from "@/components/auth/AuthSheet";
 import { ProfileOnboarding } from "@/components/auth/ProfileOnboarding";
 
 const Auth: React.FC = () => {
   const { session, profile, loading: sessionLoading } = useSessionContext();
   const [isAuthSheetOpen, setIsAuthSheetOpen] = useState(false);
-  const [authMode, setAuthMode] = useState<AuthMode>("login");
+  const [authMode, setAuthMode] = useState<"login" | "signup">("login"); // Corrección TS2322
 
   if (sessionLoading) {
-    return null; // Handled by FullScreenLoader in App.tsx
+    return null;
   }
 
   const needsOnboarding = Boolean(session && profile && !profile.onboarded);
