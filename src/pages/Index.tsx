@@ -16,7 +16,7 @@ import { Plus, Gavel, History, Store as StoreIcon } from "lucide-react";
 import { BidRequest } from "@/lib/types";
 
 const Index = () => {
-  const { profile } = useSessionContext();
+  const { profile, isAdmin } = useSessionContext();
   const [activeTab, setActiveTab] = useState("bids");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isBidModalOpen, setIsBidModalOpen] = useState(false);
@@ -171,6 +171,7 @@ const Index = () => {
       
       <BottomNav 
         role={userType} 
+        isAdmin={isAdmin}
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
       />

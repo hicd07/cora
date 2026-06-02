@@ -1,20 +1,37 @@
 import React from "react";
 import { ClipboardList, Gavel, Store, User } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 interface BottomNavProps {
   role: "engineer" | "hardware";
+  isAdmin?: boolean;
   activeTab: string;
   setActiveTab: (tab: string) => void;
 }
 
-export const BottomNav: React.FC<BottomNavProps> = ({ role, activeTab, setActiveTab }) => {
+export const BottomNav: React.FC<BottomNavProps> = ({ role, isAdmin, activeTab, setActiveTab }) => {
+  const navigate = useNavigate();
+  
   const navItems = [
     { id: "bids", label: "Pedidos", icon: Gavel },
-    { id: "market", label: role === "hardware" ? "Mi empresa" : "Mercado", icon: Store },
+    { 
+      id: "market", 
+      label: isAdmin ? "Gestión" : (role === "hardware" ? "Mi empresa" : "Mercado"), 
+      icon: Store,
+      path: isAdmin ? "/admin/auctions" : null
+    },
     { id: "orders", label: "Historial", icon: ClipboardList },
     { id: "account", label: "Cuenta", icon: User },
   ];
+
+  const handleItemClick = (item: typeof navItems[0]) => {
+    if (item.path) {
+      navigate(item.path);
+    } else {
+      setActiveTab(item.id);
+    }
+  };
 
   return (
     <div className="fixed bottom-4 left-1/2 z-50 w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 floating-nav p-2">
@@ -26,7 +43,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ role, activeTab, setActive
           return (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id)}
+              onClick={() => handleItemClick(item)}
               className={cn(
                 "interactive-row relative flex min-h-[58px] flex-col items-center justify-center rounded-[1.2rem] border px-2 py-2 text-center",
                 isActive
