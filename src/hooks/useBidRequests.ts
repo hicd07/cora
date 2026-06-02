@@ -1,159 +1,103 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useSessionContext } from "@/components/auth/SessionContext";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { mapBidRequestRow } from "@/lib/mappers/bidRequests";
-import { BidRequest, QuoteItem } from "@/lib/types";
+import { BidRequest } from "@/lib/types";
 
-const BID_REQUESTS_PAGE_SIZE = 12;
-const bidRequestsKey = ["bid-requests", BID_REQUESTS_PAGE_SIZE];
+export const useBidRequests = () => {
+  return useQuery({
+    queryKey: ["bid-requests"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("bid_requests")
+        .select(`
+          *,
+          items:bid_request_items(*)
+        `)
+        .order("created_at", { ascending: false });
 
-const fetchBidRequests = async (): Promise<BidRequest[]> => {
-  const { data: requests, error } = await supabase
-    .from("bid_requests")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .range(0, BID_REQUESTS_PAGE_SIZE - 1);
-
-  if (error) {
-    const status = typeof error.code === "string" ? Number(error.code) : NaN;
-    if (status === 500 || error.message?.includes("500")) {
-      return [];
-    }
-
-    throw error;
-  }
-
-  if (!requests || requests.length === 0) {
-    return [];
-  }
-
-  const requestIds = requests.map((request) => request.id);
-  const { data: items, error: itemsError } = await supabase
-    .from("bid_request_items")
-    .select("*")
-    .in("request_id", requestIds)
-    .order("name", { ascending: true });
-
-  if (itemsError) {
-    throw itemsError;
-  }
-
-  return requests.map((request) => mapBidRequestRow(request, items ?? []));
-};
-
-export const useBidRequests = () =>
-  useQuery({
-    queryKey: bidRequestsKey,
-    queryFn: fetchBidRequests,
-    retry: false,
+      if (error) throw error;
+      
+      return data.map((row: any) => ({
+        id: row.id,
+        title: row.title,
+        category: row.category,
+        deliveryAddress: row.delivery_address,
+        sector: row.sector,
+        status: row.status,
+        state: row.state,
+        budgetLimit: row.budget_limit,
+        createdAt: row.created_at,
+        expiresAt: row.expires_at,
+        bidsCount: row.bids_count,
+        ownerUserId: row.owner_user_id,
+        itemsCount: row.items?.length || 0,
+        items: row.items || [],
+        lat: row.lat,
+        lng: row.lng,
+        radiusKm: row.radius_km
+      })) as BidRequest[];
+    },
   });
-
-interface CreateBidRequestInput {
-  title: string;
-  category: string;
-  deliveryAddress: string;
-  sector: string;
-  lat?: number | null;
-  lng?: number | null;
-  radiusKm: number;
-  budgetLimit?: number | null;
-  expiresAt: string;
-  items: QuoteItem[];
-}
+};
 
 export const useCreateBidRequestMutation = () => {
   const queryClient = useQueryClient();
-  const { user } = useSessionContext();
-
+  
   return useMutation({
-    mutationFn: async (input: CreateBidRequestInput) => {
-      if (!user) {
-        throw new Error("Debes iniciar sesión para publicar una solicitud.");
-      }
-
-      const { data: request, error } = await supabase
+    mutationFn: async (newRequest: any) => {
+      const { data: request, error: requestError } = await supabase
         .from("bid_requests")
         .insert({
-          owner_user_id: user.id,
-          title: input.title,
-          category: input.category,
-          delivery_address: input.deliveryAddress,
-          sector: input.sector,
-          status: "active",
-          state: (input.lat && input.lng) ? "BROADCASTING" : "AWAITING_RESPONSES",
-          lat: input.lat ?? null,
-          lng: input.lng ?? null,
-          radius_km: input.radiusKm,
-          budget_limit: input.budgetLimit ?? null,
-          expires_at: input.expiresAt,
+          title: newRequest.title,
+          category: newRequest.category,
+          delivery_address: newRequest.deliveryAddress,
+          sector: newRequest.sector,
+          lat: newRequest.lat,
+          lng: newRequest.lng,
+          radius_km: newRequest.radiusKm,
+          budget_limit: newRequest.budgetLimit,
+          expires_at: newRequest.expiresAt,
+          owner_user_id: (await supabase.auth.getUser()).data.user?.id
         })
-        .select("*")
+        .select()
         .single();
 
-      if (error) {
-        throw error;
-      }
+      if (requestError) throw requestError;
 
-      const validItems = input.items.filter((item) => item.name.trim() && item.quantity > 0);
-      if (validItems.length === 0) {
-        throw new Error("Debes incluir al menos un material válido.");
-      }
+      const itemsToInsert = newRequest.items.map((item: any) => ({
+        request_id: request.id,
+        name: item.name,
+        quantity: item.quantity,
+        unit: item.unit
+      }));
 
-      const { error: itemsError } = await supabase.from("bid_request_items").insert(
-        validItems.map((item) => ({
-          request_id: request.id,
-          name: item.name.trim(),
-          quantity: item.quantity,
-          unit: item.unit,
-        })),
-      );
+      const { error: itemsError } = await supabase
+        .from("bid_request_items")
+        .insert(itemsToInsert);
 
-      if (itemsError) {
-        await supabase.from("bid_requests").delete().eq("id", request.id);
-        throw itemsError;
-      }
-
-      // Search for nearby stores using Google Places
-      if (input.lat && input.lng) {
-        try {
-          await supabase.functions.invoke("places-search", {
-            body: {
-              lat: input.lat,
-              lng: input.lng,
-              radiusKm: input.radiusKm
-            },
-          });
-          
-          // Optionally transition to AWAITING_RESPONSES
-          await supabase.from("bid_requests").update({ state: "AWAITING_RESPONSES" }).eq("id", request.id);
-        } catch (searchError) {
-          console.error("Error searching nearby stores:", searchError);
-        }
-      }
-
+      if (itemsError) throw itemsError;
+      
       return request;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: bidRequestsKey });
+      queryClient.invalidateQueries({ queryKey: ["bid-requests"] });
     },
   });
 };
 
 export const useCompleteBidRequestMutation = () => {
   const queryClient = useQueryClient();
-
+  
   return useMutation({
     mutationFn: async (requestId: string) => {
-      const { error } = await supabase.from("bid_requests").update({ status: "completed" }).eq("id", requestId);
+      const { error } = await supabase
+        .from("bid_requests")
+        .update({ status: "completed", state: "CLOSED" })
+        .eq("id", requestId);
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: bidRequestsKey });
-      queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count"] });
+      queryClient.invalidateQueries({ queryKey: ["bid-requests"] });
     },
   });
 };

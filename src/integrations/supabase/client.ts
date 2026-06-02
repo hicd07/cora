@@ -4,14 +4,4 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL = "https://kahodmnktvqvjmptjhkf.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImthaG9kbW5rdHZxdmptcHRqaGtmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MDAzNjksImV4cCI6MjA5NTA3NjM2OX0.EfQ5YTsgVN8H-UisUkl82FZUHsAB42H1iv0h7CaZuoA";
 
-// Import the supabase client like this:
-// import { supabase } from "@/integrations/supabase/client";
-
-export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: {
-    storageKey: `cora-auth-session-${typeof window !== 'undefined' ? window.name || 'default' : 'ssr'}`,
-    persistSession: true,
-    detectSessionInUrl: true,
-    autoRefreshToken: true
-  }
-});
+export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
