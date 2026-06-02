@@ -6,6 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const GOOGLE_MAPS_API_KEY = Deno.env.get('GOOGLE_MAPS_API_KEY');
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -20,12 +22,12 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Redondeamos para cachear búsquedas similares
-    const latRound = lat.toFixed(3)
-    const lngRound = lng.toFixed(3)
+    // Redondeamos para cachear búsquedas similares (Field Masking y Optimización)
+    const latRound = Number(lat).toFixed(3)
+    const lngRound = Number(lng).toFixed(3)
 
     // 1. Revisar cache
-    const { data: cached } = await supabase
+    const { data: cached, error: cacheError } = await supabase
       .from('places_cache')
       .select('results')
       .eq('lat_round', latRound)
@@ -40,25 +42,63 @@ serve(async (req) => {
       })
     }
 
-    // 2. Si no hay cache, buscamos (Simulado o Google API)
-    // En producción aquí llamarías a Google Places API. 
-    // Por ahora simularemos la respuesta basándonos en la zona de SDE.
-    const mockResults = [
-      { name: "Ferretería El Progreso", address: "Av. San Isidro", lat: lat + 0.002, lng: lng - 0.001 },
-      { name: "Materiales Ozama", address: "Calle Costa Rica", lat: lat - 0.001, lng: lng + 0.003 },
-      { name: "Ferre-Construye SDE", address: "Aut. Las Américas", lat: lat + 0.005, lng: lng + 0.002 }
-    ];
+    if (!GOOGLE_MAPS_API_KEY) {
+      console.error("[places-search] GOOGLE_MAPS_API_KEY no configurada");
+      return new Response(JSON.stringify({ error: "Configuración incompleta" }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    // 2. Si no hay cache, buscamos en Google (API v1 - Search Nearby)
+    // Usamos Field Masking para reducir costos
+    const response = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
+        'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.location,places.id'
+      },
+      body: JSON.stringify({
+        includedTypes: ["hardware_store"],
+        maxResultCount: 15,
+        locationRestriction: {
+          circle: {
+            center: {
+              latitude: lat,
+              longitude: lng
+            },
+            radius: radiusKm * 1000 // Convertir a metros
+          }
+        }
+      })
+    });
+
+    const data = await response.json();
+    
+    if (data.error) {
+      throw new Error(data.error.message || "Error en Google Maps API");
+    }
+
+    const places = data.places || [];
+    const results = places.map((p: any) => ({
+      id: p.id,
+      name: p.displayName?.text || "Ferretería sin nombre",
+      address: p.formattedAddress,
+      lat: p.location.latitude,
+      lng: p.location.longitude
+    }));
 
     // 3. Guardar en cache
     await supabase.from('places_cache').upsert({
       lat_round: latRound,
       lng_round: lngRound,
       radius_km: radiusKm,
-      results: mockResults,
+      results: results,
       fetched_at: new Date().toISOString()
     })
 
-    return new Response(JSON.stringify({ results: mockResults }), {
+    return new Response(JSON.stringify({ results }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
 

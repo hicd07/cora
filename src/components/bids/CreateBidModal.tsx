@@ -8,8 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { useCreateBidRequestMutation } from "@/hooks/useBidRequests";
 import { usePlacesSearch } from "@/hooks/usePlacesSearch";
 import { usePublicSettings } from "@/hooks/useSettings";
+import { useAddressAutocomplete } from "@/hooks/useAddressAutocomplete";
 import { QuoteItem } from "@/lib/types";
 import { showError, showSuccess } from "@/utils/toast";
+import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface CreateBidModalProps {
   isOpen: boolean;
@@ -58,7 +61,11 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose 
   const [lng, setLng] = useState<number>(INITIAL_CENTER.lng);
   const [items, setItems] = useState<QuoteItem[]>([createEmptyItem()]);
 
+  const [isAutocompleteOpen, setIsAutocompleteOpen] = useState(false);
+  const { suggestions, isLoading: isLoadingAutocomplete, getPlaceDetails } = useAddressAutocomplete(street);
+
   const { isLoaded } = useJsApiLoader({
+
     id: "google-map-script",
     googleMapsApiKey: mapsApiKey,
   });
@@ -267,17 +274,67 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose 
               <div className="space-y-1.5">
                 <label className="section-label block">Calle</label>
                 <div className="relative">
-                  <Input 
-                    required 
-                    placeholder="Calle principal" 
-                    value={street} 
-                    onChange={(e) => setStreet(e.target.value)} 
-                    className="pl-9"
-                  />
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Popover open={isAutocompleteOpen && suggestions.length > 0} onOpenChange={setIsAutocompleteOpen}>
+                    <PopoverTrigger asChild>
+                      <div className="relative">
+                        <Input
+                          required
+                          placeholder="Calle principal"
+                          value={street}
+                          onChange={(e) => {
+                            setStreet(e.target.value);
+                            setIsAutocompleteOpen(true);
+                          }}
+                          className="pl-9"
+                        />
+                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                        {isLoadingAutocomplete && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                            <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                          </div>
+                        )}
+                      </div>
+                    </PopoverTrigger>
+                    <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]" align="start">
+                      <Command>
+                        <CommandList>
+                          <CommandGroup>
+                            {suggestions.map((s) => (
+                              <CommandItem
+                                key={s.place_id}
+                                value={s.description}
+                                onSelect={async () => {
+                                  setStreet(s.description);
+                                  setIsAutocompleteOpen(false);
+                                  const details = await getPlaceDetails(s.place_id);
+                                  if (details) {
+                                    if (details.location) {
+                                      setLat(details.location.latitude);
+                                      setLng(details.location.longitude);
+                                    }
+                                    if (details.formattedAddress) {
+                                      setStreet(details.formattedAddress);
+                                    }
+                                    // Intentar extraer sector de addressComponents si existe
+                                    const sectorComp = details.addressComponents?.find((c: any) =>
+                                      c.types.includes("sublocality") || c.types.includes("neighborhood")
+                                    );
+                                    if (sectorComp) setSector(sectorComp.longText);
+                                  }
+                                }}
+                              >
+                                {s.description}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
               <div className="space-y-1.5">
+
                 <label className="section-label block">Número / Unidad</label>
                 <div className="relative">
                   <Input 
