@@ -27,7 +27,6 @@ import { useAdminMode } from "@/contexts/AdminModeContext";
 
 const navItems = [
   { to: "/admin", label: "Resumen", icon: LayoutDashboard, end: true },
-  { to: "/admin/auctions", label: "Subastas", icon: ShieldCheck, end: false },
   { to: "/admin/users", label: "Usuarios", icon: Users, end: false },
   { to: "/admin/invitations", label: "Invitaciones", icon: Mail, end: false },
   { to: "/admin/requests", label: "Solicitudes", icon: ShieldCheck, end: false },
@@ -213,5 +212,3 @@ export const AdminLayout = ({ children, title }: { children: React.ReactNode; ti
     </div>
   );
 };
-
-export default AdminLayout;

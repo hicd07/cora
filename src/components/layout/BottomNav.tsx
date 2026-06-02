@@ -1,5 +1,5 @@
 import React from "react";
-import { ClipboardList, Gavel, Store, User } from "lucide-react";
+import { ClipboardList, Gavel, Store, User, LayoutDashboard, ShieldCheck, Bell } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -13,19 +13,20 @@ interface BottomNavProps {
 export const BottomNav: React.FC<BottomNavProps> = ({ role, isAdmin, activeTab, setActiveTab }) => {
   const navigate = useNavigate();
   
-  const navItems = [
+  // Re-define tabs for admins
+  const navItems = isAdmin ? [
+    { id: "dashboard", label: "Métricas", icon: LayoutDashboard },
+    { id: "auctions", label: "Gestión", icon: ShieldCheck },
+    { id: "notifications", label: "Inbox", icon: Bell, path: "/notifications" },
+    { id: "account", label: "Cuenta", icon: User },
+  ] : [
     { id: "bids", label: "Pedidos", icon: Gavel },
-    { 
-      id: "market", 
-      label: isAdmin ? "Gestión" : (role === "hardware" ? "Mi empresa" : "Mercado"), 
-      icon: Store,
-      path: isAdmin ? "/admin/auctions" : null
-    },
+    { id: "market", label: role === "hardware" ? "Mi empresa" : "Mercado", icon: Store },
     { id: "orders", label: "Historial", icon: ClipboardList },
     { id: "account", label: "Cuenta", icon: User },
   ];
 
-  const handleItemClick = (item: typeof navItems[0]) => {
+  const handleItemClick = (item: any) => {
     if (item.path) {
       navigate(item.path);
     } else {

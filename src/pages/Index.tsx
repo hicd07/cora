@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { useSessionContext } from "@/components/auth/SessionContext";
@@ -10,6 +10,8 @@ import { CreateBidModal } from "@/components/bids/CreateBidModal";
 import { BidFormModal } from "@/components/ferreteria/BidFormModal";
 import { ProviderProfileModal } from "@/components/ferreteria/ProviderProfileModal";
 import { StoreLocationsManager } from "@/components/ferreteria/StoreLocationsManager";
+import { AdminMetricsDashboard } from "@/components/admin/AdminMetricsDashboard";
+import { AdminAuctionsList } from "@/components/admin/AdminAuctionsList";
 import Profile from "@/pages/Profile";
 import { Button } from "@/components/ui/button";
 import { Plus, Gavel, History, Store as StoreIcon } from "lucide-react";
@@ -18,6 +20,16 @@ import { BidRequest } from "@/lib/types";
 const Index = () => {
   const { profile, isAdmin } = useSessionContext();
   const [activeTab, setActiveTab] = useState("bids");
+  
+  // Set default tab for admins
+  useEffect(() => {
+    if (isAdmin) {
+      setActiveTab("dashboard");
+    } else {
+      setActiveTab("bids");
+    }
+  }, [isAdmin]);
+
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isBidModalOpen, setIsBidModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -34,6 +46,17 @@ const Index = () => {
   const renderContent = () => {
     if (activeTab === "account") {
       return <Profile />;
+    }
+
+    if (isAdmin) {
+      switch (activeTab) {
+        case "dashboard":
+          return <AdminMetricsDashboard />;
+        case "auctions":
+          return <AdminAuctionsList />;
+        default:
+          return <AdminMetricsDashboard />;
+      }
     }
 
     if (userType === "engineer") {
