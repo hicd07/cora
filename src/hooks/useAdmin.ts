@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { BidRequest } from "@/lib/types";
+import { mapBidRequestRow } from "@/lib/mappers/bidRequests";
 
 /** Generic invoker for the admin-manage edge function. */
 async function adminInvoke<T = unknown>(action: string, payload?: unknown): Promise<T> {
@@ -63,7 +64,7 @@ export const useAdminSettings = () =>
     queryKey: ["admin-settings"],
     queryFn: async () => {
       const res = await adminInvoke<{ settings: AdminSetting[] }>("list_settings");
-      return res.settings;
+      return res.settings || [];
     },
   });
 
@@ -82,7 +83,7 @@ export const useAdminUsers = () =>
     queryKey: ["admin-users"],
     queryFn: async () => {
       const res = await adminInvoke<{ users: AdminUser[] }>("list_users");
-      return res.users;
+      return res.users || [];
     },
   });
 
@@ -134,7 +135,7 @@ export const useInvitations = () =>
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data;
+      return data || [];
     },
   });
 
@@ -144,7 +145,7 @@ export const useSignupRequests = () =>
     queryKey: ["admin-signup-requests"],
     queryFn: async () => {
       const res = await adminInvoke<{ requests: SignupRequest[] }>("list_signup_requests");
-      return res.requests;
+      return res.requests || [];
     },
   });
 
@@ -165,8 +166,8 @@ export const useAdminActiveBids = () =>
   useQuery({
     queryKey: ["admin-active-bids"],
     queryFn: async () => {
-      const res = await adminInvoke<{ bids: BidRequest[] }>("list_active_bids");
-      return res.bids;
+      const res = await adminInvoke<{ bids: any[] }>("list_active_bids");
+      return (res.bids || []).map((bid) => mapBidRequestRow(bid, bid.bid_request_items || []));
     },
   });
 
@@ -176,7 +177,7 @@ export const useAdminNearbyStores = (lat: number | null, lng: number | null) =>
     queryFn: async () => {
       if (!lat || !lng) return [];
       const res = await adminInvoke<{ stores: ExternalStore[] }>("list_nearby_stores", { lat, lng });
-      return res.stores;
+      return res.stores || [];
     },
     enabled: Boolean(lat && lng),
   });
