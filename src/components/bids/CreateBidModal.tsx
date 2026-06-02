@@ -7,6 +7,7 @@ import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { useCreateBidRequestMutation } from "@/hooks/useBidRequests";
 import { usePlacesSearch } from "@/hooks/usePlacesSearch";
+import { usePublicSettings } from "@/hooks/useSettings";
 import { QuoteItem } from "@/lib/types";
 import { showError, showSuccess } from "@/utils/toast";
 
@@ -19,7 +20,6 @@ const CATEGORIES = ["Cemento y Agregados", "Metales y Estructuras", "Plomería",
 const UNITS = ["Fundas", "Varillas", "Metros Cúbicos", "Unidades", "Pies", "Cajas", "Quintales"];
 const fieldClassName = "field-soft appearance-none pr-10";
 
-// Coordenadas iniciales (Santo Domingo Este)
 const INITIAL_CENTER = { lat: 18.4861, lng: -69.9312 };
 
 const mapContainerStyle = {
@@ -38,11 +38,13 @@ const createEmptyItem = (): QuoteItem => ({
 });
 
 export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose }) => {
+  const { data: settings } = usePublicSettings();
+  const mapsApiKey = settings?.["GOOGLE_MAPS_API_KEY"] || "";
+
   const createBidRequest = useCreateBidRequestMutation();
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState(CATEGORIES[0]);
   
-  // Campos de dirección detallados
   const [street, setStreet] = useState("");
   const [houseNumber, setHouseNumber] = useState("");
   const [sector, setSector] = useState("");
@@ -56,10 +58,9 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose 
   const [lng, setLng] = useState<number>(INITIAL_CENTER.lng);
   const [items, setItems] = useState<QuoteItem[]>([createEmptyItem()]);
 
-  // Carga de Google Maps (Usando un placeholder para la API Key, debe configurarse en producción)
   const { isLoaded } = useJsApiLoader({
     id: "google-map-script",
-    googleMapsApiKey: "", // Informar al usuario que debe configurar su API Key
+    googleMapsApiKey: mapsApiKey,
   });
 
   const { data: places = [], isLoading: isLoadingPlaces } = usePlacesSearch({
@@ -128,7 +129,6 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose 
       return;
     }
 
-    // Consolidamos la dirección para la base de datos
     const fullAddress = `${street} #${houseNumber}, ${sector}, ${province}. Contacto: ${phone}`;
 
     try {
@@ -232,26 +232,32 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose 
               <label className="section-label flex items-center gap-1.5 mb-2">
                 <MapIcon className="h-3.5 w-3.5 text-primary" /> Ubicación exacta
               </label>
-              <div className="overflow-hidden border border-border shadow-sm rounded-[1.2rem] bg-muted/20">
-                {isLoaded ? (
-                  <GoogleMap
-                    mapContainerStyle={mapContainerStyle}
-                    center={{ lat, lng }}
-                    zoom={15}
-                    onClick={onMapClick}
-                    options={{
-                      disableDefaultUI: true,
-                      zoomControl: true,
-                    }}
-                  >
-                    <Marker position={{ lat, lng }} draggable onDragEnd={onMapClick} />
-                  </GoogleMap>
-                ) : (
-                  <div style={mapContainerStyle} className="flex items-center justify-center text-xs text-muted-foreground">
-                    Cargando mapa...
-                  </div>
-                )}
-              </div>
+              {!mapsApiKey ? (
+                <div className="p-4 border border-dashed rounded-xl text-center bg-muted/50">
+                  <p className="text-[10px] text-muted-foreground">Esperando API Key de Google Maps...</p>
+                </div>
+              ) : (
+                <div className="overflow-hidden border border-border shadow-sm rounded-[1.2rem] bg-muted/20">
+                  {isLoaded ? (
+                    <GoogleMap
+                      mapContainerStyle={mapContainerStyle}
+                      center={{ lat, lng }}
+                      zoom={15}
+                      onClick={onMapClick}
+                      options={{
+                        disableDefaultUI: true,
+                        zoomControl: true,
+                      }}
+                    >
+                      <Marker position={{ lat, lng }} draggable onDragEnd={onMapClick} />
+                    </GoogleMap>
+                  ) : (
+                    <div style={mapContainerStyle} className="flex items-center justify-center text-xs text-muted-foreground">
+                      Cargando mapa...
+                    </div>
+                  )}
+                </div>
+              )}
               <p className="mt-2 text-[10px] text-muted-foreground italic text-center">
                 Toca o arrastra el marcador para fijar el punto de entrega
               </p>

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { supabase } from "@/integrations/supabase/client";
 import { useSessionContext } from "@/components/auth/SessionContext";
+import { usePublicSettings } from "@/hooks/useSettings";
 import { showError, showSuccess } from "@/utils/toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -15,6 +16,9 @@ const mapContainerStyle = { width: "100%", height: "300px", borderRadius: "1rem"
 export const StoreLocationsManager = () => {
   const { user } = useSessionContext();
   const queryClient = useQueryClient();
+  const { data: settings } = usePublicSettings();
+  const mapsApiKey = settings?.["GOOGLE_MAPS_API_KEY"] || "";
+
   const [isAdding, setIsAdding] = useState(false);
   const [newName, setNewName] = useState("");
   const [radius, setRadius] = useState(5);
@@ -22,7 +26,7 @@ export const StoreLocationsManager = () => {
 
   const { isLoaded } = useJsApiLoader({
     id: "google-map-script",
-    googleMapsApiKey: "", // Configurar en producción
+    googleMapsApiKey: mapsApiKey,
   });
 
   const { data: locations = [], isLoading } = useQuery({
@@ -95,7 +99,11 @@ export const StoreLocationsManager = () => {
           <div className="space-y-2">
             <label className="section-label">Ubicación y Radio de Entrega ({radius} km)</label>
             <div className="overflow-hidden rounded-xl border border-border">
-              {isLoaded && (
+              {!mapsApiKey ? (
+                <div className="h-[300px] flex items-center justify-center text-xs text-muted-foreground bg-muted/30">
+                  Esperando API Key de Google Maps...
+                </div>
+              ) : isLoaded ? (
                 <GoogleMap mapContainerStyle={mapContainerStyle} center={pos} zoom={13} onClick={onMapClick}>
                   <Marker position={pos} draggable onDragEnd={onMapClick} />
                   <Circle
@@ -104,6 +112,8 @@ export const StoreLocationsManager = () => {
                     options={{ fillOpacity: 0.1, fillColor: "#3b82f6", strokeColor: "#3b82f6", strokeWeight: 1 }}
                   />
                 </GoogleMap>
+              ) : (
+                <div className="h-[300px] flex items-center justify-center text-xs text-muted-foreground">Cargando mapa...</div>
               )}
             </div>
             <Slider value={[radius]} onValueChange={([v]) => setRadius(v)} min={1} max={50} className="mt-4" />

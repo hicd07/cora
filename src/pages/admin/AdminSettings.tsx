@@ -1,5 +1,7 @@
+"use client";
+
 import { useEffect, useState } from "react";
-import { Save, Bot, KeyRound, Sparkles, Eye, EyeOff } from "lucide-react";
+import { Save, Bot, KeyRound, Sparkles, Eye, EyeOff, Map as MapIcon } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { useAdminSettings, useUpdateSetting, AdminSetting } from "@/hooks/useAdmin";
 import { Button } from "@/components/ui/button";
@@ -82,11 +84,12 @@ export const AdminSettings = () => {
   };
 
   const provider = settings?.find((s) => s.key === "AI_PROVIDER")?.value || "openai";
+  const mapsKey = settings?.find((s) => s.key === "GOOGLE_MAPS_API_KEY");
 
   const aiSecrets = (settings ?? []).filter((s) => ["OPENAI_API_KEY", "GOOGLE_API_KEY"].includes(s.key));
   const aiModels = (settings ?? []).filter((s) => ["OPENAI_MODEL", "GOOGLE_MODEL"].includes(s.key));
   const otherSettings = (settings ?? []).filter(
-    (s) => !["AI_PROVIDER", "OPENAI_API_KEY", "GOOGLE_API_KEY", "OPENAI_MODEL", "GOOGLE_MODEL"].includes(s.key),
+    (s) => !["AI_PROVIDER", "OPENAI_API_KEY", "GOOGLE_API_KEY", "OPENAI_MODEL", "GOOGLE_MODEL", "GOOGLE_MAPS_API_KEY"].includes(s.key),
   );
 
   return (
@@ -98,6 +101,30 @@ export const AdminSettings = () => {
         </div>
       ) : (
         <div className="space-y-6">
+          {/* Google Maps Section */}
+          <section className="rounded-2xl border border-border bg-background p-6">
+            <div className="mb-4 flex items-center gap-2">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600">
+                <MapIcon className="h-4 w-4" />
+              </div>
+              <div>
+                <h2 className="font-display text-base font-semibold">Servicios de Mapas</h2>
+                <p className="text-xs text-muted-foreground">
+                  Configura la API Key necesaria para la geolocalización y visualización.
+                </p>
+              </div>
+            </div>
+            
+            {mapsKey && (
+              <div className="space-y-4">
+                <SettingField setting={mapsKey} onSave={handleSave} saving={update.isPending} />
+                <p className="text-[11px] text-muted-foreground bg-blue-50/50 p-2 rounded-lg border border-blue-100 dark:bg-blue-900/10 dark:border-blue-900/30">
+                  <strong>Importante:</strong> Esta llave es pública y visible para todos los usuarios autenticados para que el navegador pueda cargar los mapas. Asegúrate de restringirla en la consola de Google Cloud por HTTP Referrer.
+                </p>
+              </div>
+            )}
+          </section>
+
           {/* AI Provider selection */}
           <section className="rounded-2xl border border-border bg-background p-6">
             <div className="mb-4 flex items-center gap-2">
