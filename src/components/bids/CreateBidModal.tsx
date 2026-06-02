@@ -1,5 +1,6 @@
-import React, { useState } from "react";
-import { Calendar, DollarSign, HardHat, PackagePlus, MapPin, X } from "lucide-react";
+import React, { useState, useCallback, useEffect } from "react";
+import { Calendar, DollarSign, HardHat, PackagePlus, MapPin, X, Phone, Home, Map as MapIcon } from "lucide-react";
+import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
@@ -15,9 +16,17 @@ interface CreateBidModalProps {
 }
 
 const CATEGORIES = ["Cemento y Agregados", "Metales y Estructuras", "Plomería", "Bloques y Ladrillos", "Electricidad"];
-const SECTORS = ["Alma Rosa I", "Alma Rosa II", "Ensanche Ozama", "Lucerna", "San Isidro", "El Almirante"];
 const UNITS = ["Fundas", "Varillas", "Metros Cúbicos", "Unidades", "Pies", "Cajas", "Quintales"];
 const fieldClassName = "field-soft appearance-none pr-10";
+
+// Coordenadas iniciales (Santo Domingo Este)
+const INITIAL_CENTER = { lat: 18.4861, lng: -69.9312 };
+
+const mapContainerStyle = {
+  width: "100%",
+  height: "220px",
+  borderRadius: "1.2rem",
+};
 
 const generateId = () => Math.random().toString(36).slice(2) + Date.now();
 
@@ -32,14 +41,26 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose 
   const createBidRequest = useCreateBidRequestMutation();
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState(CATEGORIES[0]);
-  const [sector, setSector] = useState(SECTORS[0]);
-  const [address, setAddress] = useState("");
+  
+  // Campos de dirección detallados
+  const [street, setStreet] = useState("");
+  const [houseNumber, setHouseNumber] = useState("");
+  const [sector, setSector] = useState("");
+  const [province, setProvince] = useState("Santo Domingo");
+  const [phone, setPhone] = useState("");
+
   const [budget, setBudget] = useState("");
   const [expiresIn, setExpiresIn] = useState("24");
   const [radiusKm, setRadiusKm] = useState(5);
-  const [lat, setLat] = useState<number | null>(18.4861); // Default to Santo Domingo
-  const [lng, setLng] = useState<number | null>(-69.9312);
+  const [lat, setLat] = useState<number>(INITIAL_CENTER.lat);
+  const [lng, setLng] = useState<number>(INITIAL_CENTER.lng);
   const [items, setItems] = useState<QuoteItem[]>([createEmptyItem()]);
+
+  // Carga de Google Maps (Usando un placeholder para la API Key, debe configurarse en producción)
+  const { isLoaded } = useJsApiLoader({
+    id: "google-map-script",
+    googleMapsApiKey: "", // Informar al usuario que debe configurar su API Key
+  });
 
   const { data: places = [], isLoading: isLoadingPlaces } = usePlacesSearch({
     lat,
@@ -47,16 +68,28 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose 
     radiusKm,
   });
 
+  const onMapClick = useCallback((e: google.maps.MapMouseEvent) => {
+    if (e.latLng) {
+      setLat(e.latLng.lat());
+      setLng(e.latLng.lng());
+    }
+  }, []);
+
   if (!isOpen) return null;
 
   const resetForm = () => {
     setTitle("");
     setCategory(CATEGORIES[0]);
-    setSector(SECTORS[0]);
-    setAddress("");
+    setStreet("");
+    setHouseNumber("");
+    setSector("");
+    setProvince("Santo Domingo");
+    setPhone("");
     setBudget("");
     setExpiresIn("24");
     setRadiusKm(5);
+    setLat(INITIAL_CENTER.lat);
+    setLng(INITIAL_CENTER.lng);
     setItems([createEmptyItem()]);
   };
 
@@ -84,8 +117,8 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    if (!title.trim() || !address.trim()) {
-      showError("Completa el nombre del proyecto y la dirección de entrega.");
+    if (!title.trim() || !street.trim() || !sector.trim() || !phone.trim()) {
+      showError("Por favor completa los campos obligatorios (Título, Calle, Sector y Teléfono).");
       return;
     }
 
@@ -95,12 +128,15 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose 
       return;
     }
 
+    // Consolidamos la dirección para la base de datos
+    const fullAddress = `${street} #${houseNumber}, ${sector}, ${province}. Contacto: ${phone}`;
+
     try {
       await createBidRequest.mutateAsync({
         title: title.trim(),
         category,
-        sector,
-        deliveryAddress: address.trim(),
+        sector: sector.trim(),
+        deliveryAddress: fullAddress,
         lat,
         lng,
         radiusKm,
@@ -109,7 +145,7 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose 
         items: validItems,
       });
 
-      showSuccess("Solicitud publicada con datos reales.");
+      showSuccess("Solicitud publicada exitosamente.");
       resetForm();
       onClose();
     } catch (error: any) {
@@ -128,7 +164,7 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose 
             <div>
               <p className="section-label">Nueva subasta</p>
               <h3 className="font-display text-base font-semibold text-foreground">Solicitar cotización</h3>
-              <p className="mt-1 text-xs text-muted-foreground">Solo se guardarán datos persistidos en la base real.</p>
+              <p className="mt-1 text-xs text-muted-foreground">Define la ubicación y detalles de entrega.</p>
             </div>
           </div>
           <Button variant="outline" size="icon" onClick={onClose} aria-label="Cerrar">
@@ -191,24 +227,89 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose 
             </div>
           </div>
 
-          <div className="panel-muted p-4">
+          <div className="panel-muted p-4 space-y-4">
+            <div>
+              <label className="section-label flex items-center gap-1.5 mb-2">
+                <MapIcon className="h-3.5 w-3.5 text-primary" /> Ubicación exacta
+              </label>
+              <div className="overflow-hidden border border-border shadow-sm rounded-[1.2rem] bg-muted/20">
+                {isLoaded ? (
+                  <GoogleMap
+                    mapContainerStyle={mapContainerStyle}
+                    center={{ lat, lng }}
+                    zoom={15}
+                    onClick={onMapClick}
+                    options={{
+                      disableDefaultUI: true,
+                      zoomControl: true,
+                    }}
+                  >
+                    <Marker position={{ lat, lng }} draggable onDragEnd={onMapClick} />
+                  </GoogleMap>
+                ) : (
+                  <div style={mapContainerStyle} className="flex items-center justify-center text-xs text-muted-foreground">
+                    Cargando mapa...
+                  </div>
+                )}
+              </div>
+              <p className="mt-2 text-[10px] text-muted-foreground italic text-center">
+                Toca o arrastra el marcador para fijar el punto de entrega
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="section-label block">Calle</label>
+                <div className="relative">
+                  <Input 
+                    required 
+                    placeholder="Calle principal" 
+                    value={street} 
+                    onChange={(e) => setStreet(e.target.value)} 
+                    className="pl-9"
+                  />
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="section-label block">Número / Unidad</label>
+                <div className="relative">
+                  <Input 
+                    placeholder="Casa #, Apto" 
+                    value={houseNumber} 
+                    onChange={(e) => setHouseNumber(e.target.value)} 
+                    className="pl-9"
+                  />
+                  <Home className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="section-label block">Sector / Municipio</label>
+                <Input required placeholder="Ej: Alma Rosa" value={sector} onChange={(e) => setSector(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="section-label block">Provincia</label>
+                <Input placeholder="Santo Domingo" value={province} onChange={(e) => setProvince(e.target.value)} />
+              </div>
+            </div>
+
             <div className="space-y-1.5">
-              <label className="section-label block">Sector de entrega</label>
-              <select value={sector} onChange={(e) => setSector(e.target.value)} className={fieldClassName}>
-                {SECTORS.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
+              <label className="section-label flex items-center gap-1.5">
+                <Phone className="h-3.5 w-3.5 text-primary" /> Teléfono de contacto
+              </label>
+              <Input 
+                required 
+                type="tel" 
+                placeholder="809-555-0000" 
+                value={phone} 
+                onChange={(e) => setPhone(e.target.value)} 
+              />
             </div>
 
-            <div className="mt-4 space-y-1.5">
-              <label className="section-label block">Dirección exacta de obra</label>
-              <Input type="text" required placeholder="Calle, número y referencia" value={address} onChange={(e) => setAddress(e.target.value)} />
-            </div>
-
-            <div className="mt-4 space-y-3">
+            <div className="mt-4 space-y-3 pt-2 border-t border-border/50">
               <div className="flex items-center justify-between">
                 <label className="section-label flex items-center gap-1.5">
                   <MapPin className="h-3.5 w-3.5 text-primary" /> Radio de búsqueda
@@ -222,10 +323,6 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose 
                 min={1}
                 step={1}
               />
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Buscaremos ferreterías en este radio desde tu sector para enviar la solicitud.
-              </p>
-              
               <div className="mt-3 p-3 bg-primary/5 border border-primary/10 rounded-lg flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-foreground">Ferreterías candidatas</p>
@@ -263,7 +360,6 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose 
           </div>
 
           <div className="grid grid-cols-2 gap-3 pt-1">
-
             <Button type="button" variant="outline" onClick={onClose} disabled={createBidRequest.isPending}>
               Cancelar
             </Button>
