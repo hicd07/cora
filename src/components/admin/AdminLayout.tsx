@@ -212,3 +212,5 @@ export const AdminLayout = ({ children, title }: { children: React.ReactNode; ti
     </div>
   );
 };
+
+export default AdminLayout;
