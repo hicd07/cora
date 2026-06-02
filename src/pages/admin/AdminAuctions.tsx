@@ -67,7 +67,11 @@ export default function AdminAuctions() {
 }
 
 function BidCard({ bid, onAddBid }: { bid: BidRequest; onAddBid: (bid: BidRequest, storeName?: string) => void }) {
-  const { data: nearbyStores = [], isLoading: isLoadingStores } = useAdminNearbyStores(bid.lat || null, bid.lng || null);
+  const { data: nearbyStores = [], isLoading: isLoadingStores } = useAdminNearbyStores(
+    bid.lat || null,
+    bid.lng || null,
+    bid.radiusKm || 5
+  );
 
   const googleMapsUrl = bid.lat && bid.lng 
     ? `https://www.google.com/maps/search/?api=1&query=${bid.lat},${bid.lng}`

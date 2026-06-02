@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAdminMode } from "@/contexts/AdminModeContext";
 
 export interface AdminUser {
   id: string;
@@ -71,13 +72,16 @@ export const useUpdateSetting = () => {
     mutationFn: async ({ key, value }: { key: string; value: string }) => {
       const isSecret = key.toLowerCase().includes("key") || key.toLowerCase().includes("secret");
       
+      const { data: { session } } = await supabase.auth.getSession();
+      
       const { error } = await supabase
         .from("admin_settings")
         .upsert({ 
           key, 
           value, 
           is_secret: isSecret,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          updated_by: session?.user?.id
         }, { onConflict: 'key' });
         
       if (error) throw error;
@@ -197,14 +201,20 @@ export const useReviewSignupRequest = () => {
 };
 
 export const useAdminActiveBids = () => {
+  const { isTestMode } = useAdminMode();
   return useQuery({
-    queryKey: ["admin-active-bids"],
+    queryKey: ["admin-active-bids", isTestMode],
     queryFn: async () => {
-      const { data: requests, error: reqError } = await supabase
+      let query = supabase
         .from("bid_requests")
         .select("*")
-        .eq("status", "active")
-        .order("created_at", { ascending: false });
+        .eq("status", "active");
+      
+      if (isTestMode !== undefined) {
+        query = query.eq("is_test", isTestMode);
+      }
+
+      const { data: requests, error: reqError } = await query.order("created_at", { ascending: false });
 
       if (reqError) throw reqError;
 
@@ -223,18 +233,27 @@ export const useAdminActiveBids = () => {
   });
 };
 
-export const useAdminNearbyStores = (lat: number | null, lng: number | null) => {
+export const useAdminNearbyStores = (lat: number | null, lng: number | null, radiusKm: number = 5) => {
   return useQuery({
-    queryKey: ["admin-nearby-stores", lat, lng],
+    queryKey: ["admin-nearby-stores", lat, lng, radiusKm],
     queryFn: async () => {
       if (!lat || !lng) return [];
-      const { data, error } = await supabase
-        .from("external_stores")
-        .select("*");
-      if (error) throw error;
-      return data;
+      
+      console.log("[useAdminNearbyStores] Buscando tiendas cercanas...", { lat, lng, radiusKm });
+      
+      const { data, error } = await supabase.functions.invoke("places-search", {
+        body: { lat, lng, radiusKm },
+      });
+
+      if (error) {
+        console.error("[useAdminNearbyStores] Error al buscar tiendas:", error);
+        throw error;
+      }
+      
+      return data.results || [];
     },
     enabled: !!lat && !!lng,
+    staleTime: 1000 * 60 * 30, // 30 minutos de cache en cliente
   });
 };
 

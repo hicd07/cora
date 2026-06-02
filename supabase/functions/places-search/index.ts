@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const GOOGLE_MAPS_API_KEY = Deno.env.get('GOOGLE_MAPS_API_KEY');
+const GOOGLE_MAPS_API_KEY_ENV = Deno.env.get('GOOGLE_MAPS_API_KEY');
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -14,7 +14,7 @@ serve(async (req) => {
   }
 
   try {
-    const { lat, lng, radiusKm } = await req.json()
+    const { lat, lng, radiusKm = 5 } = await req.json()
     console.log("[places-search] Iniciando búsqueda", { lat, lng, radiusKm })
 
     const supabase = createClient(
@@ -22,7 +22,36 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Redondeamos para cachear búsquedas similares (Field Masking y Optimización)
+    // Intentar obtener la API Key de la tabla admin_settings si no está en ENV
+    let apiKey = GOOGLE_MAPS_API_KEY_ENV;
+    if (!apiKey) {
+      const { data: secretSetting } = await supabase
+        .from('admin_settings')
+        .select('value')
+        .eq('key', 'GOOGLE_MAPS_SECRET_KEY')
+        .maybeSingle();
+      
+      if (secretSetting?.value) {
+        apiKey = secretSetting.value;
+      } else {
+        const { data: publicSetting } = await supabase
+          .from('admin_settings')
+          .select('value')
+          .eq('key', 'GOOGLE_MAPS_API_KEY')
+          .maybeSingle();
+        apiKey = publicSetting?.value;
+      }
+    }
+
+    if (!apiKey) {
+      console.error("[places-search] API Key de Google Maps no configurada (ni en ENV ni en admin_settings)");
+      return new Response(JSON.stringify({ error: "Configuración incompleta: Falta API Key de Google Maps" }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    // Redondeamos para cachear búsquedas similares
     const latRound = Number(lat).toFixed(3)
     const lngRound = Number(lng).toFixed(3)
 
@@ -42,21 +71,12 @@ serve(async (req) => {
       })
     }
 
-    if (!GOOGLE_MAPS_API_KEY) {
-      console.error("[places-search] GOOGLE_MAPS_API_KEY no configurada");
-      return new Response(JSON.stringify({ error: "Configuración incompleta" }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
-    }
-
     // 2. Si no hay cache, buscamos en Google (API v1 - Search Nearby)
-    // Usamos Field Masking para reducir costos
     const response = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
+        'X-Goog-Api-Key': apiKey,
         'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.location,places.id'
       },
       body: JSON.stringify({
