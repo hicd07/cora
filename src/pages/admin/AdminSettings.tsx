@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Save, Bot, KeyRound, Sparkles, Eye, EyeOff, Map as MapIcon, Info, ExternalLink, ShieldCheck } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { useAdminSettings, useUpdateSetting, AdminSetting } from "@/hooks/useAdmin";
@@ -9,6 +9,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { showError, showSuccess } from "@/utils/toast";
+
+// Configuración de llaves "plantilla" que siempre deben aparecer
+const DEFAULT_MAP_SETTINGS: Partial<AdminSetting>[] = [
+  { key: "GOOGLE_MAPS_API_KEY", description: "Llave pública de Google Maps (Navegador)", is_secret: false },
+  { key: "GOOGLE_MAPS_SECRET_KEY", description: "Llave privada de Google Maps (Backend)", is_secret: true },
+];
+
+const DEFAULT_AI_SETTINGS: Partial<AdminSetting>[] = [
+  { key: "AI_PROVIDER", description: "Proveedor de IA activo", is_secret: false },
+  { key: "OPENAI_API_KEY", description: "OpenAI API Key", is_secret: true },
+  { key: "OPENAI_MODEL", description: "Modelo de OpenAI (ej: gpt-4o-mini)", is_secret: false },
+  { key: "GOOGLE_API_KEY", description: "Google Gemini API Key", is_secret: true },
+  { key: "GOOGLE_MODEL", description: "Modelo de Gemini (ej: gemini-1.5-flash)", is_secret: false },
+];
 
 const SettingField = ({
   setting,
@@ -73,29 +87,46 @@ const SettingField = ({
 };
 
 export const AdminSettings = () => {
-  const { data: settings, isLoading } = useAdminSettings();
+  const { data: settings = [], isLoading } = useAdminSettings();
   const update = useUpdateSetting();
+
+  // Función para mezclar lo que viene de la DB con las plantillas obligatorias
+  const mergedSettings = useMemo(() => {
+    const allTemplates = [...DEFAULT_MAP_SETTINGS, ...DEFAULT_AI_SETTINGS];
+    const results = [...settings];
+
+    allTemplates.forEach(template => {
+      const exists = results.find(s => s.key === template.key);
+      if (!exists) {
+        results.push({
+          key: template.key!,
+          value: null,
+          is_secret: template.is_secret!,
+          description: template.description!,
+          has_value: false
+        });
+      }
+    });
+
+    return results;
+  }, [settings]);
 
   const handleSave = async (key: string, value: string) => {
     try {
       await update.mutateAsync({ key, value });
-      showSuccess("Configuración guardada correctamente.");
+      showSuccess(`Configuración "${key}" guardada correctamente.`);
     } catch (e) {
       showError((e as Error).message);
     }
   };
 
-  const provider = settings?.find((s) => s.key === "AI_PROVIDER")?.value || "openai";
+  const provider = mergedSettings.find((s) => s.key === "AI_PROVIDER")?.value || "openai";
   
-  // Map settings
-  const mapsPublicKey = settings?.find((s) => s.key === "GOOGLE_MAPS_API_KEY");
-  const mapsSecretKey = settings?.find((s) => s.key === "GOOGLE_MAPS_SECRET_KEY");
-
-  // AI settings
-  const aiSecrets = (settings ?? []).filter((s) => ["OPENAI_API_KEY", "GOOGLE_API_KEY"].includes(s.key));
-  const aiModels = (settings ?? []).filter((s) => ["OPENAI_MODEL", "GOOGLE_MODEL"].includes(s.key));
+  // Agrupar configuraciones para la UI
+  const mapSettings = mergedSettings.filter(s => s.key.startsWith("GOOGLE_MAPS_"));
+  const aiSecrets = mergedSettings.filter(s => ["OPENAI_API_KEY", "GOOGLE_API_KEY"].includes(s.key));
+  const aiModels = mergedSettings.filter(s => ["OPENAI_MODEL", "GOOGLE_MODEL"].includes(s.key));
   
-  // Filter others
   const excludedKeys = [
     "AI_PROVIDER", 
     "OPENAI_API_KEY", 
@@ -106,7 +137,7 @@ export const AdminSettings = () => {
     "GOOGLE_MAPS_SECRET_KEY"
   ];
   
-  const otherSettings = (settings ?? []).filter((s) => !excludedKeys.includes(s.key));
+  const otherSettings = mergedSettings.filter((s) => !excludedKeys.includes(s.key));
 
   return (
     <AdminLayout title="Configuración del sistema">
@@ -137,31 +168,24 @@ export const AdminSettings = () => {
             
             <div className="grid gap-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  {mapsPublicKey && (
-                    <SettingField setting={mapsPublicKey} onSave={handleSave} saving={update.isPending} />
-                  )}
-                  <div className="p-4 rounded-2xl bg-blue-50/50 border border-blue-100 dark:bg-blue-900/10 dark:border-blue-900/20 text-[11px] leading-relaxed text-blue-700 dark:text-blue-300">
-                    <div className="flex gap-2 mb-2">
-                      <Info className="h-3.5 w-3.5 shrink-0" />
-                      <span className="font-bold">USO DEL NAVEGADOR (CLIENTE)</span>
+                {mapSettings.map(setting => (
+                  <div key={setting.key} className="space-y-4">
+                    <SettingField setting={setting} onSave={handleSave} saving={update.isPending} />
+                    <div className={`p-4 rounded-2xl border text-[11px] leading-relaxed ${
+                      setting.is_secret 
+                        ? "bg-amber-50/50 border-amber-100 dark:bg-amber-900/10 dark:border-amber-900/20 text-amber-700 dark:text-amber-300"
+                        : "bg-blue-50/50 border-blue-100 dark:bg-blue-900/10 dark:border-blue-900/20 text-blue-700 dark:text-blue-300"
+                    }`}>
+                      <div className="flex gap-2 mb-2">
+                        {setting.is_secret ? <ShieldCheck className="h-3.5 w-3.5 shrink-0" /> : <Info className="h-3.5 w-3.5 shrink-0" />}
+                        <span className="font-bold uppercase">{setting.is_secret ? "Uso del Servidor" : "Uso del Navegador"}</span>
+                      </div>
+                      {setting.is_secret 
+                        ? "Usada por las Edge Functions para buscar ferreterías cercanas. Se recomienda restringirla por Dirección IP."
+                        : "Esta llave se usa para renderizar el mapa. Debe estar restringida por HTTP Referrer para evitar robos de crédito."}
                     </div>
-                    Esta llave se usa para renderizar el mapa en la app. **Debe estar restringida** en Google Cloud por "HTTP Referrer" para evitar robos de crédito.
                   </div>
-                </div>
-
-                <div className="space-y-4">
-                  {mapsSecretKey && (
-                    <SettingField setting={mapsSecretKey} onSave={handleSave} saving={update.isPending} />
-                  )}
-                  <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-100 dark:bg-amber-900/10 dark:border-amber-900/20 text-[11px] leading-relaxed text-amber-700 dark:text-amber-300">
-                    <div className="flex gap-2 mb-2">
-                      <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
-                      <span className="font-bold">USO DEL SERVIDOR (BACKEND)</span>
-                    </div>
-                    Usada por las Edge Functions para buscar ferreterías cercanas. Se recomienda que esta llave sea distinta a la pública y restringida por "Dirección IP".
-                  </div>
-                </div>
+                ))}
               </div>
 
               <div className="mt-2 p-4 rounded-2xl bg-muted/30 border border-dashed border-border">
@@ -250,10 +274,10 @@ export const AdminSettings = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {otherSettings.length === 0 ? (
+              {otherSettings.filter(s => !excludedKeys.includes(s.key)).length === 0 ? (
                 <p className="text-sm text-muted-foreground col-span-2 py-4 italic">No hay variables adicionales configuradas.</p>
               ) : (
-                otherSettings.map((s) => (
+                otherSettings.filter(s => !excludedKeys.includes(s.key)).map((s) => (
                   <SettingField key={s.key} setting={s} onSave={handleSave} saving={update.isPending} />
                 ))
               )}
