@@ -1,53 +1,17 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState } from "react";
 import { Calendar, DollarSign, HardHat, PackagePlus, MapPin, X, Phone, Home, Map as MapIcon } from "lucide-react";
-import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
-import { MapContainer, TileLayer, Marker as LeafletMarker, useMapEvents } from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { useCreateBidRequestMutation } from "@/hooks/useBidRequests";
-import { usePlacesSearch } from "@/hooks/usePlacesSearch";
-import { usePublicSettings } from "@/hooks/useSettings";
 import { useAddressAutocomplete } from "@/hooks/useAddressAutocomplete";
-import { useAdminMode } from "@/contexts/AdminModeContext";
+import { usePlacesSearch } from "@/hooks/usePlacesSearch";
 import { QuoteItem } from "@/lib/types";
-
-// Fix Leaflet icon issue
-// @ts-ignore
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png",
-});
-
-const LocationMarker = ({ position, setPosition }: { position: [number, number], setPosition: (pos: [number, number]) => void }) => {
-  useMapEvents({
-    click(e) {
-      setPosition([e.latlng.lat, e.latlng.lng]);
-    },
-  });
-
-  return (
-    <LeafletMarker
-      position={position}
-      draggable={true}
-      eventHandlers={{
-        dragend: (e) => {
-          const marker = e.target;
-          const pos = marker.getLatLng();
-          setPosition([pos.lat, pos.lng]);
-        },
-      }}
-    />
-  );
-};
 import { showError, showSuccess } from "@/utils/toast";
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { MapPicker } from "@/components/ui/MapPicker";
 
 interface CreateBidModalProps {
   isOpen: boolean;
@@ -60,12 +24,6 @@ const fieldClassName = "field-soft appearance-none pr-10";
 
 const INITIAL_CENTER = { lat: 18.4861, lng: -69.9312 };
 
-const mapContainerStyle = {
-  width: "100%",
-  height: "220px",
-  borderRadius: "1.2rem",
-};
-
 const generateId = () => Math.random().toString(36).slice(2) + Date.now();
 
 const createEmptyItem = (): QuoteItem => ({
@@ -76,10 +34,6 @@ const createEmptyItem = (): QuoteItem => ({
 });
 
 export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose }) => {
-  const { data: settings } = usePublicSettings();
-  const mapsApiKey = settings?.["GOOGLE_MAPS_API_KEY"] || "";
-  const { isTestMode } = useAdminMode();
-
   const createBidRequest = useCreateBidRequestMutation();
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState(CATEGORIES[0]);
@@ -100,24 +54,11 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose 
   const [isAutocompleteOpen, setIsAutocompleteOpen] = useState(false);
   const { suggestions, isLoading: isLoadingAutocomplete, getPlaceDetails } = useAddressAutocomplete(street);
 
-  const { isLoaded } = useJsApiLoader({
-
-    id: "google-map-script",
-    googleMapsApiKey: mapsApiKey,
-  });
-
   const { data: places = [], isLoading: isLoadingPlaces } = usePlacesSearch({
     lat,
     lng,
     radiusKm,
   });
-
-  const onMapClick = useCallback((e: google.maps.MapMouseEvent) => {
-    if (e.latLng) {
-      setLat(e.latLng.lat());
-      setLng(e.latLng.lng());
-    }
-  }, []);
 
   if (!isOpen) return null;
 
@@ -274,53 +215,18 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose 
             <div>
               <label className="section-label flex items-center gap-1.5 mb-2">
                 <MapIcon className="h-3.5 w-3.5 text-primary" /> Ubicación exacta
-                {isTestMode && <Badge variant="outline" className="ml-2 text-[8px] bg-amber-50 text-amber-700 border-amber-200">OSM TEST</Badge>}
               </label>
               
-              {isTestMode ? (
-                <div className="overflow-hidden border border-border shadow-sm rounded-[1.2rem] bg-muted/20 relative z-0">
-                  <MapContainer
-                    center={[lat, lng]}
-                    zoom={15}
-                    style={mapContainerStyle}
-                    scrollWheelZoom={true}
-                  >
-                    <TileLayer
-                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    />
-                    <LocationMarker position={[lat, lng]} setPosition={([newLat, newLng]) => {
-                      setLat(newLat);
-                      setLng(newLng);
-                    }} />
-                  </MapContainer>
-                </div>
-              ) : !mapsApiKey ? (
-                <div className="p-4 border border-dashed rounded-xl text-center bg-muted/50">
-                  <p className="text-[10px] text-muted-foreground">Esperando API Key de Google Maps...</p>
-                </div>
-              ) : (
-                <div className="overflow-hidden border border-border shadow-sm rounded-[1.2rem] bg-muted/20">
-                  {isLoaded ? (
-                    <GoogleMap
-                      mapContainerStyle={mapContainerStyle}
-                      center={{ lat, lng }}
-                      zoom={15}
-                      onClick={onMapClick}
-                      options={{
-                        disableDefaultUI: true,
-                        zoomControl: true,
-                      }}
-                    >
-                      <Marker position={{ lat, lng }} draggable onDragEnd={onMapClick} />
-                    </GoogleMap>
-                  ) : (
-                    <div style={mapContainerStyle} className="flex items-center justify-center text-xs text-muted-foreground">
-                      Cargando mapa...
-                    </div>
-                  )}
-                </div>
-              )}
+              <MapPicker 
+                lat={lat} 
+                lng={lng} 
+                onPositionChange={({ lat, lng }) => {
+                  setLat(lat);
+                  setLng(lng);
+                }} 
+                height="220px"
+              />
+
               <p className="mt-2 text-[10px] text-muted-foreground italic text-center">
                 Toca o arrastra el marcador para fijar el punto de entrega
               </p>
@@ -354,6 +260,7 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose 
                     <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]" align="start">
                       <Command>
                         <CommandList>
+                          <CommandEmpty>No se encontraron resultados.</CommandEmpty>
                           <CommandGroup>
                             {suggestions.map((s) => (
                               <CommandItem
@@ -371,7 +278,6 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose 
                                     if (details.formattedAddress) {
                                       setStreet(details.formattedAddress);
                                     }
-                                    // Intentar extraer sector de addressComponents si existe
                                     const sectorComp = details.addressComponents?.find((c: any) =>
                                       c.types.includes("sublocality") || c.types.includes("neighborhood")
                                     );
@@ -390,7 +296,6 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose 
                 </div>
               </div>
               <div className="space-y-1.5">
-
                 <label className="section-label block">Número / Unidad</label>
                 <div className="relative">
                   <Input 
