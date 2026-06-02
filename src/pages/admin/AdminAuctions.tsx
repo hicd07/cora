@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { useAdminActiveBids, useAdminNearbyStores } from "@/hooks/useAdmin";
@@ -67,16 +69,26 @@ export default function AdminAuctions() {
 function BidCard({ bid, onAddBid }: { bid: BidRequest; onAddBid: (bid: BidRequest, storeName?: string) => void }) {
   const { data: nearbyStores = [], isLoading: isLoadingStores } = useAdminNearbyStores(bid.lat || null, bid.lng || null);
 
+  const googleMapsUrl = bid.lat && bid.lng 
+    ? `https://www.google.com/maps/search/?api=1&query=${bid.lat},${bid.lng}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(bid.sector + " " + bid.deliveryAddress)}`;
+
   return (
     <Card className="overflow-hidden border-border/50 hover:border-primary/20 transition-all shadow-sm">
       <CardHeader className="bg-muted/30 pb-4">
         <div className="flex justify-between items-start">
           <div className="space-y-1">
             <CardTitle className="text-lg">{bid.title}</CardTitle>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <a 
+              href={googleMapsUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary hover:underline transition-colors w-fit"
+              title="Abrir en Google Maps"
+            >
               <MapPin className="h-3 w-3" />
               {bid.sector} • Radio: {bid.radiusKm} km
-            </div>
+            </a>
           </div>
           <Badge>{bid.state}</Badge>
         </div>
