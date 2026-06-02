@@ -220,6 +220,7 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose 
               <MapPicker 
                 lat={lat} 
                 lng={lng} 
+                radiusKm={radiusKm}
                 onPositionChange={({ lat, lng }) => {
                   setLat(lat);
                   setLng(lng);
