@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Save, Bot, KeyRound, Sparkles, Eye, EyeOff, Map as MapIcon, Info, ExternalLink } from "lucide-react";
+import { Save, Bot, KeyRound, Sparkles, Eye, EyeOff, Map as MapIcon, Info, ExternalLink, ShieldCheck } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { useAdminSettings, useUpdateSetting, AdminSetting } from "@/hooks/useAdmin";
 import { Button } from "@/components/ui/button";
