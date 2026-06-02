@@ -1,7 +1,8 @@
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState, useMemo } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { AppProfile } from "@/lib/types";
+import { useAdminMode } from "@/contexts/AdminModeContext";
 
 export type Profile = AppProfile;
 
@@ -49,7 +50,6 @@ const createEmptyProfile = (userId: string): Profile => ({
 const isProfileCompleted = (profile: Partial<Profile> | null | undefined) =>
   Boolean(profile?.full_name && profile?.document_id && profile?.user_type);
 
-// Wraps a promise with a hard timeout so the UI never gets stuck on "Cargando PIDO"
 const withTimeout = <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> =>
   new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(`Timeout: ${label} (${ms}ms)`)), ms);
@@ -66,6 +66,7 @@ const withTimeout = <T,>(promise: Promise<T>, ms: number, label: string): Promis
   });
 
 export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isTestMode, simulatedUserType } = useAdminMode();
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -73,7 +74,6 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
   const [loading, setLoading] = useState(true);
   const [profileError, setProfileError] = useState(false);
 
-  // Avoid re-fetching the profile on every auth event (e.g. TOKEN_REFRESHED on tab focus)
   const lastFetchedUserIdRef = useRef<string | null>(null);
 
   const fetchRoles = useCallback(async (userId: string) => {
@@ -97,7 +97,6 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
   const fetchProfile = useCallback(async (userId: string) => {
     setProfileError(false);
     try {
-      // Convert the thenable query to a standard native Promise safely
       const query = (async () => {
         return await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
       })();
@@ -105,9 +104,6 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
       const { data, error } = await withTimeout(query, 15000, "fetchProfile");
 
       if (error) {
-        // If the profile row is missing or RLS blocks read, fall back to an empty profile
-        // so the user can still complete onboarding instead of seeing an infinite loader.
-        console.error("Error fetching profile from database:", error.message || error, error);
         const emptyProfile = createEmptyProfile(userId);
         setProfile(emptyProfile);
         return emptyProfile;
@@ -138,8 +134,6 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
       lastFetchedUserIdRef.current = userId;
       return mappedProfile;
     } catch (error: any) {
-      console.error("Profile fetch failed or timed out:", error?.message || error, error);
-      // Surface the error and still hydrate a fallback profile so ProtectedRoute can render.
       setProfileError(true);
       const emptyProfile = createEmptyProfile(userId);
       setProfile(emptyProfile);
@@ -225,14 +219,8 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
             fetchProfile(currentSession.user.id),
             fetchRoles(currentSession.user.id),
           ]);
-        } else {
-          setProfile(null);
-          setRoles([]);
-          lastFetchedUserIdRef.current = null;
         }
       } catch (error: any) {
-        console.error("Error initializing session:", error?.message || error, error);
-        // Make sure we don't stay stuck on the loader if Supabase is unreachable.
         if (mounted) {
           setSession(null);
           setUser(null);
@@ -252,9 +240,6 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
     } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       if (!mounted) return;
 
-      // Always keep session/user in sync, but avoid triggering a full-screen loader
-      // for background events that shouldn't unmount the app (TOKEN_REFRESHED, USER_UPDATED,
-      // or INITIAL_SESSION when we already have the same user loaded).
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
 
@@ -268,12 +253,10 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
 
       const nextUserId = currentSession?.user?.id ?? null;
 
-      // Background refresh events: do NOT toggle global loading.
       if (event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
         return;
       }
 
-      // Initial session for the same user we already hydrated → no need to reload.
       if (
         event === "INITIAL_SESSION" &&
         nextUserId &&
@@ -282,23 +265,15 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
         return;
       }
 
-      // Real sign-in or user change → fetch profile with a visible loader.
       if (nextUserId && nextUserId !== lastFetchedUserIdRef.current) {
         setLoading(true);
         try {
           await Promise.all([fetchProfile(nextUserId), fetchRoles(nextUserId)]);
-        } catch (error) {
-          console.error("Error during auth state change:", error);
         } finally {
           if (mounted) {
             setLoading(false);
           }
         }
-      } else if (!nextUserId) {
-        setProfile(null);
-        setRoles([]);
-        lastFetchedUserIdRef.current = null;
-        setLoading(false);
       }
     });
 
@@ -308,6 +283,19 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
     };
   }, [fetchProfile, fetchRoles]);
 
+  // Derive the effective profile based on Test Mode
+  const effectiveProfile = useMemo(() => {
+    if (isTestMode && simulatedUserType && profile) {
+      return {
+        ...profile,
+        user_type: simulatedUserType,
+        full_name: simulatedUserType === 'engineer' ? 'Simulacro Ingeniero' : 'Simulacro Ferretería',
+        store_name: simulatedUserType === 'hardware' ? 'Ferretería Simulada' : null,
+      };
+    }
+    return profile;
+  }, [profile, isTestMode, simulatedUserType]);
+
   const isAdmin = roles.includes("admin");
 
   return (
@@ -315,7 +303,7 @@ export const SessionContextProvider: React.FC<{ children: React.ReactNode }> = (
       value={{
         session,
         user,
-        profile,
+        profile: effectiveProfile,
         roles,
         isAdmin,
         loading,

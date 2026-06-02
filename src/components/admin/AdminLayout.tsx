@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Settings, Users, Mail, ShieldCheck, ArrowLeft, LogOut, Beaker } from "lucide-react";
+import { LayoutDashboard, Settings, Users, Mail, ShieldCheck, ArrowLeft, LogOut, Beaker, HardHat, Store } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -20,7 +20,7 @@ const navItems = [
 export const AdminLayout = ({ children, title }: { children: React.ReactNode; title: string }) => {
   const navigate = useNavigate();
   const { profile, signOut } = useSessionContext();
-  const { isTestMode, toggleTestMode } = useAdminMode();
+  const { isTestMode, toggleTestMode, simulatedUserType, setSimulatedUserType } = useAdminMode();
 
   return (
     <div className="min-h-screen bg-[hsl(var(--surface-2))] lg:flex">
@@ -51,7 +51,7 @@ export const AdminLayout = ({ children, title }: { children: React.ReactNode; ti
           ))}
         </nav>
         <div className="border-t border-border p-4 space-y-4">
-          <div className="flex flex-col gap-3 px-1">
+          <div className="flex flex-col gap-4 px-1">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                 <Beaker className="h-4 w-4 text-amber-500" />
@@ -59,10 +59,37 @@ export const AdminLayout = ({ children, title }: { children: React.ReactNode; ti
               </div>
               <Switch checked={isTestMode} onCheckedChange={toggleTestMode} />
             </div>
+            
             {isTestMode && (
-              <Badge variant="outline" className="justify-center border-amber-200 bg-amber-50 text-amber-700 font-bold uppercase tracking-wider text-[10px]">
-                Activo
-              </Badge>
+              <div className="space-y-3">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Simular como:</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setSimulatedUserType('engineer')}
+                    className={cn(
+                      "flex flex-col items-center gap-1 rounded-xl border p-2 transition-all",
+                      simulatedUserType === 'engineer' 
+                        ? "border-primary bg-primary/10 text-primary" 
+                        : "border-border bg-background text-muted-foreground hover:bg-muted"
+                    )}
+                  >
+                    <HardHat className="h-4 w-4" />
+                    <span className="text-[10px] font-bold">Ingeniero</span>
+                  </button>
+                  <button
+                    onClick={() => setSimulatedUserType('hardware')}
+                    className={cn(
+                      "flex flex-col items-center gap-1 rounded-xl border p-2 transition-all",
+                      simulatedUserType === 'hardware' 
+                        ? "border-primary bg-primary/10 text-primary" 
+                        : "border-border bg-background text-muted-foreground hover:bg-muted"
+                    )}
+                  >
+                    <Store className="h-4 w-4" />
+                    <span className="text-[10px] font-bold">Ferretería</span>
+                  </button>
+                </div>
+              </div>
             )}
           </div>
 
@@ -99,8 +126,8 @@ export const AdminLayout = ({ children, title }: { children: React.ReactNode; ti
             </Button>
             <h1 className="font-display text-lg font-semibold">{title}</h1>
             {isTestMode && (
-              <Badge className="ml-2 bg-amber-500 hover:bg-amber-600 text-white border-none shadow-sm hidden sm:inline-flex">
-                MODO PRUEBAS
+              <Badge className="ml-2 bg-amber-500 hover:bg-amber-600 text-white border-none shadow-sm hidden sm:inline-flex gap-1.5">
+                MODO PRUEBAS: {simulatedUserType === 'engineer' ? 'INGENIERO' : 'FERRETERÍA'}
               </Badge>
             )}
           </div>
@@ -115,6 +142,31 @@ export const AdminLayout = ({ children, title }: { children: React.ReactNode; ti
             </div>
           </div>
         </header>
+
+        {/* Mobile simulated switch */}
+        {isTestMode && (
+          <div className="lg:hidden flex items-center gap-2 bg-amber-50 border-b border-amber-100 px-4 py-2">
+            <span className="text-[10px] font-bold text-amber-700 uppercase">Simulando:</span>
+            <div className="flex gap-2">
+              <Button 
+                variant={simulatedUserType === 'engineer' ? "default" : "outline"} 
+                size="sm" 
+                className="h-7 text-[10px] px-2"
+                onClick={() => setSimulatedUserType('engineer')}
+              >
+                Ingeniero
+              </Button>
+              <Button 
+                variant={simulatedUserType === 'hardware' ? "default" : "outline"} 
+                size="sm" 
+                className="h-7 text-[10px] px-2"
+                onClick={() => setSimulatedUserType('hardware')}
+              >
+                Ferretería
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Mobile nav */}
         <nav className="flex gap-1 overflow-x-auto border-b border-border bg-background px-3 py-2 lg:hidden">

@@ -1,8 +1,14 @@
+"use client";
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
+
+export type SimulatedUserType = 'engineer' | 'hardware' | null;
 
 interface AdminModeContextType {
   isTestMode: boolean;
   toggleTestMode: () => void;
+  simulatedUserType: SimulatedUserType;
+  setSimulatedUserType: (type: SimulatedUserType) => void;
 }
 
 const AdminModeContext = createContext<AdminModeContextType | undefined>(undefined);
@@ -11,6 +17,11 @@ export const AdminModeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [isTestMode, setIsTestMode] = useState<boolean>(() => {
     const saved = localStorage.getItem('isTestMode');
     return saved === 'true';
+  });
+
+  const [simulatedUserType, setSimulatedUserType] = useState<SimulatedUserType>(() => {
+    const saved = localStorage.getItem('simulatedUserType');
+    return (saved as SimulatedUserType) || 'engineer';
   });
 
   const toggleTestMode = () => {
@@ -22,12 +33,11 @@ export const AdminModeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   useEffect(() => {
-    // If we want to force a reload when mode changes to ensure all hooks refetch with correct filters
-    // This is optional but recommended as per plan
-  }, [isTestMode]);
+    localStorage.setItem('simulatedUserType', simulatedUserType || '');
+  }, [simulatedUserType]);
 
   return (
-    <AdminModeContext.Provider value={{ isTestMode, toggleTestMode }}>
+    <AdminModeContext.Provider value={{ isTestMode, toggleTestMode, simulatedUserType, setSimulatedUserType }}>
       {children}
     </AdminModeContext.Provider>
   );
