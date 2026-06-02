@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { BidRequest } from "@/lib/types";
 import { mapBidRequestRow } from "@/lib/mappers/bidRequests";
+import { useAdminMode } from "@/contexts/AdminModeContext";
 
 /** Generic invoker for the admin-manage edge function. */
 async function adminInvoke<T = unknown>(action: string, payload?: unknown): Promise<T> {
@@ -162,14 +163,16 @@ export const useReviewSignupRequest = () => {
 };
 
 /* ---------- AUCTIONS ---------- */
-export const useAdminActiveBids = () =>
-  useQuery({
-    queryKey: ["admin-active-bids"],
+export const useAdminActiveBids = () => {
+  const { isTestMode } = useAdminMode();
+  return useQuery({
+    queryKey: ["admin-active-bids", isTestMode],
     queryFn: async () => {
-      const res = await adminInvoke<{ bids: any[] }>("list_active_bids");
+      const res = await adminInvoke<{ bids: any[] }>("list_active_bids", { isTestMode });
       return (res.bids || []).map((bid) => mapBidRequestRow(bid, bid.bid_request_items || []));
     },
   });
+};
 
 export const useAdminNearbyStores = (lat: number | null, lng: number | null) =>
   useQuery({
@@ -184,16 +187,17 @@ export const useAdminNearbyStores = (lat: number | null, lng: number | null) =>
 
 export const useCreateManualBidMutation = () => {
   const qc = useQueryClient();
+  const { isTestMode } = useAdminMode();
   return useMutation({
     mutationFn: (payload: {
       requestId: string;
       storeName: string;
       deliveryTime: string;
       offers: { itemName: string; unitPrice: number; isAvailable: boolean }[];
-    }) => adminInvoke("create_manual_bid", payload),
+    }) => adminInvoke("create_manual_bid", { ...payload, isTestMode }),
     onSuccess: (_, variables) => {
-      qc.invalidateQueries({ queryKey: ["admin-active-bids"] });
-      qc.invalidateQueries({ queryKey: ["request-bids", variables.requestId] });
+      qc.invalidateQueries({ queryKey: ["admin-active-bids", isTestMode] });
+      qc.invalidateQueries({ queryKey: ["request-bids", variables.requestId, isTestMode] });
     },
   });
 };

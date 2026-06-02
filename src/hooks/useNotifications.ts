@@ -4,12 +4,21 @@ import { useSessionContext } from "@/components/auth/SessionContext";
 import { supabase } from "@/integrations/supabase/client";
 import { mapNotificationRow } from "@/lib/mappers/notifications";
 import { AppNotification } from "@/lib/types";
+import { useAdminMode } from "@/contexts/AdminModeContext";
 
-const notificationsKey = ["notifications"];
-const unreadCountKey = ["notifications", "unread-count"];
+const notificationsKey = (isTestMode: boolean) => ["notifications", isTestMode];
+const unreadCountKey = (isTestMode: boolean) => ["notifications", "unread-count", isTestMode];
 
-const fetchNotifications = async (): Promise<AppNotification[]> => {
-  const { data, error } = await supabase.from("notifications").select("*").order("created_at", { ascending: false }).limit(100);
+const fetchNotifications = async (isAdmin: boolean, isTestMode: boolean): Promise<AppNotification[]> => {
+  let query = supabase.from("notifications").select("*").order("created_at", { ascending: false }).limit(100);
+
+  if (isAdmin) {
+    query = query.eq('is_test', isTestMode);
+  } else {
+    query = query.or('is_test.eq.false,is_test.is.null');
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw error;
@@ -18,8 +27,16 @@ const fetchNotifications = async (): Promise<AppNotification[]> => {
   return (data ?? []).map(mapNotificationRow);
 };
 
-const fetchUnreadCount = async (): Promise<number> => {
-  const { count, error } = await supabase.from("notifications").select("id", { count: "exact", head: true }).eq("is_read", false);
+const fetchUnreadCount = async (isAdmin: boolean, isTestMode: boolean): Promise<number> => {
+  let query = supabase.from("notifications").select("id", { count: "exact", head: true }).eq("is_read", false);
+
+  if (isAdmin) {
+    query = query.eq('is_test', isTestMode);
+  } else {
+    query = query.or('is_test.eq.false,is_test.is.null');
+  }
+
+  const { count, error } = await query;
 
   if (error) {
     throw error;
@@ -29,7 +46,8 @@ const fetchUnreadCount = async (): Promise<number> => {
 };
 
 export const useNotifications = () => {
-  const { user } = useSessionContext();
+  const { user, isAdmin } = useSessionContext();
+  const { isTestMode } = useAdminMode();
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -41,8 +59,8 @@ export const useNotifications = () => {
         "postgres_changes",
         { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
         () => {
-          queryClient.invalidateQueries({ queryKey: notificationsKey });
-          queryClient.invalidateQueries({ queryKey: unreadCountKey });
+          queryClient.invalidateQueries({ queryKey: notificationsKey(isTestMode) });
+          queryClient.invalidateQueries({ queryKey: unreadCountKey(isTestMode) });
         },
       )
       .subscribe();
@@ -50,10 +68,10 @@ export const useNotifications = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [queryClient, user]);
+  }, [queryClient, user, isTestMode]);
 
-  const notificationsQuery = useQuery({ queryKey: notificationsKey, queryFn: fetchNotifications, enabled: Boolean(user) });
-  const unreadCountQuery = useQuery({ queryKey: unreadCountKey, queryFn: fetchUnreadCount, enabled: Boolean(user) });
+  const notificationsQuery = useQuery({ queryKey: notificationsKey(isTestMode), queryFn: () => fetchNotifications(isAdmin, isTestMode), enabled: Boolean(user) });
+  const unreadCountQuery = useQuery({ queryKey: unreadCountKey(isTestMode), queryFn: () => fetchUnreadCount(isAdmin, isTestMode), enabled: Boolean(user) });
 
   const markAsRead = useMutation({
     mutationFn: async (notificationId: string) => {
@@ -68,8 +86,8 @@ export const useNotifications = () => {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: notificationsKey });
-      queryClient.invalidateQueries({ queryKey: unreadCountKey });
+      queryClient.invalidateQueries({ queryKey: notificationsKey(isTestMode) });
+      queryClient.invalidateQueries({ queryKey: unreadCountKey(isTestMode) });
     },
   });
 
@@ -91,8 +109,8 @@ export const useNotifications = () => {
     },
 
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: notificationsKey });
-      queryClient.invalidateQueries({ queryKey: unreadCountKey });
+      queryClient.invalidateQueries({ queryKey: notificationsKey(isTestMode) });
+      queryClient.invalidateQueries({ queryKey: unreadCountKey(isTestMode) });
     },
   });
 

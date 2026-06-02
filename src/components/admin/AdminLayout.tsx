@@ -1,9 +1,12 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Settings, Users, Mail, ShieldCheck, ArrowLeft, LogOut } from "lucide-react";
+import { LayoutDashboard, Settings, Users, Mail, ShieldCheck, ArrowLeft, LogOut, Beaker } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import AppLogo from "@/components/branding/AppLogo";
 import { useSessionContext } from "@/components/auth/SessionContext";
+import { useAdminMode } from "@/contexts/AdminModeContext";
 
 const navItems = [
   { to: "/admin", label: "Resumen", icon: LayoutDashboard, end: true },
@@ -17,6 +20,7 @@ const navItems = [
 export const AdminLayout = ({ children, title }: { children: React.ReactNode; title: string }) => {
   const navigate = useNavigate();
   const { profile, signOut } = useSessionContext();
+  const { isTestMode, toggleTestMode } = useAdminMode();
 
   return (
     <div className="min-h-screen bg-[hsl(var(--surface-2))] lg:flex">
@@ -46,21 +50,38 @@ export const AdminLayout = ({ children, title }: { children: React.ReactNode; ti
             </NavLink>
           ))}
         </nav>
-        <div className="border-t border-border p-3 space-y-1">
-          <button
-            onClick={() => navigate("/")}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-[hsl(var(--surface-2))] hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Volver a la app
-          </button>
-          <button
-            onClick={() => signOut()}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
-          >
-            <LogOut className="h-4 w-4" />
-            Cerrar sesión
-          </button>
+        <div className="border-t border-border p-4 space-y-4">
+          <div className="flex flex-col gap-3 px-1">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <Beaker className="h-4 w-4 text-amber-500" />
+                Modo Pruebas
+              </div>
+              <Switch checked={isTestMode} onCheckedChange={toggleTestMode} />
+            </div>
+            {isTestMode && (
+              <Badge variant="outline" className="justify-center border-amber-200 bg-amber-50 text-amber-700 font-bold uppercase tracking-wider text-[10px]">
+                Activo
+              </Badge>
+            )}
+          </div>
+
+          <div className="space-y-1">
+            <button
+              onClick={() => navigate("/")}
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-[hsl(var(--surface-2))] hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Volver a la app
+            </button>
+            <button
+              onClick={() => signOut()}
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+              Cerrar sesión
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -77,10 +98,21 @@ export const AdminLayout = ({ children, title }: { children: React.ReactNode; ti
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <h1 className="font-display text-lg font-semibold">{title}</h1>
+            {isTestMode && (
+              <Badge className="ml-2 bg-amber-500 hover:bg-amber-600 text-white border-none shadow-sm hidden sm:inline-flex">
+                MODO PRUEBAS
+              </Badge>
+            )}
           </div>
-          <div className="text-right">
-            <p className="text-sm font-medium leading-tight">{profile?.full_name || "Administrador"}</p>
-            <p className="text-xs text-muted-foreground">Admin</p>
+          <div className="flex items-center gap-4">
+            <div className="lg:hidden flex items-center gap-2">
+              <Beaker className={cn("h-4 w-4", isTestMode ? "text-amber-500" : "text-muted-foreground")} />
+              <Switch checked={isTestMode} onCheckedChange={toggleTestMode} />
+            </div>
+            <div className="text-right">
+              <p className="text-sm font-medium leading-tight">{profile?.full_name || "Administrador"}</p>
+              <p className="text-xs text-muted-foreground">Admin</p>
+            </div>
           </div>
         </header>
 

@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { SessionContextProvider, useSessionContext } from "./components/auth/SessionContext";
+import { AdminModeProvider } from "./contexts/AdminModeContext";
 import { ThemeProvider } from "./components/theme/ThemeProvider";
 import { Button } from "./components/ui/button";
 import { RefreshCw } from "lucide-react";
@@ -182,15 +183,17 @@ const AppRoutes = () => (
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
-      <SessionContextProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
-        </TooltipProvider>
-      </SessionContextProvider>
+      <AdminModeProvider>
+        <SessionContextProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <AppRoutes />
+            </BrowserRouter>
+          </TooltipProvider>
+        </SessionContextProvider>
+      </AdminModeProvider>
     </ThemeProvider>
   </QueryClientProvider>
 );

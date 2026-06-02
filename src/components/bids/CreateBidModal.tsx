@@ -1,6 +1,9 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { Calendar, DollarSign, HardHat, PackagePlus, MapPin, X, Phone, Home, Map as MapIcon } from "lucide-react";
 import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
+import { MapContainer, TileLayer, Marker as LeafletMarker, useMapEvents } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
@@ -9,7 +12,39 @@ import { useCreateBidRequestMutation } from "@/hooks/useBidRequests";
 import { usePlacesSearch } from "@/hooks/usePlacesSearch";
 import { usePublicSettings } from "@/hooks/useSettings";
 import { useAddressAutocomplete } from "@/hooks/useAddressAutocomplete";
+import { useAdminMode } from "@/contexts/AdminModeContext";
 import { QuoteItem } from "@/lib/types";
+
+// Fix Leaflet icon issue
+// @ts-ignore
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png",
+  iconUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png",
+});
+
+const LocationMarker = ({ position, setPosition }: { position: [number, number], setPosition: (pos: [number, number]) => void }) => {
+  useMapEvents({
+    click(e) {
+      setPosition([e.latlng.lat, e.latlng.lng]);
+    },
+  });
+
+  return (
+    <LeafletMarker
+      position={position}
+      draggable={true}
+      eventHandlers={{
+        dragend: (e) => {
+          const marker = e.target;
+          const pos = marker.getLatLng();
+          setPosition([pos.lat, pos.lng]);
+        },
+      }}
+    />
+  );
+};
 import { showError, showSuccess } from "@/utils/toast";
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -43,6 +78,7 @@ const createEmptyItem = (): QuoteItem => ({
 export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose }) => {
   const { data: settings } = usePublicSettings();
   const mapsApiKey = settings?.["GOOGLE_MAPS_API_KEY"] || "";
+  const { isTestMode } = useAdminMode();
 
   const createBidRequest = useCreateBidRequestMutation();
   const [title, setTitle] = useState("");
@@ -238,8 +274,28 @@ export const CreateBidModal: React.FC<CreateBidModalProps> = ({ isOpen, onClose 
             <div>
               <label className="section-label flex items-center gap-1.5 mb-2">
                 <MapIcon className="h-3.5 w-3.5 text-primary" /> Ubicación exacta
+                {isTestMode && <Badge variant="outline" className="ml-2 text-[8px] bg-amber-50 text-amber-700 border-amber-200">OSM TEST</Badge>}
               </label>
-              {!mapsApiKey ? (
+              
+              {isTestMode ? (
+                <div className="overflow-hidden border border-border shadow-sm rounded-[1.2rem] bg-muted/20 relative z-0">
+                  <MapContainer
+                    center={[lat, lng]}
+                    zoom={15}
+                    style={mapContainerStyle}
+                    scrollWheelZoom={true}
+                  >
+                    <TileLayer
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    <LocationMarker position={[lat, lng]} setPosition={([newLat, newLng]) => {
+                      setLat(newLat);
+                      setLng(newLng);
+                    }} />
+                  </MapContainer>
+                </div>
+              ) : !mapsApiKey ? (
                 <div className="p-4 border border-dashed rounded-xl text-center bg-muted/50">
                   <p className="text-[10px] text-muted-foreground">Esperando API Key de Google Maps...</p>
                 </div>

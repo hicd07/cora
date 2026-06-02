@@ -1,18 +1,32 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { BidRequest } from "@/lib/types";
+import { useAdminMode } from "@/contexts/AdminModeContext";
+import { useSessionContext } from "@/components/auth/SessionContext";
 
 export const useBidRequests = () => {
+  const { isTestMode } = useAdminMode();
+  const { isAdmin } = useSessionContext();
+
   return useQuery({
-    queryKey: ["bid-requests"],
+    queryKey: ["bid-requests", isTestMode, isAdmin],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("bid_requests")
         .select(`
           *,
           items:bid_request_items(*)
-        `)
-        .order("created_at", { ascending: false });
+        `);
+
+      if (isAdmin) {
+        // Admin sees either test or real data based on toggle
+        query = query.eq('is_test', isTestMode);
+      } else {
+        // Regular users NEVER see test data
+        query = query.or('is_test.eq.false,is_test.is.null');
+      }
+
+      const { data, error } = await query.order("created_at", { ascending: false });
 
       if (error) throw error;
       
@@ -41,6 +55,7 @@ export const useBidRequests = () => {
 
 export const useCreateBidRequestMutation = () => {
   const queryClient = useQueryClient();
+  const { isTestMode } = useAdminMode();
   
   return useMutation({
     mutationFn: async (newRequest: any) => {
@@ -56,6 +71,7 @@ export const useCreateBidRequestMutation = () => {
           radius_km: newRequest.radiusKm,
           budget_limit: newRequest.budgetLimit,
           expires_at: newRequest.expiresAt,
+          is_test: isTestMode,
           owner_user_id: (await supabase.auth.getUser()).data.user?.id
         })
         .select()

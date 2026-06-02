@@ -4,15 +4,23 @@ import { useSessionContext } from "@/components/auth/SessionContext";
 import { supabase } from "@/integrations/supabase/client";
 import { mapHardwareBidRow } from "@/lib/mappers/bidRequests";
 import { HardwareBid } from "@/lib/types";
+import { useAdminMode } from "@/contexts/AdminModeContext";
 
-const requestBidsKey = (requestId?: string | null) => ["request-bids", requestId];
+const requestBidsKey = (requestId?: string | null, isTestMode?: boolean) => ["request-bids", requestId, isTestMode];
 
-const fetchRequestBids = async (requestId: string): Promise<HardwareBid[]> => {
-  const { data: bids, error } = await supabase
+const fetchRequestBids = async (requestId: string, isAdmin: boolean, isTestMode: boolean): Promise<HardwareBid[]> => {
+  let query = supabase
     .from("hardware_bids")
     .select("*")
-    .eq("request_id", requestId)
-    .order("created_at", { ascending: true });
+    .eq("request_id", requestId);
+
+  if (isAdmin) {
+    query = query.eq('is_test', isTestMode);
+  } else {
+    query = query.or('is_test.eq.false,is_test.is.null');
+  }
+
+  const { data: bids, error } = await query.order("created_at", { ascending: true });
 
   if (error) {
     throw error;
@@ -38,6 +46,8 @@ const fetchRequestBids = async (requestId: string): Promise<HardwareBid[]> => {
 
 export const useRequestBids = (requestId?: string | null) => {
   const queryClient = useQueryClient();
+  const { isTestMode } = useAdminMode();
+  const { isAdmin } = useSessionContext();
 
   useEffect(() => {
     if (!requestId) return;
@@ -53,7 +63,7 @@ export const useRequestBids = (requestId?: string | null) => {
           filter: `request_id=eq.${requestId}`,
         },
         () => {
-          queryClient.invalidateQueries({ queryKey: requestBidsKey(requestId) });
+          queryClient.invalidateQueries({ queryKey: requestBidsKey(requestId, isTestMode) });
         }
       )
       .on(
@@ -66,7 +76,7 @@ export const useRequestBids = (requestId?: string | null) => {
         () => {
           // A bit broad, but valid. bid_offers has no request_id,
           // we just invalidate whenever offers change.
-          queryClient.invalidateQueries({ queryKey: requestBidsKey(requestId) });
+          queryClient.invalidateQueries({ queryKey: requestBidsKey(requestId, isTestMode) });
         }
       )
       .subscribe();
@@ -74,11 +84,11 @@ export const useRequestBids = (requestId?: string | null) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [requestId, queryClient]);
+  }, [requestId, queryClient, isTestMode]);
 
   return useQuery({
-    queryKey: requestBidsKey(requestId),
-    queryFn: () => fetchRequestBids(requestId as string),
+    queryKey: requestBidsKey(requestId, isTestMode),
+    queryFn: () => fetchRequestBids(requestId as string, isAdmin, isTestMode),
     enabled: Boolean(requestId),
     retry: 1,
   });
@@ -96,7 +106,8 @@ interface CreateRequestBidInput {
 
 export const useCreateRequestBidMutation = () => {
   const queryClient = useQueryClient();
-  const { user, profile } = useSessionContext();
+  const { user, profile, isAdmin } = useSessionContext();
+  const { isTestMode } = useAdminMode();
 
   return useMutation({
     mutationFn: async (input: CreateRequestBidInput) => {
@@ -117,6 +128,7 @@ export const useCreateRequestBidMutation = () => {
           store_name: storeName,
           rating: profile?.rating ?? 0,
           delivery_time: input.deliveryTime,
+          is_test: isAdmin ? isTestMode : false, // Users don't have isTestMode, but admins do
         })
         .select("*")
         .single();
@@ -143,7 +155,7 @@ export const useCreateRequestBidMutation = () => {
       return bid;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: requestBidsKey(variables.requestId) });
+      queryClient.invalidateQueries({ queryKey: requestBidsKey(variables.requestId, isTestMode) });
       queryClient.invalidateQueries({ queryKey: ["bid-requests"] });
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count"] });

@@ -181,10 +181,12 @@ serve(async (req) => {
 
       /* ---------- AUCTIONS (BIDS) ---------- */
       case "list_active_bids": {
+        const { isTestMode } = payload as { isTestMode?: boolean };
         const { data, error } = await service
           .from("bid_requests")
           .select("*, bid_request_items(*)")
           .eq("status", "active")
+          .eq("is_test", isTestMode ?? false)
           .order("created_at", { ascending: false });
         if (error) throw error;
         return json({ bids: data });
@@ -210,11 +212,12 @@ serve(async (req) => {
       }
 
       case "create_manual_bid": {
-        const { requestId, storeName, deliveryTime, offers } = payload as {
+        const { requestId, storeName, deliveryTime, offers, isTestMode } = payload as {
           requestId: string;
           storeName: string;
           deliveryTime: string;
           offers: { itemName: string; unitPrice: number; isAvailable: boolean }[];
+          isTestMode?: boolean;
         };
 
         if (!requestId || !storeName || !offers || offers.length === 0) {
@@ -230,6 +233,7 @@ serve(async (req) => {
             delivery_time: deliveryTime,
             rating: 5.0,
             bidder_user_id: null,
+            is_test: isTestMode ?? false,
           })
           .select()
           .single();

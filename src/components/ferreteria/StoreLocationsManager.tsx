@@ -1,14 +1,50 @@
 import React, { useState, useCallback } from "react";
 import { GoogleMap, Marker, Circle, useJsApiLoader } from "@react-google-maps/api";
+import { MapContainer, TileLayer, Marker as LeafletMarker, Circle as LeafletCircle, useMapEvents } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import { MapPin, Plus, Trash2, Home, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useSessionContext } from "@/components/auth/SessionContext";
 import { usePublicSettings } from "@/hooks/useSettings";
+import { useAdminMode } from "@/contexts/AdminModeContext";
 import { showError, showSuccess } from "@/utils/toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
+// Fix Leaflet icon issue
+// @ts-ignore
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png",
+  iconUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png",
+});
+
+const LocationMarker = ({ position, setPosition }: { position: [number, number], setPosition: (pos: { lat: number, lng: number }) => void }) => {
+  useMapEvents({
+    click(e) {
+      setPosition({ lat: e.latlng.lat, lng: e.latlng.lng });
+    },
+  });
+
+  return (
+    <LeafletMarker
+      position={position}
+      draggable={true}
+      eventHandlers={{
+        dragend: (e) => {
+          const marker = e.target;
+          const pos = marker.getLatLng();
+          setPosition({ lat: pos.lat, lng: pos.lng });
+        },
+      }}
+    />
+  );
+};
 
 const INITIAL_CENTER = { lat: 18.4861, lng: -69.9312 };
 const mapContainerStyle = { width: "100%", height: "300px", borderRadius: "1rem" };
@@ -18,6 +54,7 @@ export const StoreLocationsManager = () => {
   const queryClient = useQueryClient();
   const { data: settings } = usePublicSettings();
   const mapsApiKey = settings?.["GOOGLE_MAPS_API_KEY"] || "";
+  const { isTestMode } = useAdminMode();
 
   const [isAdding, setIsAdding] = useState(false);
   const [newName, setNewName] = useState("");
@@ -97,9 +134,32 @@ export const StoreLocationsManager = () => {
           </div>
 
           <div className="space-y-2">
-            <label className="section-label">Ubicación y Radio de Entrega ({radius} km)</label>
+            <label className="section-label flex items-center justify-between">
+              <span>Ubicación y Radio de Entrega ({radius} km)</span>
+              {isTestMode && <Badge variant="outline" className="text-[8px] bg-amber-50 text-amber-700 border-amber-200">OSM TEST</Badge>}
+            </label>
             <div className="overflow-hidden rounded-xl border border-border">
-              {!mapsApiKey ? (
+              {isTestMode ? (
+                <div className="relative z-0">
+                  <MapContainer
+                    center={[pos.lat, pos.lng]}
+                    zoom={13}
+                    style={mapContainerStyle}
+                    scrollWheelZoom={true}
+                  >
+                    <TileLayer
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    <LocationMarker position={[pos.lat, pos.lng]} setPosition={setPos} />
+                    <LeafletCircle
+                      center={[pos.lat, pos.lng]}
+                      radius={radius * 1000}
+                      pathOptions={{ fillColor: '#3b82f6', fillOpacity: 0.1, color: '#3b82f6', weight: 1 }}
+                    />
+                  </MapContainer>
+                </div>
+              ) : !mapsApiKey ? (
                 <div className="h-[300px] flex items-center justify-center text-xs text-muted-foreground bg-muted/30">
                   Esperando API Key de Google Maps...
                 </div>
