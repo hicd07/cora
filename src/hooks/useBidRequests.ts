@@ -113,19 +113,21 @@ export const useCreateBidRequestMutation = () => {
         throw itemsError;
       }
 
-      // Invoke WA send Edge Function if coords exist (Broadcast to WhatsApp)
+      // Search for nearby stores using Google Places
       if (input.lat && input.lng) {
-        // Change state to BROADCASTING (or it might be already BROADCASTING, we set it above)
         try {
-          // We invoke without waiting if we don't want to block the UI, but await is safer for consistency
-          await supabase.functions.invoke("wa-send", {
-            body: { bidRequestId: request.id },
+          await supabase.functions.invoke("places-search", {
+            body: {
+              lat: input.lat,
+              lng: input.lng,
+              radiusKm: input.radiusKm
+            },
           });
           
-          // Optionally transition to AWAITING_RESPONSES after broadcasting
+          // Optionally transition to AWAITING_RESPONSES
           await supabase.from("bid_requests").update({ state: "AWAITING_RESPONSES" }).eq("id", request.id);
-        } catch (waError) {
-          console.error("Error sending WA broadcast:", waError);
+        } catch (searchError) {
+          console.error("Error searching nearby stores:", searchError);
         }
       }
 

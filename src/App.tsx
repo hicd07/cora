@@ -14,6 +14,7 @@ import NotFound from "./pages/NotFound";
 import Notifications from "./pages/Notifications";
 import LiveQuote from "./pages/LiveQuote";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminAuctions from "./pages/admin/AdminAuctions";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminInvitations from "./pages/admin/AdminInvitations";
 import AdminRequests from "./pages/admin/AdminRequests";
@@ -130,6 +131,14 @@ const AppRoutes = () => (
       element={
         <AdminRoute>
           <AdminDashboard />
+        </AdminRoute>
+      }
+    />
+    <Route
+      path="/admin/auctions"
+      element={
+        <AdminRoute>
+          <AdminAuctions />
         </AdminRoute>
       }
     />

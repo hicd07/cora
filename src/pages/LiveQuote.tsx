@@ -1,16 +1,13 @@
-import React, { useState, useMemo } from "react";
+import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Clock, MapPin, Store, Bot, MessageCircle, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowLeft, Clock, MapPin, Store, Bot, ShieldCheck, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRequestBids } from "@/hooks/useRequestBids";
-import { useWaConversations } from "@/hooks/useWaConversations";
 import { mapBidRequestRow } from "@/lib/mappers/bidRequests";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { ConversationDrawer } from "@/components/ferreteria/ConversationDrawer";
-import { HardwareBid } from "@/lib/types";
 
 const fetchBidRequest = async (id: string) => {
   const { data: request, error } = await supabase
@@ -34,7 +31,6 @@ const fetchBidRequest = async (id: string) => {
 export default function LiveQuote() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [activeConversation, setActiveConversation] = useState<{ id: string; storeName: string } | null>(null);
 
   const { data: request, isLoading: isLoadingRequest } = useQuery({
     queryKey: ["bid-request", id],
@@ -42,107 +38,11 @@ export default function LiveQuote() {
     enabled: Boolean(id),
   });
 
-  const { data: realBids = [], isLoading: isLoadingBids } = useRequestBids(id);
-  const { data: realConversations = [], isLoading: isLoadingConversations } = useWaConversations(id);
-
-  // Inject mock WhatsApp bids if the ID matches the requested one
-  const bids = useMemo(() => {
-    if (id === "ecbaceee-cb21-4b12-a40d-e7947bebb6e6" && request) {
-      const mockBids: HardwareBid[] = [
-        {
-          id: "mock-wa-bid-1",
-          requestId: id,
-          storeId: "mock-wa-store-1",
-          storeName: "Ferretería El Lápiz (WhatsApp)",
-          rating: 4.5,
-          deliveryTime: "Mismo día (3-5 horas)",
-          createdAt: new Date().toISOString(),
-          offers: request.items.map((item, idx) => ({
-            id: `mock-offer-1-${idx}`,
-            itemName: item.name,
-            unitPrice: Math.round((350 + Math.random() * 150) * 100) / 100,
-            isAvailable: true,
-          })),
-        },
-        {
-          id: "mock-wa-bid-2",
-          requestId: id,
-          storeId: "mock-wa-store-2",
-          storeName: "Materiales SDE (WhatsApp)",
-          rating: 4.2,
-          deliveryTime: "Siguiente día (24 horas)",
-          createdAt: new Date().toISOString(),
-          offers: request.items.map((item, idx) => ({
-            id: `mock-offer-2-${idx}`,
-            itemName: item.name,
-            unitPrice: Math.round((320 + Math.random() * 120) * 100) / 100,
-            isAvailable: idx !== 1, // Simulate one item out of stock
-          })),
-        },
-        {
-          id: "mock-wa-bid-3",
-          requestId: id,
-          storeId: "mock-wa-store-3",
-          storeName: "Ferretería Hermanos Díaz (WhatsApp)",
-          rating: 4.7,
-          deliveryTime: "Inmediato (1-2 horas)",
-          createdAt: new Date().toISOString(),
-          offers: request.items.map((item, idx) => ({
-            id: `mock-offer-3-${idx}`,
-            itemName: item.name,
-            unitPrice: Math.round((380 + Math.random() * 180) * 100) / 100,
-            isAvailable: true,
-          })),
-        },
-      ];
-      return [...realBids, ...mockBids];
-    }
-    return realBids;
-  }, [id, realBids, request]);
-
-  // Inject mock WhatsApp conversations if the ID matches
-  const conversations = useMemo(() => {
-    if (id === "ecbaceee-cb21-4b12-a40d-e7947bebb6e6") {
-      const mockConversations = [
-        {
-          id: "mock-conv-1",
-          state: "REPLIED",
-          wa_phone_number: "+18095550101",
-          updated_at: new Date().toISOString(),
-          external_stores: {
-            name: "Ferretería El Lápiz (WhatsApp)",
-            address: "Av. Sabana Larga #42, SDE",
-          },
-        },
-        {
-          id: "mock-conv-2",
-          state: "ACTIVE", // Escalated to human
-          wa_phone_number: "+18095550102",
-          updated_at: new Date().toISOString(),
-          external_stores: {
-            name: "Materiales SDE (WhatsApp)",
-            address: "Carretera Mella Km 7, SDE",
-          },
-        },
-        {
-          id: "mock-conv-3",
-          state: "REPLIED",
-          wa_phone_number: "+18095550103",
-          updated_at: new Date().toISOString(),
-          external_stores: {
-            name: "Ferretería Hermanos Díaz (WhatsApp)",
-            address: "Calle Club de Leones #15, SDE",
-          },
-        },
-      ];
-      return [...realConversations, ...mockConversations];
-    }
-    return realConversations;
-  }, [id, realConversations]);
+  const { data: bids = [], isLoading: isLoadingBids } = useRequestBids(id);
 
   // Separate bids by channel
   const portalBids = bids.filter((bid) => bid.bidderUserId);
-  const aiBids = bids.filter((bid) => !bid.bidderUserId);
+  const manualBids = bids.filter((bid) => !bid.bidderUserId);
 
   if (isLoadingRequest) {
     return (
@@ -206,42 +106,6 @@ export default function LiveQuote() {
                   </div>
                 ))}
               </div>
-            </div>
-
-            <div className="panel-muted p-5">
-              <h2 className="font-semibold text-sm mb-4">Conversaciones Externas (WhatsApp)</h2>
-              {isLoadingConversations ? (
-                <div className="space-y-3">
-                  <Skeleton className="h-12 w-full" />
-                  <Skeleton className="h-12 w-full" />
-                </div>
-              ) : conversations.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-4">No hay conversaciones activas.</p>
-              ) : (
-                <div className="space-y-3">
-                  {conversations.map((conv) => (
-                    <div
-                      key={conv.id}
-                      className="flex items-center justify-between p-3 bg-background rounded-lg border cursor-pointer hover:border-primary transition-colors"
-                      onClick={() => setActiveConversation({ id: conv.id, storeName: conv.external_stores?.name || conv.wa_phone_number })}
-                    >
-                      <div className="overflow-hidden">
-                        <p className="text-sm font-medium truncate">
-                          {conv.external_stores?.name || conv.wa_phone_number}
-                        </p>
-                        <p className={`text-xs mt-0.5 flex items-center gap-1 ${conv.state === 'ACTIVE' ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
-                          <MessageCircle className="h-3 w-3" />
-                          {conv.state === 'ACTIVE' ? 'Requiere Atención (Humano)' : conv.state}
-                        </p>
-                      </div>
-                      <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8">
-                        {conv.state === 'ACTIVE' && <div className="h-2 w-2 rounded-full bg-destructive absolute top-2 right-2 animate-pulse" />}
-                        <ArrowLeft className="h-4 w-4 rotate-180" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           </div>
 
@@ -324,34 +188,38 @@ export default function LiveQuote() {
                   )}
                 </div>
 
-                {/* Section 2: WhatsApp AI Bids */}
+                {/* Section 2: Unverified Providers (Manual) */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between border-b pb-2">
                     <div className="flex items-center gap-2">
-                      <Sparkles className="h-5 w-5 text-purple-500" />
+                      <Search className="h-5 w-5 text-blue-500" />
                       <h2 className="font-display font-bold text-base text-foreground">
-                        Ofertas vía WhatsApp (IA)
+                        Proveedores no verificados
                       </h2>
                     </div>
-                    <Badge variant="secondary" className="bg-purple-500/10 text-purple-600 border-purple-500/20">
-                      {aiBids.length} {aiBids.length === 1 ? "oferta" : "ofertas"}
+                    <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 border-blue-500/20">
+                      {manualBids.length} {manualBids.length === 1 ? "oferta" : "ofertas"}
                     </Badge>
                   </div>
 
-                  {aiBids.length === 0 ? (
-                    <div className="panel-muted p-6 text-center text-sm text-muted-foreground">
-                      Aún no se han recibido ofertas estructuradas por WhatsApp.
+                  {manualBids.length === 0 ? (
+                    <div className="panel-muted p-8 text-center flex flex-col items-center justify-center border-dashed">
+                      <Search className="h-8 w-8 text-blue-500/50 mb-3 animate-pulse" />
+                      <h3 className="font-medium text-foreground">🔎 Buscando proveedores...</h3>
+                      <p className="text-xs text-muted-foreground mt-2 max-w-xs mx-auto">
+                        Nuestro equipo está contactando ferreterías en la zona para conseguirte las mejores ofertas.
+                      </p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {aiBids.map((bid) => {
+                      {manualBids.map((bid) => {
                         const total = bid.offers.reduce((acc, offer) => acc + offer.unitPrice * (request.items.find(i => i.name === offer.itemName)?.quantity || 1), 0);
                         return (
-                          <div key={bid.id} className="panel-strong p-5 border-purple-500/10 bg-purple-500/[0.01] animate-in fade-in zoom-in-95 duration-300">
+                          <div key={bid.id} className="panel-strong p-5 border-blue-500/10 bg-blue-500/[0.01] animate-in fade-in zoom-in-95 duration-300">
                             <div className="flex justify-between items-start mb-3">
                               <div className="flex items-center gap-2">
-                                <div className="h-8 w-8 rounded-full bg-purple-500/10 flex items-center justify-center">
-                                  <Bot className="h-4 w-4 text-purple-600" />
+                                <div className="h-8 w-8 rounded-full bg-blue-500/10 flex items-center justify-center">
+                                  <Bot className="h-4 w-4 text-blue-600" />
                                 </div>
                                 <div>
                                   <p className="font-medium text-sm">{bid.storeName}</p>
@@ -360,8 +228,8 @@ export default function LiveQuote() {
                                   </div>
                                 </div>
                               </div>
-                              <Badge variant="secondary" className="bg-purple-500/10 text-purple-600 border-purple-500/20">
-                                WhatsApp IA
+                              <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 border-blue-500/20">
+                                Externo
                               </Badge>
                             </div>
                             
@@ -396,12 +264,6 @@ export default function LiveQuote() {
           </div>
         </div>
       </main>
-
-      <ConversationDrawer
-        conversationId={activeConversation?.id || null}
-        storeName={activeConversation?.storeName || ""}
-        onClose={() => setActiveConversation(null)}
-      />
     </div>
   );
 }

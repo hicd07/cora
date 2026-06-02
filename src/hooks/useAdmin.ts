@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { BidRequest } from "@/lib/types";
 
 /** Generic invoker for the admin-manage edge function. */
 async function adminInvoke<T = unknown>(action: string, payload?: unknown): Promise<T> {
@@ -43,6 +44,17 @@ export interface SignupRequest {
   reason: string | null;
   status: string;
   created_at: string;
+}
+
+export interface ExternalStore {
+  id: string;
+  place_id: string;
+  name: string;
+  address: string | null;
+  phone_e164: string | null;
+  lat: number;
+  lng: number;
+  source: string;
 }
 
 /* ---------- SETTINGS ---------- */
@@ -144,6 +156,43 @@ export const useReviewSignupRequest = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-signup-requests"] });
       qc.invalidateQueries({ queryKey: ["admin-users"] });
+    },
+  });
+};
+
+/* ---------- AUCTIONS ---------- */
+export const useAdminActiveBids = () =>
+  useQuery({
+    queryKey: ["admin-active-bids"],
+    queryFn: async () => {
+      const res = await adminInvoke<{ bids: BidRequest[] }>("list_active_bids");
+      return res.bids;
+    },
+  });
+
+export const useAdminNearbyStores = (lat: number | null, lng: number | null) =>
+  useQuery({
+    queryKey: ["admin-nearby-stores", lat, lng],
+    queryFn: async () => {
+      if (!lat || !lng) return [];
+      const res = await adminInvoke<{ stores: ExternalStore[] }>("list_nearby_stores", { lat, lng });
+      return res.stores;
+    },
+    enabled: Boolean(lat && lng),
+  });
+
+export const useCreateManualBidMutation = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: {
+      requestId: string;
+      storeName: string;
+      deliveryTime: string;
+      offers: { itemName: string; unitPrice: number; isAvailable: boolean }[];
+    }) => adminInvoke("create_manual_bid", payload),
+    onSuccess: (_, variables) => {
+      qc.invalidateQueries({ queryKey: ["admin-active-bids"] });
+      qc.invalidateQueries({ queryKey: ["request-bids", variables.requestId] });
     },
   });
 };

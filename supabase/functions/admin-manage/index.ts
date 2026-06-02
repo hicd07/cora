@@ -179,6 +179,84 @@ serve(async (req) => {
         return json({ ok: true });
       }
 
+      /* ---------- AUCTIONS (BIDS) ---------- */
+      case "list_active_bids": {
+        const { data, error } = await service
+          .from("bid_requests")
+          .select("*, bid_request_items(*)")
+          .eq("status", "active")
+          .order("created_at", { ascending: false });
+        if (error) throw error;
+        return json({ bids: data });
+      }
+
+      case "list_nearby_stores": {
+        const { lat, lng } = payload as { lat: number; lng: number };
+        if (!lat || !lng) return json({ error: "Missing coordinates" }, 400);
+
+        // Simple bounding box for nearby stores (approx 10km)
+        const delta = 0.1;
+        const { data, error } = await service
+          .from("external_stores")
+          .select("*")
+          .gte("lat", lat - delta)
+          .lte("lat", lat + delta)
+          .gte("lng", lng - delta)
+          .lte("lng", lng + delta)
+          .limit(20);
+        
+        if (error) throw error;
+        return json({ stores: data });
+      }
+
+      case "create_manual_bid": {
+        const { requestId, storeName, deliveryTime, offers } = payload as {
+          requestId: string;
+          storeName: string;
+          deliveryTime: string;
+          offers: { itemName: string; unitPrice: number; isAvailable: boolean }[];
+        };
+
+        if (!requestId || !storeName || !offers || offers.length === 0) {
+          return json({ error: "Missing required fields for manual bid" }, 400);
+        }
+
+        // Insert the hardware bid (bidder_user_id is NULL for manual admin entries)
+        const { data: bid, error: bidError } = await service
+          .from("hardware_bids")
+          .insert({
+            request_id: requestId,
+            store_name: storeName,
+            delivery_time: deliveryTime,
+            rating: 5.0,
+            bidder_user_id: null,
+          })
+          .select()
+          .single();
+
+        if (bidError) throw bidError;
+
+        // Insert the offers
+        const { error: offersError } = await service
+          .from("bid_offers")
+          .insert(
+            offers.map((o) => ({
+              bid_id: bid.id,
+              item_name: o.itemName,
+              unit_price: o.unitPrice,
+              is_available: o.isAvailable,
+            }))
+          );
+
+        if (offersError) {
+          // Cleanup bid if offers fail
+          await service.from("hardware_bids").delete().eq("id", bid.id);
+          throw offersError;
+        }
+
+        return json({ ok: true, bidId: bid.id });
+      }
+
       default:
         return json({ error: `Unknown action: ${action}` }, 400);
     }
