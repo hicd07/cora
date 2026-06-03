@@ -70,18 +70,24 @@ export const useAdminSettings = () => {
 export const useUpdateSetting = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ key, value }: { key: string; value: string }) => {
+    mutationFn: async ({ key, value }: { key: string; value: string | null }) => {
       const { data: { session } } = await supabase.auth.getSession();
       
-      // Fetch existing to preserve is_secret if it already exists. 
-      // Using maybeSingle() avoids 406 errors when the row doesn't exist yet.
+      if (value === null || value === "") {
+        const { error } = await supabase
+          .from("admin_settings")
+          .delete()
+          .eq("key", key);
+        if (error) throw error;
+        return;
+      }
+
       const { data: existing } = await supabase
         .from("admin_settings")
         .select("is_secret")
         .eq("key", key)
         .maybeSingle();
 
-      // Determine is_secret: use existing or fallback to keyword check
       const isSecret = existing ? existing.is_secret : (key.toLowerCase().includes("key") || key.toLowerCase().includes("secret"));
       
       const { error } = await supabase
@@ -262,7 +268,9 @@ export const useAdminNearbyStores = (
       return data.results || [];
     },
     enabled: enabled && !!lat && !!lng,
-    staleTime: 1000 * 60 * 30,
+    staleTime: 1000 * 60 * 30, // 30 min cache
+    refetchOnWindowFocus: false, // Desactivar llamadas automáticas al cambiar pestaña
+    refetchOnMount: false, // Desactivar llamadas automáticas al montar componente
   });
 };
 
