@@ -11,7 +11,13 @@ export const useRequestBids = (requestId?: string) => {
         .from("hardware_bids")
         .select(`
           *,
-          offers:bid_offers(*)
+          offers:bid_offers(*),
+          profiles:bidder_user_id (
+            cover_url,
+            is_public,
+            sector,
+            delivery_coverage
+          )
         `)
         .eq("request_id", requestId)
         .order("created_at", { ascending: false });
@@ -24,8 +30,18 @@ export const useRequestBids = (requestId?: string) => {
         storeName: bid.store_name,
         rating: bid.rating,
         deliveryTime: bid.delivery_time,
+        shippingCost: Number(bid.shipping_cost || 0),
+        phone: bid.phone,
+        website: bid.website,
         createdAt: bid.created_at,
         bidderUserId: bid.bidder_user_id,
+        // Profile data for verified stores
+        profile: bid.profiles ? {
+          coverUrl: bid.profiles.cover_url,
+          isVerified: bid.profiles.is_public,
+          sector: bid.profiles.sector,
+          deliveryCoverage: bid.profiles.delivery_coverage || []
+        } : null,
         offers: (bid.offers || []).map((offer: any) => ({
           id: offer.id,
           itemName: offer.item_name,
@@ -45,7 +61,6 @@ export const useCreateRequestBidMutation = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Primero obtenemos el perfil para el store_name
       const { data: profile } = await supabase
         .from("profiles")
         .select("store_name")
@@ -102,7 +117,6 @@ export const useUpdateRequestBidMutation = () => {
 
       if (bidError) throw bidError;
 
-      // Actualizamos ofertas existentes o insertamos nuevas (en este caso borramos y re-insertamos por simplicidad)
       await supabase.from("bid_offers").delete().eq("bid_id", bidId);
 
       const offersToInsert = offers.map((offer: any) => ({
