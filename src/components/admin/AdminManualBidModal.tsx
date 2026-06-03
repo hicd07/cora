@@ -34,6 +34,9 @@ export const AdminManualBidModal = ({
   const [storeName, setStoreName] = useState("");
   const [phone, setPhone] = useState("");
   const [website, setWebsite] = useState("");
+  const [address, setAddress] = useState("");
+  const [lat, setLat] = useState<number | null>(null);
+  const [lng, setLng] = useState<number | null>(null);
   const [deliveryTime, setDeliveryTime] = useState<string>(DELIVERY_OPTIONS[2]); // Default: 24 horas
   const [shippingCost, setShippingCost] = useState<string>("0");
   const [prices, setPrices] = useState<Record<string, string>>({});
@@ -47,6 +50,7 @@ export const AdminManualBidModal = ({
         selectedStore.phone || 
         selectedStore.formatted_phone_number || 
         selectedStore.international_phone_number || 
+        selectedStore.phone_e164 ||
         "";
         
       const extractedWebsite = 
@@ -54,12 +58,23 @@ export const AdminManualBidModal = ({
         selectedStore.url || 
         "";
 
+      const extractedAddress = 
+        selectedStore.address || 
+        selectedStore.formatted_address || 
+        "";
+
       setPhone(extractedPhone);
       setWebsite(extractedWebsite);
+      setAddress(extractedAddress);
+      setLat(selectedStore.lat || null);
+      setLng(selectedStore.lng || null);
     } else {
       setStoreName("");
       setPhone("");
       setWebsite("");
+      setAddress("");
+      setLat(null);
+      setLng(null);
     }
     
     const initialPrices: Record<string, string> = {};
@@ -92,6 +107,9 @@ export const AdminManualBidModal = ({
         storeName,
         phone,
         website,
+        address,
+        lat,
+        lng,
         deliveryTime,
         shippingCost: parseFloat(shippingCost) || 0,
         items,
@@ -109,8 +127,8 @@ export const AdminManualBidModal = ({
   const shipping = parseFloat(shippingCost) || 0;
   const total = subtotal + itbis + shipping;
 
-  const googleMapsUrl = selectedStore?.address || selectedStore?.formatted_address
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedStore.address || selectedStore.formatted_address)}`
+  const googleMapsUrl = address
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
     : null;
 
   return (
@@ -131,7 +149,7 @@ export const AdminManualBidModal = ({
               </div>
               <div className="flex-1 space-y-1">
                 <h3 className="font-bold text-sm leading-tight">{selectedStore?.name || "Ingreso Manual"}</h3>
-                {(selectedStore?.address || selectedStore?.formatted_address) && (
+                {address && (
                   <div className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
                     <MapPin className="h-3 w-3 mt-0.5 shrink-0" />
                     {googleMapsUrl ? (
@@ -141,10 +159,10 @@ export const AdminManualBidModal = ({
                         rel="noreferrer" 
                         className="hover:text-primary hover:underline transition-colors leading-relaxed"
                       >
-                        {selectedStore.address || selectedStore.formatted_address}
+                        {address}
                       </a>
                     ) : (
-                      <span>{selectedStore.address || selectedStore.formatted_address}</span>
+                      <span>{address}</span>
                     )}
                   </div>
                 )}
@@ -163,6 +181,20 @@ export const AdminManualBidModal = ({
                 className="field-soft"
                 disabled={!!selectedStore}
               />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="address" className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">Dirección Física</Label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  id="address"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="Calle, sector..."
+                  className="field-soft pl-10"
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

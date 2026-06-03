@@ -98,10 +98,18 @@ export default function LiveQuote() {
     }
 
     const GoogleMapsLink = ({ bid }: { bid: any }) => {
-        const label = bid.address || bid.profile?.address || bid.sector || "Ver ubicación";
-        const query = bid.lat && bid.lng 
-          ? `${bid.lat},${bid.lng}` 
-          : encodeURIComponent(`${bid.storeName} ${label}`);
+        const address = bid.address || bid.profile?.address || bid.sector;
+        const label = address || "Ver ubicación";
+        
+        // Priority for Coordinates, then Address, then Store Name
+        let query = "";
+        if (bid.lat && bid.lng) {
+            query = `${bid.lat},${bid.lng}`;
+        } else if (address) {
+            query = encodeURIComponent(`${bid.storeName} ${address}`);
+        } else {
+            query = encodeURIComponent(bid.storeName);
+        }
         
         return (
             <a 
