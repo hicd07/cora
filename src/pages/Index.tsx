@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { useSessionContext } from "@/components/auth/SessionContext";
@@ -18,10 +19,10 @@ import { Plus, Gavel, History, Store as StoreIcon } from "lucide-react";
 import { BidRequest } from "@/lib/types";
 
 const Index = () => {
+  const navigate = useNavigate();
   const { profile, isAdmin } = useSessionContext();
   const [activeTab, setActiveTab] = useState("bids");
   
-  // Set default tab for admins
   useEffect(() => {
     if (isAdmin) {
       setActiveTab("dashboard");
@@ -96,7 +97,13 @@ const Index = () => {
                       </div>
                       <div className="mt-4 flex justify-between items-center border-t pt-4">
                         <span className="text-xs font-medium">{req.bidsCount} ofertas recibidas</span>
-                        <Button variant="ghost" size="sm" onClick={() => window.location.href = `/quote/${req.id}/live`}>Ver detalles</Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => navigate(`/quote/${req.id}/live`)}
+                        >
+                          Ver detalles
+                        </Button>
                       </div>
                     </div>
                   ))}

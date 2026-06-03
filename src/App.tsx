@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { SessionContextProvider, useSessionContext } from "./components/auth/SessionContext";
 import { AdminModeProvider } from "./contexts/AdminModeContext";
 import { ThemeProvider } from "./components/theme/ThemeProvider";
@@ -64,12 +64,11 @@ const ProfileErrorScreen = ({ onRetry, onSignOut }: { onRetry: () => void; onSig
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { session, profile, loading, profileError, refreshProfile, signOut, isAdmin } = useSessionContext();
+  const location = useLocation();
 
   if (loading) return <FullScreenLoader />;
-  if (!session) return <Navigate to="/auth" replace />;
+  if (!session) return <Navigate to="/auth" state={{ from: location }} replace />;
 
-  // If we have a session but couldn't load the profile, show a recoverable error
-  // instead of an infinite loader.
   if (!profile) {
     if (profileError) {
       return <ProfileErrorScreen onRetry={() => refreshProfile()} onSignOut={() => signOut()} />;
@@ -77,8 +76,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <FullScreenLoader />;
   }
 
-  // Permite acceso si es administrador, saltando la verificación de onboarding
-  if (!profile.onboarded && !isAdmin) return <Navigate to="/auth" replace />;
+  // Si no está registrado y no es administrador, enviarlo a completar su perfil
+  if (!profile.onboarded && !isAdmin) {
+    return <Navigate to="/auth" replace />;
+  }
 
   return <>{children}</>;
 };
@@ -87,7 +88,11 @@ const AuthRoute = () => {
   const { session, profile, loading } = useSessionContext();
 
   if (loading) return <FullScreenLoader />;
-  if (session && profile?.onboarded) return <Navigate to="/" replace />;
+  
+  // Si ya tiene sesión y perfil completo, enviarlo al inicio
+  if (session && profile?.onboarded) {
+    return <Navigate to="/" replace />;
+  }
 
   return <Auth />;
 };
