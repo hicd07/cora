@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,16 +13,34 @@ serve(async (req) => {
 
   try {
     const { lat, lng, radiusKm = 5 } = await req.json()
-    const apiKey = Deno.env.get('GOOGLE_MAPS_API_KEY')
+    
+    // Inicializamos cliente de Supabase para buscar la configuración en BD si es necesario
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
+    // 1. Intentamos obtener la clave del entorno
+    let apiKey = Deno.env.get('GOOGLE_MAPS_API_KEY')
+
+    // 2. Si no está en el entorno, la buscamos en la tabla admin_settings
+    if (!apiKey) {
+      console.log("[places-search] API Key no encontrada en entorno, consultando base de datos...")
+      const { data: setting } = await supabaseClient
+        .from('admin_settings')
+        .select('value')
+        .eq('key', 'GOOGLE_MAPS_API_KEY')
+        .maybeSingle()
+      
+      apiKey = setting?.value
+    }
 
     if (!apiKey) {
-      throw new Error('Google Maps API Key not configured')
+      throw new Error('Google Maps API Key no configurada (ni en entorno ni en BD)')
     }
 
     const radiusMeters = radiusKm * 1000
 
-    // Nueva API de Google Places (v1)
-    // Agregamos internationalPhoneNumber y websiteUri a la máscara de campos
     const response = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
       method: 'POST',
       headers: {
@@ -41,6 +60,11 @@ serve(async (req) => {
     })
 
     const data = await response.json()
+    
+    if (data.error) {
+      throw new Error(`Google Maps API Error: ${data.error.message}`)
+    }
+
     const places = data.places || []
 
     const results = places.map((p: any) => ({
