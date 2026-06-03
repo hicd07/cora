@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { HardwareStore } from "@/lib/types";
-import { Phone, MapPin, Globe, Star, ShieldCheck, ExternalLink } from "lucide-react";
+import { Phone, MapPin, Globe, Star, ShieldCheck, ExternalLink, Store } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface StoreDetailModalProps {
@@ -34,11 +34,9 @@ export function StoreDetailModal({ isOpen, onClose, store }: StoreDetailModalPro
     }
   };
 
-  // Clean label logic: Priority for address, then sector. Filter out fallback strings.
   const address = (store.address && store.address !== "Dirección no disponible") ? store.address : null;
   const storeLocationLabel = address || store.sector;
   
-  // Generar query de Google Maps priorizando coordenadas exactas
   const mapsQuery = store.lat && store.lng 
     ? `${store.lat},${store.lng}` 
     : encodeURIComponent(`${store.name} ${storeLocationLabel || ''}`);
@@ -48,16 +46,38 @@ export function StoreDetailModal({ isOpen, onClose, store }: StoreDetailModalPro
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px] overflow-hidden p-0 gap-0 border-none shadow-2xl rounded-[2rem]">
-        {store.coverUrl && (
-          <div className="h-32 w-full relative overflow-hidden">
+        {/* Cabecera visual siempre presente */}
+        <div className="h-40 w-full relative overflow-hidden bg-muted">
+          {store.coverUrl ? (
             <img 
               src={store.coverUrl} 
               alt={store.name} 
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover transition-transform duration-700 hover:scale-110"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-primary/20 via-primary/5 to-background p-6">
+               <Store className="h-14 w-14 text-primary/15 animate-pulse" />
+               <div className="absolute inset-x-0 bottom-6 flex flex-col items-center text-center px-4">
+                  <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-primary/30">
+                     Perfil en proceso de validación
+                  </span>
+               </div>
+            </div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+          
+          <div className="absolute bottom-4 right-4 flex flex-col items-end gap-2">
+            {!store.isVerified ? (
+              <Badge variant="outline" className="bg-white/10 backdrop-blur-md border-white/20 text-white text-[9px] font-bold uppercase tracking-wider px-2 py-0.5">
+                Proveedor Externo
+              </Badge>
+            ) : (
+              <Badge className="bg-emerald-500 text-white border-none shadow-lg text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 flex items-center gap-1">
+                <ShieldCheck className="h-2.5 w-2.5" /> Verificado
+              </Badge>
+            )}
           </div>
-        )}
+        </div>
         
         <div className="p-6">
           <DialogHeader className="mb-4">
@@ -65,9 +85,6 @@ export function StoreDetailModal({ isOpen, onClose, store }: StoreDetailModalPro
               <div className="flex flex-col gap-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <DialogTitle className="font-display text-xl font-bold truncate">{store.name}</DialogTitle>
-                  {store.isVerified && (
-                    <ShieldCheck className="h-5 w-5 text-emerald-500 shrink-0" />
-                  )}
                 </div>
                 {storeLocationLabel ? (
                   <a 
