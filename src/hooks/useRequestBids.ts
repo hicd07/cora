@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useSessionContext } from "@/components/auth/SessionContext";
+import { HardwareBid, BidOffer } from "@/lib/types";
 
 export const useRequestBids = (requestId?: string) => {
   return useQuery({
@@ -12,7 +14,7 @@ export const useRequestBids = (requestId?: string) => {
         .select(`
           *,
           offers:bid_offers(*),
-          profiles:bidder_user_id (
+          profiles (
             cover_url,
             is_public,
             sector,
@@ -24,82 +26,83 @@ export const useRequestBids = (requestId?: string) => {
         .eq("request_id", requestId)
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("Error fetching bids:", error);
-        throw error;
-      }
+      if (error) throw error;
 
-      return (data || []).map((bid: any) => {
-        // Handle potential array or object from Supabase join
-        const profileData = Array.isArray(bid.profiles) ? bid.profiles[0] : bid.profiles;
+      return (data || []).map((bid) => {
+        // Manejar el perfil cruzado
+        const profile = bid.profiles ? (Array.isArray(bid.profiles) ? bid.profiles[0] : bid.profiles) : null;
         
         return {
           id: bid.id,
-          storeId: bid.bidder_user_id || bid.id,
+          storeId: bid.bidder_user_id || bid.id, 
           storeName: bid.store_name,
-          rating: bid.rating,
+          bidderUserId: bid.bidder_user_id,
+          rating: bid.rating || 5.0,
           deliveryTime: bid.delivery_time,
-          shippingCost: Number(bid.shipping_cost || 0),
-          phone: bid.phone,
-          website: bid.website,
+          shippingCost: bid.shipping_cost || 0,
+          createdAt: bid.created_at,
+          
           // Address, lat, lng come from hardware_bids directly
           address: bid.address,
           lat: bid.lat,
           lng: bid.lng,
-          createdAt: bid.created_at,
-          bidderUserId: bid.bidder_user_id,
-          profile: profileData ? {
-            coverUrl: profileData.cover_url,
-            isVerified: profileData.is_public,
-            sector: profileData.sector,
-            deliveryCoverage: profileData.delivery_coverage || [],
-            fullName: profileData.full_name,
-            storeName: profileData.store_name
+          phone: bid.phone,
+          website: bid.website,
+          
+          profile: profile ? {
+            coverUrl: profile.cover_url,
+            isPublic: profile.is_public,
+            sector: profile.sector,
+            deliveryCoverage: profile.delivery_coverage,
+            fullName: profile.full_name,
+            storeName: profile.store_name
           } : null,
-          offers: (bid.offers || []).map((offer: any) => ({
-            id: offer.id,
-            itemName: offer.item_name,
-            unitPrice: Number(offer.unit_price),
-            isAvailable: offer.is_available
+          
+          offers: (bid.offers || []).map((o: any) => ({
+            itemName: o.item_name,
+            unitPrice: o.unit_price,
+            isAvailable: o.is_available
           }))
-        };
+        } as HardwareBid;
       });
     },
-    enabled: Boolean(requestId),
+    enabled: !!requestId
   });
 };
 
 export const useCreateRequestBidMutation = () => {
   const queryClient = useQueryClient();
+  const { user, profile } = useSessionContext();
+
   return useMutation({
-    mutationFn: async ({ requestId, deliveryTime, shippingCost, offers }: any) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+    mutationFn: async (bidData: {
+      requestId: string;
+      deliveryTime: string;
+      shippingCost: number;
+      offers: Array<{ itemName: string; unitPrice: number; isAvailable: boolean }>;
+    }) => {
+      if (!user || !profile) throw new Error("Usuario no autenticado");
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("store_name, sector")
-        .eq("id", user.id)
-        .single();
-
-      // For registered providers, we still use their profile data as initial values
       // Note: address, lat, lng are stored in hardware_bids to allow per-bid flexibility
       const { data: bid, error: bidError } = await supabase
         .from("hardware_bids")
         .insert({
-          request_id: requestId,
+          request_id: bidData.requestId,
+          store_name: profile.store_name || profile.full_name || "Ferretería",
+          rating: profile.rating || 5.0,
+          delivery_time: bidData.deliveryTime,
+          shipping_cost: bidData.shippingCost,
           bidder_user_id: user.id,
-          store_name: profile?.store_name || "Ferretería",
-          address: profile?.sector || "SDE",
-          delivery_time: deliveryTime,
-          shipping_cost: shippingCost
+          address: profile.address,
+          lat: profile.lat,
+          lng: profile.lng
         })
         .select()
         .single();
 
       if (bidError) throw bidError;
 
-      const offersToInsert = offers.map((offer: any) => ({
+      const offersToInsert = bidData.offers.map((offer) => ({
         bid_id: bid.id,
         item_name: offer.itemName,
         unit_price: offer.unitPrice,
@@ -111,34 +114,46 @@ export const useCreateRequestBidMutation = () => {
         .insert(offersToInsert);
 
       if (offersError) throw offersError;
-
+      
       return bid;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["bid-request-bids", variables.requestId] });
       queryClient.invalidateQueries({ queryKey: ["bid-requests"] });
-    },
+    }
   });
 };
 
 export const useUpdateRequestBidMutation = () => {
   const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: async ({ bidId, requestId, deliveryTime, shippingCost, offers }: any) => {
+    mutationFn: async (bidData: {
+      bidId: string;
+      requestId: string;
+      deliveryTime: string;
+      shippingCost: number;
+      offers: Array<{ itemName: string; unitPrice: number; isAvailable: boolean }>;
+    }) => {
       const { error: bidError } = await supabase
         .from("hardware_bids")
         .update({
-          delivery_time: deliveryTime,
-          shipping_cost: shippingCost
+          delivery_time: bidData.deliveryTime,
+          shipping_cost: bidData.shippingCost
         })
-        .eq("id", bidId);
+        .eq("id", bidData.bidId);
 
       if (bidError) throw bidError;
 
-      await supabase.from("bid_offers").delete().eq("bid_id", bidId);
+      const { error: deleteError } = await supabase
+        .from("bid_offers")
+        .delete()
+        .eq("bid_id", bidData.bidId);
 
-      const offersToInsert = offers.map((offer: any) => ({
-        bid_id: bidId,
+      if (deleteError) throw deleteError;
+
+      const offersToInsert = bidData.offers.map((offer) => ({
+        bid_id: bidData.bidId,
         item_name: offer.itemName,
         unit_price: offer.unitPrice,
         is_available: offer.isAvailable
@@ -149,27 +164,31 @@ export const useUpdateRequestBidMutation = () => {
         .insert(offersToInsert);
 
       if (offersError) throw offersError;
+      
+      return true;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["bid-request-bids", variables.requestId] });
-    },
+    }
   });
 };
 
-export const useFetchUserBid = (requestId?: string, userId?: string) => {
+export const useFetchUserBid = (bidId: string) => {
   return useQuery({
-    queryKey: ["user-bid", requestId, userId],
+    queryKey: ["hardware-bid", bidId],
     queryFn: async () => {
-      if (!requestId || !userId) return null;
       const { data, error } = await supabase
         .from("hardware_bids")
-        .select("id")
-        .eq("request_id", requestId)
-        .eq("bidder_user_id", userId)
+        .select(`
+          *,
+          offers:bid_offers(*)
+        `)
+        .eq("id", bidId)
         .maybeSingle();
+        
       if (error) throw error;
       return data;
     },
-    enabled: Boolean(requestId && userId),
+    enabled: !!bidId
   });
 };
