@@ -98,17 +98,23 @@ export default function LiveQuote() {
     }
 
     const GoogleMapsLink = ({ bid }: { bid: any }) => {
-        const address = bid.address || bid.profile?.address || bid.sector;
-        const label = (address && address !== "Dirección no disponible") ? address : "Ver ubicación";
+        const address = (bid.address && bid.address !== "Dirección no disponible") ? bid.address : null;
+        const storeLocationLabel = address || bid.profile?.sector || bid.sector;
         
-        // Priority for Coordinates, then Address, then Store Name
+        if (!storeLocationLabel) {
+            return (
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                    <MapPin className="h-3 w-3 shrink-0" />
+                    <span className="truncate">Dirección no disponible</span>
+                </div>
+            );
+        }
+
         let query = "";
         if (bid.lat && bid.lng) {
             query = `${bid.lat},${bid.lng}`;
-        } else if (address && address !== "Dirección no disponible") {
-            query = encodeURIComponent(`${bid.storeName} ${address}`);
         } else {
-            query = encodeURIComponent(bid.storeName);
+            query = encodeURIComponent(`${bid.storeName} ${storeLocationLabel}`);
         }
         
         return (
@@ -116,11 +122,11 @@ export default function LiveQuote() {
                 href={`https://www.google.com/maps/search/?api=1&query=${query}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 text-xs text-primary hover:underline mt-0.5"
+                className="flex items-center gap-1 text-xs text-primary hover:underline mt-0.5 group"
             >
-                <MapPin className="h-3 w-3" />
-                <span className="truncate max-w-[180px]">{label}</span>
-                <ExternalLink className="h-2.5 w-2.5" />
+                <MapPin className="h-3 w-3 text-primary/70 shrink-0" />
+                <span className="truncate max-w-[180px]">{storeLocationLabel}</span>
+                <ExternalLink className="h-2.5 w-2.5 opacity-60 group-hover:opacity-100 transition-opacity" />
             </a>
         );
     };
