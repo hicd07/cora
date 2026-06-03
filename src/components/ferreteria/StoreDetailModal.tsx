@@ -125,12 +125,6 @@ export function StoreDetailModal({ isOpen, onClose, store }: StoreDetailModalPro
                 )}
               </div>
             </div>
-
-            <Button variant="secondary" className="w-full h-11 rounded-xl gap-2 text-xs font-semibold" asChild>
-              <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer">
-                <MapPin className="h-4 w-4" /> Cómo llegar (Google Maps)
-              </a>
-            </Button>
           </div>
         </div>
       </DialogContent>
