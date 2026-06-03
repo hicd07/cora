@@ -24,6 +24,8 @@ export const AdminManualBidModal = ({
   selectedStore,
 }: AdminManualBidModalProps) => {
   const [storeName, setStoreName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [website, setWebsite] = useState("");
   const [deliveryTime, setDeliveryTime] = useState("24 horas");
   const [prices, setPrices] = useState<Record<string, string>>({});
   const createBid = useCreateManualBidMutation();
@@ -31,10 +33,14 @@ export const AdminManualBidModal = ({
   useEffect(() => {
     if (selectedStore?.name) {
       setStoreName(selectedStore.name);
+      setPhone(selectedStore.phone || "");
+      setWebsite(selectedStore.website || "");
     } else {
       setStoreName("");
+      setPhone("");
+      setWebsite("");
     }
-    // Reiniciar precios al abrir con nueva solicitud
+    
     const initialPrices: Record<string, string> = {};
     bidRequest.items.forEach((item) => {
       initialPrices[item.id] = "";
@@ -62,9 +68,10 @@ export const AdminManualBidModal = ({
       await createBid.mutateAsync({
         requestId: bidRequest.id,
         storeName,
+        phone,
+        website,
         deliveryTime,
         items,
-        // Si tenemos el ID de la tienda externa, lo pasamos para vincularlo si es necesario
         externalStoreId: selectedStore?.id || null,
       });
       showSuccess("Cotización registrada exitosamente");
@@ -91,7 +98,6 @@ export const AdminManualBidModal = ({
         </DialogHeader>
 
         <div className="px-6 space-y-6 pb-6">
-          {/* Información de la Tienda */}
           <div className="bg-muted/30 rounded-2xl p-4 border border-border/50 space-y-3">
             <div className="flex items-start gap-3">
               <div className="bg-primary/10 p-2 rounded-xl">
@@ -116,20 +122,6 @@ export const AdminManualBidModal = ({
                     )}
                   </div>
                 )}
-                {selectedStore?.phone && (
-                  <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                    <Phone className="h-3 w-3 shrink-0" />
-                    <span>{selectedStore.phone}</span>
-                  </div>
-                )}
-                {selectedStore?.website && (
-                  <div className="flex items-center gap-1.5 text-[11px] text-primary">
-                    <Globe className="h-3 w-3 shrink-0" />
-                    <a href={selectedStore.website} target="_blank" rel="noreferrer" className="hover:underline truncate">
-                      Ver sitio web
-                    </a>
-                  </div>
-                )}
               </div>
             </div>
           </div>
@@ -145,6 +137,35 @@ export const AdminManualBidModal = ({
                 className="field-soft"
                 disabled={!!selectedStore}
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="phone" className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">Teléfono</Label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="phone"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="809-000-0000"
+                    className="field-soft pl-10"
+                  />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="website" className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">Sitio Web</Label>
+                <div className="relative">
+                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="website"
+                    value={website}
+                    onChange={(e) => setWebsite(e.target.value)}
+                    placeholder="www.ejemplo.com"
+                    className="field-soft pl-10"
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="grid gap-2">
