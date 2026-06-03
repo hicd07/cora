@@ -76,6 +76,10 @@ export const AdminManualBidModal = ({
 
   const total = Object.values(prices).reduce((acc, curr) => acc + (parseFloat(curr) || 0), 0);
 
+  const googleMapsUrl = selectedStore?.address 
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedStore.address)}`
+    : null;
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto rounded-[2rem] p-0 border-none shadow-2xl">
@@ -98,7 +102,18 @@ export const AdminManualBidModal = ({
                 {selectedStore?.address && (
                   <div className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
                     <MapPin className="h-3 w-3 mt-0.5 shrink-0" />
-                    <span>{selectedStore.address}</span>
+                    {googleMapsUrl ? (
+                      <a 
+                        href={googleMapsUrl} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="hover:text-primary hover:underline transition-colors leading-relaxed"
+                      >
+                        {selectedStore.address}
+                      </a>
+                    ) : (
+                      <span>{selectedStore.address}</span>
+                    )}
                   </div>
                 )}
                 {selectedStore?.phone && (
