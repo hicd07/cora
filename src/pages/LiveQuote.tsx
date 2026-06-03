@@ -59,17 +59,17 @@ export default function LiveQuote() {
         const storeData: HardwareStore = {
             id: bid.id,
             name: bid.storeName,
-            sector: bid.profile?.sector || bid.address || null,
+            sector: bid.sector || bid.profile?.sector || bid.address || null,
             address: (bid.address && bid.address !== "Dirección no disponible") ? bid.address : (bid.profile?.address || null),
             lat: bid.lat,
             lng: bid.lng,
             isVerified: !!bid.bidderUserId,
             rating: bid.rating,
             reviewsCount: 0,
-            deliveryCoverage: bid.profile?.deliveryCoverage || [],
+            deliveryCoverage: bid.profile?.delivery_coverage || [],
             phone: bid.phone,
             website: bid.website,
-            coverUrl: bid.profile?.coverUrl
+            coverUrl: bid.profile?.cover_url
         };
         setSelectedStore(storeData);
         setIsStoreModalOpen(true);
@@ -98,8 +98,9 @@ export default function LiveQuote() {
     }
 
     const GoogleMapsLink = ({ bid }: { bid: any }) => {
+        // Mejoramos el fallback de dirección usando el sector del perfil si el bid no tiene dirección explícita
         const address = (bid.address && bid.address !== "Dirección no disponible") ? bid.address : null;
-        const storeLocationLabel = address || bid.profile?.sector || bid.sector;
+        const storeLocationLabel = address || bid.sector || bid.profile?.sector;
         
         if (!storeLocationLabel) {
             return (
