@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAdminActiveBids, useAdminNearbyStores } from "@/hooks/useAdmin";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -61,10 +62,14 @@ export const AdminAuctionsList = () => {
 };
 
 function BidCard({ bid, onAddBid }: { bid: BidRequest; onAddBid: (bid: BidRequest, storeName?: string) => void }) {
+  const navigate = useNavigate();
+  const [hasSearched, setHasSearched] = useState(false);
+  
   const { data: nearbyStores = [], isLoading: isLoadingStores } = useAdminNearbyStores(
     bid.lat || null,
     bid.lng || null,
-    bid.radiusKm || 5
+    bid.radiusKm || 5,
+    hasSearched
   );
 
   const googleMapsUrl = bid.lat && bid.lng 
@@ -108,28 +113,51 @@ function BidCard({ bid, onAddBid }: { bid: BidRequest; onAddBid: (bid: BidReques
         <div className="space-y-3">
           <div className="flex justify-between items-center">
             <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Ferreterías Cercanas</h4>
-            <Button size="sm" variant="ghost" className="h-7 text-[10px] gap-1 px-2" onClick={() => onAddBid(bid)}>
-              <Plus className="h-3 w-3" /> Manual
-            </Button>
+            <div className="flex gap-2">
+              {!hasSearched && (
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="h-7 text-[10px] gap-1 px-2 border-primary/30 text-primary hover:bg-primary/5" 
+                  onClick={() => setHasSearched(true)}
+                >
+                  <Search className="h-3 w-3" /> Buscar en zona
+                </Button>
+              )}
+              <Button size="sm" variant="ghost" className="h-7 text-[10px] gap-1 px-2" onClick={() => onAddBid(bid)}>
+                <Plus className="h-3 w-3" /> Manual
+              </Button>
+            </div>
           </div>
           
-          {isLoadingStores ? (
-            <Skeleton className="h-10 w-full rounded-xl" />
-          ) : nearbyStores.length === 0 ? (
-            <p className="text-[11px] text-muted-foreground italic">No hay tiendas en caché.</p>
-          ) : (
-            <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
-              {nearbyStores.slice(0, 3).map((store) => (
-                <div key={store.id} className="flex items-center justify-between p-2 rounded-xl bg-background border border-border/50 text-[11px]">
-                  <div className="flex items-center gap-2 overflow-hidden">
-                    <Store className="h-3.5 w-3.5 text-primary shrink-0" />
-                    <span className="truncate font-medium">{store.name}</span>
+          {hasSearched ? (
+            isLoadingStores ? (
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-full rounded-xl" />
+                <Skeleton className="h-10 w-full rounded-xl" />
+              </div>
+            ) : nearbyStores.length === 0 ? (
+              <p className="text-[11px] text-muted-foreground italic bg-muted/20 p-3 rounded-xl border border-dashed text-center">
+                No se encontraron tiendas en esta área.
+              </p>
+            ) : (
+              <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                {nearbyStores.map((store) => (
+                  <div key={store.id} className="flex items-center justify-between p-2 rounded-xl bg-background border border-border/50 text-[11px] hover:border-primary/30 transition-colors">
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <Store className="h-3.5 w-3.5 text-primary shrink-0" />
+                      <span className="truncate font-medium">{store.name}</span>
+                    </div>
+                    <Button size="sm" variant="outline" className="h-6 px-2 text-[10px] rounded-lg" onClick={() => onAddBid(bid, store.name)}>
+                      Cotizar
+                    </Button>
                   </div>
-                  <Button size="sm" variant="outline" className="h-6 px-2 text-[10px] rounded-lg" onClick={() => onAddBid(bid, store.name)}>
-                    Cotizar
-                  </Button>
-                </div>
-              ))}
+                ))}
+              </div>
+            )
+          ) : (
+            <div className="bg-muted/10 border border-dashed rounded-xl p-4 text-center">
+              <p className="text-[11px] text-muted-foreground">Presiona "Buscar en zona" para ver tiendas locales.</p>
             </div>
           )}
         </div>
@@ -139,7 +167,12 @@ function BidCard({ bid, onAddBid }: { bid: BidRequest; onAddBid: (bid: BidReques
             <Clock className="h-3 w-3" />
             {new Date(bid.createdAt).toLocaleDateString()}
           </div>
-          <Button size="sm" variant="secondary" className="h-8 gap-1.5 text-[11px] rounded-xl" onClick={() => window.location.href = `/quote/${bid.id}/live`}>
+          <Button 
+            size="sm" 
+            variant="secondary" 
+            className="h-8 gap-1.5 text-[11px] rounded-xl hover:bg-primary hover:text-white transition-colors" 
+            onClick={() => navigate(`/quote/${bid.id}/live`)}
+          >
             <ExternalLink className="h-3 w-3" /> Ver Vivo
           </Button>
         </div>

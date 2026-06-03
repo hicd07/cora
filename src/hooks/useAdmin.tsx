@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminMode } from "@/contexts/AdminModeContext";
+import { mapBidRequestRow } from "@/lib/mappers/bidRequests";
 
 export interface AdminUser {
   id: string;
@@ -225,15 +226,18 @@ export const useAdminActiveBids = () => {
 
       if (itemError) throw itemError;
 
-      return (requests || []).map(r => ({
-        ...r,
-        items: (items || []).filter(i => i.request_id === r.id)
-      }));
+      // Usar mappers para normalizar los datos a CamelCase y tipos correctos
+      return (requests || []).map(r => mapBidRequestRow(r, items || []));
     },
   });
 };
 
-export const useAdminNearbyStores = (lat: number | null, lng: number | null, radiusKm: number = 5) => {
+export const useAdminNearbyStores = (
+  lat: number | null,
+  lng: number | null,
+  radiusKm: number = 5,
+  enabled: boolean = true
+) => {
   return useQuery({
     queryKey: ["admin-nearby-stores", lat, lng, radiusKm],
     queryFn: async () => {
@@ -252,7 +256,7 @@ export const useAdminNearbyStores = (lat: number | null, lng: number | null, rad
       
       return data.results || [];
     },
-    enabled: !!lat && !!lng,
+    enabled: enabled && !!lat && !!lng,
     staleTime: 1000 * 60 * 30, // 30 minutos de cache en cliente
   });
 };

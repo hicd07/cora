@@ -63,7 +63,7 @@ const ProfileErrorScreen = ({ onRetry, onSignOut }: { onRetry: () => void; onSig
 );
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { session, profile, loading, profileError, refreshProfile, signOut } = useSessionContext();
+  const { session, profile, loading, profileError, refreshProfile, signOut, isAdmin } = useSessionContext();
 
   if (loading) return <FullScreenLoader />;
   if (!session) return <Navigate to="/auth" replace />;
@@ -77,7 +77,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <FullScreenLoader />;
   }
 
-  if (!profile.onboarded) return <Navigate to="/auth" replace />;
+  // Permite acceso si es administrador, saltando la verificación de onboarding
+  if (!profile.onboarded && !isAdmin) return <Navigate to="/auth" replace />;
 
   return <>{children}</>;
 };
