@@ -73,12 +73,13 @@ export const useUpdateSetting = () => {
     mutationFn: async ({ key, value }: { key: string; value: string }) => {
       const { data: { session } } = await supabase.auth.getSession();
       
-      // Fetch existing to preserve is_secret if it already exists
+      // Fetch existing to preserve is_secret if it already exists. 
+      // Using maybeSingle() avoids 406 errors when the row doesn't exist yet.
       const { data: existing } = await supabase
         .from("admin_settings")
         .select("is_secret")
         .eq("key", key)
-        .single();
+        .maybeSingle();
 
       // Determine is_secret: use existing or fallback to keyword check
       const isSecret = existing ? existing.is_secret : (key.toLowerCase().includes("key") || key.toLowerCase().includes("secret"));
