@@ -13,28 +13,38 @@ export const useRequestBids = (requestId?: string) => {
         .from("hardware_bids")
         .select(`
           *,
-          offers:bid_offers(*),
-          profiles (
-            cover_url,
-            is_public,
-            sector,
-            delivery_coverage,
-            full_name,
-            store_name
-          )
+          offers:bid_offers(*)
         `)
         .eq("request_id", requestId)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      return (data || []).map((bid) => {
+      const bids = data || [];
+      const bidderIds = [...new Set(bids.map((bid) => bid.bidder_user_id).filter(Boolean))];
+
+      let profilesMap: Record<string, any> = {};
+      if (bidderIds.length > 0) {
+        const { data: profiles, error: profilesError } = await supabase
+          .from("profiles")
+          .select("id, cover_url, is_public, sector, delivery_coverage, full_name, store_name")
+          .in("id", bidderIds);
+
+        if (!profilesError && profiles) {
+          profilesMap = profiles.reduce((acc, profile) => {
+            acc[profile.id] = profile;
+            return acc;
+          }, {} as Record<string, any>);
+        }
+      }
+
+      return bids.map((bid) => {
         // Manejar el perfil cruzado
-        const profile = bid.profiles ? (Array.isArray(bid.profiles) ? bid.profiles[0] : bid.profiles) : null;
+        const profile = bid.bidder_user_id ? profilesMap[bid.bidder_user_id] : null;
         
         return {
           id: bid.id,
-          storeId: bid.bidder_user_id || bid.id, 
+          storeId: bid.bidder_user_id || bid.id,
           storeName: bid.store_name,
           bidderUserId: bid.bidder_user_id,
           rating: bid.rating || 5.0,
