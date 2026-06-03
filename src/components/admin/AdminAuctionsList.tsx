@@ -15,11 +15,11 @@ export const AdminAuctionsList = () => {
   const { data: bids = [], isLoading } = useAdminActiveBids();
   const [selectedBid, setSelectedBid] = useState<BidRequest | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [defaultStoreName, setDefaultStoreName] = useState("");
+  const [selectedStore, setSelectedStore] = useState<any>(null);
 
-  const handleAddBid = (bid: BidRequest, storeName: string = "") => {
+  const handleAddBid = (bid: BidRequest, store: any = null) => {
     setSelectedBid(bid);
-    setDefaultStoreName(storeName);
+    setSelectedStore(store);
     setIsModalOpen(true);
   };
 
@@ -54,14 +54,14 @@ export const AdminAuctionsList = () => {
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           bidRequest={selectedBid}
-          defaultStoreName={defaultStoreName}
+          selectedStore={selectedStore}
         />
       )}
     </div>
   );
 };
 
-function BidCard({ bid, onAddBid }: { bid: BidRequest; onAddBid: (bid: BidRequest, storeName?: string) => void }) {
+function BidCard({ bid, onAddBid }: { bid: BidRequest; onAddBid: (bid: BidRequest, store?: any) => void }) {
   const navigate = useNavigate();
   const [hasSearched, setHasSearched] = useState(false);
   
@@ -146,13 +146,13 @@ function BidCard({ bid, onAddBid }: { bid: BidRequest; onAddBid: (bid: BidReques
               </p>
             ) : (
               <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                {nearbyStores.map((store) => (
-                  <div key={store.id} className="flex items-center justify-between p-2 rounded-xl bg-background border border-border/50 text-[11px] hover:border-primary/30 transition-colors">
+                {nearbyStores.map((store: any) => (
+                  <div key={store.id || store.place_id} className="flex items-center justify-between p-2 rounded-xl bg-background border border-border/50 text-[11px] hover:border-primary/30 transition-colors">
                     <div className="flex items-center gap-2 overflow-hidden">
                       <Store className="h-3.5 w-3.5 text-primary shrink-0" />
                       <span className="truncate font-medium">{store.name}</span>
                     </div>
-                    <Button size="sm" variant="outline" className="h-6 px-2 text-[10px] rounded-lg" onClick={() => onAddBid(bid, store.name)}>
+                    <Button size="sm" variant="outline" className="h-6 px-2 text-[10px] rounded-lg" onClick={() => onAddBid(bid, store)}>
                       Cotizar
                     </Button>
                   </div>
