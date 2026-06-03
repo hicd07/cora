@@ -16,6 +16,7 @@ import { useCreateManualBidMutation } from "@/hooks/useAdmin";
 import { BidRequest } from "@/lib/types";
 import { showError, showSuccess } from "@/utils/toast";
 import { Store, MapPin, Globe, Phone, Clock, Calculator, ExternalLink } from "lucide-react";
+import { DELIVERY_OPTIONS } from "@/lib/constants";
 
 interface AdminManualBidModalProps {
   isOpen: boolean;
@@ -23,16 +24,6 @@ interface AdminManualBidModalProps {
   bidRequest: BidRequest;
   selectedStore?: any;
 }
-
-const DELIVERY_OPTIONS = [
-  "Inmediata",
-  "2 a 4 horas",
-  "24 horas",
-  "48 horas",
-  "72 horas",
-  "4-5 días hábiles",
-  "1 semana",
-];
 
 export const AdminManualBidModal = ({
   isOpen,
@@ -43,7 +34,7 @@ export const AdminManualBidModal = ({
   const [storeName, setStoreName] = useState("");
   const [phone, setPhone] = useState("");
   const [website, setWebsite] = useState("");
-  const [deliveryTime, setDeliveryTime] = useState("24 horas");
+  const [deliveryTime, setDeliveryTime] = useState<string>(DELIVERY_OPTIONS[2]); // Default: 24 horas
   const [prices, setPrices] = useState<Record<string, string>>({});
   const createBid = useCreateManualBidMutation();
 

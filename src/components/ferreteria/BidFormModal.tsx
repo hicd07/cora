@@ -6,6 +6,7 @@ import { useCreateRequestBidMutation } from "@/hooks/useRequestBids";
 import { BidRequest } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { showError, showSuccess } from "@/utils/toast";
+import { DELIVERY_OPTIONS } from "@/lib/constants";
 
 interface BidFormModalProps {
   isOpen: boolean;
@@ -26,7 +27,7 @@ const fieldClassName = "field-soft appearance-none pr-10";
 export const BidFormModal: React.FC<BidFormModalProps> = ({ isOpen, onClose, request }) => {
   const createBid = useCreateRequestBidMutation();
   const [items, setItems] = useState<ItemQuote[]>([]);
-  const [deliveryTime, setDeliveryTime] = useState("Mismo día (4-6 horas)");
+  const [deliveryTime, setDeliveryTime] = useState<string>(DELIVERY_OPTIONS[1]);
 
   useEffect(() => {
     if (request) {
@@ -39,7 +40,7 @@ export const BidFormModal: React.FC<BidFormModalProps> = ({ isOpen, onClose, req
           isAvailable: true,
         })),
       );
-      setDeliveryTime("Mismo día (4-6 horas)");
+      setDeliveryTime(DELIVERY_OPTIONS[1]);
     }
   }, [request]);
 
@@ -193,10 +194,11 @@ export const BidFormModal: React.FC<BidFormModalProps> = ({ isOpen, onClose, req
               <Clock className="h-3.5 w-3.5 text-primary" />Tiempo de entrega estimado
             </label>
             <select value={deliveryTime} onChange={(e) => setDeliveryTime(e.target.value)} className={fieldClassName}>
-              <option value="Inmediato (1-2 horas)">Inmediato (1-2 horas)</option>
-              <option value="Mismo día (4-6 horas)">Mismo día (4-6 horas)</option>
-              <option value="Siguiente día (24 horas)">Siguiente día (24 horas)</option>
-              <option value="48 horas">48 horas</option>
+              {DELIVERY_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
             </select>
           </div>
 

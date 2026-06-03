@@ -7,6 +7,7 @@ import { useRequestBids } from "@/hooks/useRequestBids";
 import { BidRequest } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { showError, showSuccess } from "@/utils/toast";
+import { DELIVERY_OPTIONS } from "@/lib/constants";
 
 interface BidComparisonModalProps {
   isOpen: boolean;
@@ -26,11 +27,11 @@ const getDeliveryWeight = (time: string): number => {
 };
 
 const getFriendlyDeliveryTime = (weight: number): string => {
-  if (weight <= 2) return "Inmediato (1-2 horas)";
-  if (weight <= 6) return "Mismo día (4-6 horas)";
-  if (weight <= 24) return "Siguiente día (24 horas)";
-  if (weight <= 48) return "48 horas";
-  if (weight <= 72) return "72 horas";
+  if (weight <= 2) return DELIVERY_OPTIONS[0];
+  if (weight <= 6) return DELIVERY_OPTIONS[1];
+  if (weight <= 24) return DELIVERY_OPTIONS[2];
+  if (weight <= 48) return DELIVERY_OPTIONS[3];
+  if (weight <= 72) return DELIVERY_OPTIONS[4];
   return "A coordinar / Variable";
 };
 
@@ -450,5 +451,3 @@ export const BidComparisonModal: React.FC<BidComparisonModalProps> = ({ isOpen, 
     </div>
   );
 };
-
-export default BidComparisonModal;
