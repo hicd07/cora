@@ -282,7 +282,7 @@ export default function LiveQuote() {
                                                                 <GoogleMapsLink bid={bid} />
                                                             </div>
                                                         </div>
-                                                        <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 shrink-0">Portal</Badge>
+                                                        <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 shrink-0">Verificado</Badge>
                                                     </div>
                                                     <div className="space-y-2 mt-4 flex-grow">
                                                         {(bid.offers || []).slice(0, 3).map((offer: any, idx: number) => (
