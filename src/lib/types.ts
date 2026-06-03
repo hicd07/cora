@@ -1,5 +1,7 @@
+export type BidStatus = "active" | "completed" | "draft";
+
 export interface QuoteItem {
-  id?: string;
+  id: string;
   name: string;
   quantity: number;
   unit: string;
@@ -11,48 +13,30 @@ export interface BidRequest {
   category: string;
   deliveryAddress: string;
   sector: string;
-  status: "active" | "completed";
+  status: BidStatus;
+  state: string;
   budgetLimit: number | null;
   createdAt: string;
   expiresAt: string;
   bidsCount: number;
-  ownerUserId: string | null;
-  state: string;
+  itemsCount: number;
+  items: QuoteItem[];
   lat: number | null;
   lng: number | null;
   radiusKm: number;
-  items: QuoteItem[];
-  itemsCount: number;
 }
 
-export interface HardwareBid {
+export interface HardwareStore {
   id: string;
-  requestId: string;
-  storeId: string;
-  storeName: string;
-  rating: number;
-  deliveryTime: string;
-  createdAt: string;
-  bidderUserId: string | null;
-  offers: {
-    itemName: string;
-    unitPrice: number;
-    isAvailable: boolean;
-  }[];
-}
-
-export interface AppNotification {
-  id: string;
-  userId: string;
-  type: string;
-  title: string;
-  message: string;
-  isRead: boolean;
-  entityType: string | null;
-  entityId: string | null;
-  metadata: any; // Se añade el campo metadata solicitado
-  createdAt: string;
-  readAt: string | null;
+  name: string;
+  sector: string | null;
+  rating: number | null;
+  reviewsCount: number;
+  isVerified: boolean;
+  deliveryCoverage: string[];
+  coverUrl: string | null;
+  phone?: string | null;
+  website?: string | null;
 }
 
 export interface AppProfile {
@@ -70,13 +54,36 @@ export interface AppProfile {
   cover_url: string | null;
 }
 
-export interface HardwareStore {
+export interface BidOffer {
+  itemName: string;
+  unitPrice: number;
+  isAvailable: boolean;
+}
+
+export interface HardwareBid {
   id: string;
-  name: string;
-  sector: string | null;
-  rating: number | null;
-  reviewsCount: number;
-  isVerified: boolean;
-  deliveryCoverage: string[];
-  coverUrl: string | null;
+  requestId: string;
+  storeId: string;
+  storeName: string;
+  rating: number;
+  deliveryTime: string;
+  createdAt: string;
+  offers: BidOffer[];
+  bidderUserId?: string | null;
+  phone?: string | null;
+  website?: string | null;
+}
+
+export interface AppNotification {
+  id: string;
+  userId: string;
+  type: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  entityType: string | null;
+  entityId: string | null;
+  metadata: any;
+  createdAt: string;
+  readAt: string | null;
 }

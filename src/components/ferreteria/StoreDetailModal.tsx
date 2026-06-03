@@ -1,5 +1,5 @@
 import React from "react";
-import { MapPin, ShieldCheck, Star, Store, Truck, X } from "lucide-react";
+import { MapPin, ShieldCheck, Star, Store, Truck, X, Phone, Globe, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HardwareStore } from "@/lib/types";
 
@@ -42,7 +42,9 @@ export const StoreDetailModal: React.FC<StoreDetailProps> = ({ isOpen, onClose, 
               <Store className="h-8 w-8" />
             </div>
             <div className="pb-1 text-white">
-               <p className="text-[10px] font-bold uppercase tracking-wider text-white/80">Proveedor verificado</p>
+               <p className="text-[10px] font-bold uppercase tracking-wider text-white/80">
+                 {store.isVerified ? "Proveedor verificado" : "Proveedor externo"}
+               </p>
                <h3 className="font-display text-lg font-semibold leading-tight">{store.name}</h3>
             </div>
           </div>
@@ -66,12 +68,64 @@ export const StoreDetailModal: React.FC<StoreDetailProps> = ({ isOpen, onClose, 
             {store.isVerified && <ShieldCheck className="h-8 w-8 text-primary opacity-20" />}
           </div>
 
+          <div className="panel-muted p-4 space-y-4">
+            <h5 className="font-display flex items-center gap-2 text-sm font-semibold text-foreground">
+              <Phone className="h-4 w-4 text-primary" />Contacto Directo
+            </h5>
+            
+            <div className="space-y-3">
+              {store.phone ? (
+                <a 
+                  href={`tel:${store.phone}`} 
+                  className="flex items-center justify-between gap-3 p-3 bg-background rounded-xl border border-border/50 hover:border-primary/30 transition-all group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="bg-primary/10 p-2 rounded-lg text-primary">
+                      <Phone className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-foreground">Llamar ahora</p>
+                      <p className="text-sm text-muted-foreground">{store.phone}</p>
+                    </div>
+                  </div>
+                  <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
+                </a>
+              ) : (
+                <p className="text-xs text-muted-foreground italic px-1">Teléfono no disponible en el listado público.</p>
+              )}
+
+              {store.website ? (
+                <a 
+                  href={store.website} 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="flex items-center justify-between gap-3 p-3 bg-background rounded-xl border border-border/50 hover:border-primary/30 transition-all group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="bg-accent/10 p-2 rounded-lg text-accent-foreground">
+                      <Globe className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-foreground">Sitio web oficial</p>
+                      <p className="text-sm text-muted-foreground truncate max-w-[200px]">{store.website}</p>
+                    </div>
+                  </div>
+                  <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-accent-foreground" />
+                </a>
+              ) : (
+                <p className="text-xs text-muted-foreground italic px-1">Sin sitio web registrado.</p>
+              )}
+            </div>
+          </div>
+
           <div className="panel-muted p-4">
             <h5 className="font-display flex items-center gap-2 text-sm font-semibold text-foreground">
               <Truck className="h-4 w-4 text-primary" />Cobertura de entrega
             </h5>
             <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-              Solo se muestran zonas realmente configuradas en el perfil público del proveedor.
+              {store.isVerified 
+                ? "Zonas configuradas en el perfil público del proveedor." 
+                : "Información sujeta a disponibilidad del proveedor externo."}
             </p>
             {store.deliveryCoverage.length > 0 ? (
               <div className="mt-4 flex flex-wrap gap-2">
@@ -82,18 +136,11 @@ export const StoreDetailModal: React.FC<StoreDetailProps> = ({ isOpen, onClose, 
                 ))}
               </div>
             ) : (
-              <p className="mt-4 text-sm text-muted-foreground">Esta ferretería todavía no ha configurado su cobertura.</p>
+              <p className="mt-4 text-sm text-muted-foreground">Cobertura no especificada.</p>
             )}
           </div>
 
-          <div className="panel-strong rounded-[1.5rem] p-4">
-            <p className="section-label">Contacto</p>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              Esta versión de producción ya no muestra teléfonos o WhatsApp inventados. Cuando el esquema incorpore datos de contacto reales, aparecerán aquí.
-            </p>
-          </div>
-
-          <Button type="button" variant="outline" onClick={onClose} className="w-full justify-center">
+          <Button type="button" variant="outline" onClick={onClose} className="w-full justify-center rounded-xl">
             Cerrar detalle
           </Button>
         </div>
