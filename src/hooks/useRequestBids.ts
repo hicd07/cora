@@ -1,7 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { HardwareBid } from "@/lib/types";
-import { useSessionContext } from "@/components/auth/SessionContext";
 
 export const useRequestBids = (requestId?: string) => {
   return useQuery({
@@ -13,9 +11,19 @@ export const useRequestBids = (requestId?: string) => {
         .from("hardware_bids")
         .select(`
           *,
-          offers:bid_offers(*)
+          offers:bid_offers(*),
+          profiles:bidder_user_id (
+            cover_url,
+            is_public,
+            sector,
+            address,
+            lat,
+            lng,
+            delivery_coverage
+          )
         `)
-        .eq("request_id", requestId);
+        .eq("request_id", requestId)
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
 
@@ -25,112 +33,134 @@ export const useRequestBids = (requestId?: string) => {
         storeName: bid.store_name,
         rating: bid.rating,
         deliveryTime: bid.delivery_time,
+        shippingCost: Number(bid.shipping_cost || 0),
+        phone: bid.phone,
+        website: bid.website,
+        // Logic: prioritize bid-specific address, then profile address, then fallback
+        address: bid.address || bid.profiles?.address || null,
+        lat: bid.lat || bid.profiles?.lat,
+        lng: bid.lng || bid.profiles?.lng,
+        createdAt: bid.created_at,
         bidderUserId: bid.bidder_user_id,
-        offers: bid.offers.map((offer: any) => ({
+        profile: bid.profiles ? {
+          coverUrl: bid.profiles.cover_url,
+          isVerified: bid.profiles.is_public,
+          sector: bid.profiles.sector,
+          deliveryCoverage: bid.profiles.delivery_coverage || []
+        } : null,
+        offers: (bid.offers || []).map((offer: any) => ({
+          id: offer.id,
           itemName: offer.item_name,
           unitPrice: Number(offer.unit_price),
-          isAvailable: offer.is_available,
-        })),
-      })) as HardwareBid[];
+          isAvailable: offer.is_available
+        }))
+      }));
     },
-    enabled: !!requestId,
+    enabled: Boolean(requestId),
   });
 };
 
 export const useCreateRequestBidMutation = () => {
   const queryClient = useQueryClient();
-  const { user, profile } = useSessionContext();
-
   return useMutation({
-    mutationFn: async (data: {
-      requestId: string;
-      deliveryTime: string;
-      shippingCost: number;
-      offers: { itemName: string; unitPrice: number; isAvailable: boolean }[];
-    }) => {
+    mutationFn: async ({ requestId, deliveryTime, shippingCost, offers }: any) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("store_name, address, lat, lng, sector")
+        .eq("id", user.id)
+        .single();
+
       const { data: bid, error: bidError } = await supabase
         .from("hardware_bids")
         .insert({
-          request_id: data.requestId,
-          bidder_user_id: user?.id,
-          store_name: profile?.store_name || profile?.full_name || "Ferretería",
-          delivery_time: data.deliveryTime,
-          shipping_cost: data.shippingCost
+          request_id: requestId,
+          bidder_user_id: user.id,
+          store_name: profile?.store_name || "Ferretería",
+          address: profile?.address || profile?.sector,
+          lat: profile?.lat,
+          lng: profile?.lng,
+          delivery_time: deliveryTime,
+          shipping_cost: shippingCost
         })
         .select()
         .single();
 
       if (bidError) throw bidError;
 
+      const offersToInsert = offers.map((offer: any) => ({
+        bid_id: bid.id,
+        item_name: offer.itemName,
+        unit_price: offer.unitPrice,
+        is_available: offer.isAvailable
+      }));
+
       const { error: offersError } = await supabase
         .from("bid_offers")
-        .insert(
-          data.offers.map((offer) => ({
-            bid_id: bid.id,
-            item_name: offer.itemName,
-            unit_price: offer.unitPrice,
-            is_available: offer.isAvailable,
-          }))
-        );
+        .insert(offersToInsert);
 
       if (offersError) throw offersError;
 
       return bid;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["bid-request-bids", variables.requestId] });
       queryClient.invalidateQueries({ queryKey: ["bid-requests"] });
-      queryClient.invalidateQueries({ queryKey: ["bid-request-bids"] });
     },
   });
 };
 
 export const useUpdateRequestBidMutation = () => {
   const queryClient = useQueryClient();
-
   return useMutation({
-    mutationFn: async (data: {
-      bidId: string;
-      deliveryTime: string;
-      shippingCost: number;
-      offers: { itemName: string; unitPrice: number; isAvailable: boolean }[];
-    }) => {
-      // 1. Update the main bid row (this triggers the notification if delivery_time changes)
-      // Note: We also touch updated_at to ensure the trigger can pick it up if needed
+    mutationFn: async ({ bidId, requestId, deliveryTime, shippingCost, offers }: any) => {
       const { error: bidError } = await supabase
         .from("hardware_bids")
         .update({
-          delivery_time: data.deliveryTime,
-          shipping_cost: data.shippingCost,
-          // touching a dummy field or relying on delivery_time to fire the existing trigger
+          delivery_time: deliveryTime,
+          shipping_cost: shippingCost
         })
-        .eq("id", data.bidId);
+        .eq("id", bidId);
 
       if (bidError) throw bidError;
 
-      // 2. Delete old offers and insert new ones (simplest way to handle price updates)
-      const { error: deleteError } = await supabase
-        .from("bid_offers")
-        .delete()
-        .eq("bid_id", data.bidId);
+      await supabase.from("bid_offers").delete().eq("bid_id", bidId);
 
-      if (deleteError) throw deleteError;
+      const offersToInsert = offers.map((offer: any) => ({
+        bid_id: bidId,
+        item_name: offer.itemName,
+        unit_price: offer.unitPrice,
+        is_available: offer.isAvailable
+      }));
 
       const { error: offersError } = await supabase
         .from("bid_offers")
-        .insert(
-          data.offers.map((offer) => ({
-            bid_id: data.bidId,
-            item_name: offer.itemName,
-            unit_price: offer.unitPrice,
-            is_available: offer.isAvailable,
-          }))
-        );
+        .insert(offersToInsert);
 
       if (offersError) throw offersError;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bid-requests"] });
-      queryClient.invalidateQueries({ queryKey: ["bid-request-bids"] });
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["bid-request-bids", variables.requestId] });
     },
+  });
+};
+
+export const useFetchUserBid = (requestId?: string, userId?: string) => {
+  return useQuery({
+    queryKey: ["user-bid", requestId, userId],
+    queryFn: async () => {
+      if (!requestId || !userId) return null;
+      const { data, error } = await supabase
+        .from("hardware_bids")
+        .select("id")
+        .eq("request_id", requestId)
+        .eq("bidder_user_id", userId)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: Boolean(requestId && userId),
   });
 };
