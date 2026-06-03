@@ -1,164 +1,136 @@
-import { useEffect } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useSessionContext } from "@/components/auth/SessionContext";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { mapHardwareBidRow } from "@/lib/mappers/bidRequests";
 import { HardwareBid } from "@/lib/types";
-import { useAdminMode } from "@/contexts/AdminModeContext";
+import { useSessionContext } from "@/components/auth/SessionContext";
 
-const requestBidsKey = (requestId?: string | null, isTestMode?: boolean) => ["request-bids", requestId, isTestMode];
-
-const fetchRequestBids = async (requestId: string, isAdmin: boolean, isTestMode: boolean): Promise<HardwareBid[]> => {
-  let query = supabase
-    .from("hardware_bids")
-    .select("*")
-    .eq("request_id", requestId);
-
-  if (isAdmin) {
-    query = query.eq('is_test', isTestMode);
-  } else {
-    query = query.or('is_test.eq.false,is_test.is.null');
-  }
-
-  const { data: bids, error } = await query.order("created_at", { ascending: true });
-
-  if (error) {
-    throw error;
-  }
-
-  if (!bids || bids.length === 0) {
-    return [];
-  }
-
-  const bidIds = bids.map((bid) => bid.id);
-  const { data: offers, error: offersError } = await supabase
-    .from("bid_offers")
-    .select("*")
-    .in("bid_id", bidIds)
-    .order("item_name", { ascending: true });
-
-  if (offersError) {
-    throw offersError;
-  }
-
-  return bids.map((bid) => mapHardwareBidRow(bid, offers ?? []));
-};
-
-export const useRequestBids = (requestId?: string | null) => {
-  const queryClient = useQueryClient();
-  const { isTestMode } = useAdminMode();
-  const { isAdmin } = useSessionContext();
-
-  useEffect(() => {
-    if (!requestId) return;
-
-    const channel = supabase
-      .channel(`bids-for-${requestId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "hardware_bids",
-          filter: `request_id=eq.${requestId}`,
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: requestBidsKey(requestId, isTestMode) });
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "bid_offers",
-        },
-        () => {
-          // A bit broad, but valid. bid_offers has no request_id,
-          // we just invalidate whenever offers change.
-          queryClient.invalidateQueries({ queryKey: requestBidsKey(requestId, isTestMode) });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [requestId, queryClient, isTestMode]);
-
+export const useRequestBids = (requestId?: string) => {
   return useQuery({
-    queryKey: requestBidsKey(requestId, isTestMode),
-    queryFn: () => fetchRequestBids(requestId as string, isAdmin, isTestMode),
-    enabled: Boolean(requestId),
-    retry: 1,
+    queryKey: ["bid-request-bids", requestId],
+    queryFn: async () => {
+      if (!requestId) return [];
+      
+      const { data, error } = await supabase
+        .from("hardware_bids")
+        .select(`
+          *,
+          offers:bid_offers(*)
+        `)
+        .eq("request_id", requestId);
+
+      if (error) throw error;
+
+      return (data || []).map((bid: any) => ({
+        id: bid.id,
+        storeId: bid.bidder_user_id || bid.id,
+        storeName: bid.store_name,
+        rating: bid.rating,
+        deliveryTime: bid.delivery_time,
+        bidderUserId: bid.bidder_user_id,
+        offers: bid.offers.map((offer: any) => ({
+          itemName: offer.item_name,
+          unitPrice: Number(offer.unit_price),
+          isAvailable: offer.is_available,
+        })),
+      })) as HardwareBid[];
+    },
+    enabled: !!requestId,
   });
 };
 
-interface CreateRequestBidInput {
-  requestId: string;
-  deliveryTime: string;
-  offers: Array<{
-    itemName: string;
-    unitPrice: number;
-    isAvailable: boolean;
-  }>;
-}
-
 export const useCreateRequestBidMutation = () => {
   const queryClient = useQueryClient();
-  const { user, profile, isAdmin } = useSessionContext();
-  const { isTestMode } = useAdminMode();
+  const { user, profile } = useSessionContext();
 
   return useMutation({
-    mutationFn: async (input: CreateRequestBidInput) => {
-      if (!user) {
-        throw new Error("Debes iniciar sesión para cotizar.");
-      }
-
-      const storeName = profile?.store_name?.trim() || profile?.full_name?.trim();
-      if (!storeName) {
-        throw new Error("Completa tu perfil comercial antes de enviar una oferta.");
-      }
-
-      const { data: bid, error } = await supabase
+    mutationFn: async (data: {
+      requestId: string;
+      deliveryTime: string;
+      shippingCost: number;
+      offers: { itemName: string; unitPrice: number; isAvailable: boolean }[];
+    }) => {
+      const { data: bid, error: bidError } = await supabase
         .from("hardware_bids")
         .insert({
-          request_id: input.requestId,
-          bidder_user_id: user.id,
-          store_name: storeName,
-          rating: profile?.rating ?? 0,
-          delivery_time: input.deliveryTime,
-          is_test: isAdmin ? isTestMode : false, // Users don't have isTestMode, but admins do
+          request_id: data.requestId,
+          bidder_user_id: user?.id,
+          store_name: profile?.store_name || profile?.full_name || "Ferretería",
+          delivery_time: data.deliveryTime,
+          shipping_cost: data.shippingCost
         })
-        .select("*")
+        .select()
         .single();
 
-      if (error) {
-        throw error;
-      }
+      if (bidError) throw bidError;
 
-      const validOffers = input.offers.filter((offer) => offer.isAvailable || offer.unitPrice > 0);
-      const { error: offersError } = await supabase.from("bid_offers").insert(
-        validOffers.map((offer) => ({
-          bid_id: bid.id,
-          item_name: offer.itemName,
-          unit_price: offer.unitPrice,
-          is_available: offer.isAvailable,
-        })),
-      );
+      const { error: offersError } = await supabase
+        .from("bid_offers")
+        .insert(
+          data.offers.map((offer) => ({
+            bid_id: bid.id,
+            item_name: offer.itemName,
+            unit_price: offer.unitPrice,
+            is_available: offer.isAvailable,
+          }))
+        );
 
-      if (offersError) {
-        await supabase.from("hardware_bids").delete().eq("id", bid.id);
-        throw offersError;
-      }
+      if (offersError) throw offersError;
 
       return bid;
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: requestBidsKey(variables.requestId, isTestMode) });
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bid-requests"] });
-      queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      queryClient.invalidateQueries({ queryKey: ["notifications", "unread-count"] });
+      queryClient.invalidateQueries({ queryKey: ["bid-request-bids"] });
+    },
+  });
+};
+
+export const useUpdateRequestBidMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: {
+      bidId: string;
+      deliveryTime: string;
+      shippingCost: number;
+      offers: { itemName: string; unitPrice: number; isAvailable: boolean }[];
+    }) => {
+      // 1. Update the main bid row (this triggers the notification if delivery_time changes)
+      // Note: We also touch updated_at to ensure the trigger can pick it up if needed
+      const { error: bidError } = await supabase
+        .from("hardware_bids")
+        .update({
+          delivery_time: data.deliveryTime,
+          shipping_cost: data.shippingCost,
+          // touching a dummy field or relying on delivery_time to fire the existing trigger
+        })
+        .eq("id", data.bidId);
+
+      if (bidError) throw bidError;
+
+      // 2. Delete old offers and insert new ones (simplest way to handle price updates)
+      const { error: deleteError } = await supabase
+        .from("bid_offers")
+        .delete()
+        .eq("bid_id", data.bidId);
+
+      if (deleteError) throw deleteError;
+
+      const { error: offersError } = await supabase
+        .from("bid_offers")
+        .insert(
+          data.offers.map((offer) => ({
+            bid_id: data.bidId,
+            item_name: offer.itemName,
+            unit_price: offer.unitPrice,
+            is_available: offer.isAvailable,
+          }))
+        );
+
+      if (offersError) throw offersError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bid-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["bid-request-bids"] });
     },
   });
 };
