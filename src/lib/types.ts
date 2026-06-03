@@ -1,3 +1,5 @@
+import { LucideIcon } from "lucide-react";
+
 export interface QuoteItem {
   id: string;
   name: string;
@@ -11,8 +13,8 @@ export interface BidRequest {
   category: string;
   sector: string;
   deliveryAddress: string;
-  lat: number | null;
-  lng: number | null;
+  lat: number;
+  lng: number;
   radiusKm: number;
   status: string;
   state: string;
@@ -21,23 +23,49 @@ export interface BidRequest {
   expiresAt: string;
   items: QuoteItem[];
   itemsCount: number;
+  bidsCount: number;
+  ownerUserId?: string;
   userBidId?: string | null;
 }
 
-export interface HardwareStore {
+export interface BidOffer {
+  id?: string;
+  bidId?: string;
+  itemName: string;
+  unitPrice: number;
+  isAvailable: boolean;
+}
+
+export interface HardwareBid {
   id: string;
-  name: string;
-  sector: string | null;
-  address: string | null;
-  lat?: number | null;
-  lng?: number | null;
-  isVerified: boolean;
+  requestId: string;
+  storeName: string;
+  storeId: string;
+  bidderUserId?: string;
   rating: number;
-  reviewsCount: number;
-  deliveryCoverage: string[];
-  phone?: string | null;
-  website?: string | null;
-  coverUrl?: string | null;
+  deliveryTime: string;
+  shippingCost: number;
+  createdAt: string;
+  offers: BidOffer[];
+  phone?: string;
+  website?: string;
+  address?: string;
+  lat?: number;
+  lng?: number;
+}
+
+export interface AppNotification {
+  id: string;
+  userId: string;
+  type: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+  readAt?: string | null;
+  entityType?: string;
+  entityId?: string;
+  metadata?: any;
 }
 
 export interface AppProfile {
@@ -48,25 +76,28 @@ export interface AppProfile {
   onboarded: boolean;
   store_name: string | null;
   sector: string | null;
-  address?: string | null;
-  lat?: number | null;
-  lng?: number | null;
   delivery_coverage: string[];
   is_public: boolean;
   rating: number | null;
   reviews_count: number;
   cover_url: string | null;
+  address?: string | null;
+  lat?: number | null;
+  lng?: number | null;
 }
 
-export interface AppNotification {
+export interface HardwareStore {
   id: string;
-  userId: string;
-  type: string;
-  title: string;
-  message: string;
-  isRead: boolean;
-  entityType?: string;
-  entityId?: string;
-  metadata: Record<string, any>;
-  createdAt: string;
+  name: string;
+  sector: string | null;
+  address: string | null;
+  lat: number | null;
+  lng: number | null;
+  isVerified: boolean;
+  rating: number;
+  reviewsCount: number;
+  deliveryCoverage: string[];
+  phone?: string;
+  website?: string;
+  coverUrl?: string | null;
 }

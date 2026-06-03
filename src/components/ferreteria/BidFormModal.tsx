@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { AlertTriangle, Check, Clock, X, Truck, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useCreateRequestBidMutation, useUpdateRequestBidMutation, useFetchUserBid } from "@/hooks/useRequestBids";
+import { useCreateRequestBidMutation, useUpdateRequestBidMutation } from "@/hooks/useRequestBids";
 import { BidRequest } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { showError, showSuccess, showLoading, dismissToast } from "@/utils/toast";
@@ -21,6 +21,12 @@ interface ItemQuote {
   unit: string;
   unitPrice: number;
   isAvailable: boolean;
+}
+
+interface SupabaseOffer {
+  item_name: string;
+  unit_price: number;
+  is_available: boolean;
 }
 
 const fieldClassName = "field-soft appearance-none pr-10";
@@ -74,7 +80,9 @@ export const BidFormModal: React.FC<BidFormModalProps> = ({ isOpen, onClose, req
       setDeliveryTime(bid.delivery_time);
       setShippingCost(String(bid.shipping_cost || 0));
 
-      const offerMap = new Map(bid.offers.map((o: any) => [o.item_name, o]));
+      const offerMap = new Map<string, SupabaseOffer>(
+        (bid.offers as SupabaseOffer[]).map((o) => [o.item_name, o])
+      );
       
       setItems(
         request.items.map((item) => {

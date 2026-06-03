@@ -23,6 +23,7 @@ interface AdminManualBidModalProps {
   onClose: () => void;
   bidRequest: BidRequest;
   selectedStore?: any;
+  defaultStoreName?: string;
 }
 
 export const AdminManualBidModal = ({
@@ -30,6 +31,7 @@ export const AdminManualBidModal = ({
   onClose,
   bidRequest,
   selectedStore,
+  defaultStoreName,
 }: AdminManualBidModalProps) => {
   const [storeName, setStoreName] = useState("");
   const [phone, setPhone] = useState("");
@@ -43,31 +45,31 @@ export const AdminManualBidModal = ({
   const createBid = useCreateManualBidMutation();
 
   useEffect(() => {
-    if (selectedStore?.name) {
-      setStoreName(selectedStore.name);
+    if (selectedStore?.name || defaultStoreName) {
+      setStoreName(selectedStore?.name || defaultStoreName || "");
       
       const extractedPhone = 
-        selectedStore.phone || 
-        selectedStore.formatted_phone_number || 
-        selectedStore.international_phone_number || 
-        selectedStore.phone_e164 ||
+        selectedStore?.phone || 
+        selectedStore?.formatted_phone_number || 
+        selectedStore?.international_phone_number || 
+        selectedStore?.phone_e164 ||
         "";
         
       const extractedWebsite = 
-        selectedStore.website || 
-        selectedStore.url || 
+        selectedStore?.website || 
+        selectedStore?.url || 
         "";
 
       const extractedAddress = 
-        selectedStore.address || 
-        selectedStore.formatted_address || 
+        selectedStore?.address || 
+        selectedStore?.formatted_address || 
         "";
 
       setPhone(extractedPhone);
       setWebsite(extractedWebsite);
       setAddress(extractedAddress);
-      setLat(selectedStore.lat || null);
-      setLng(selectedStore.lng || null);
+      setLat(selectedStore?.lat || null);
+      setLng(selectedStore?.lng || null);
     } else {
       setStoreName("");
       setPhone("");
@@ -83,7 +85,7 @@ export const AdminManualBidModal = ({
     });
     setPrices(initialPrices);
     setShippingCost("0");
-  }, [selectedStore, bidRequest, isOpen]);
+  }, [selectedStore, defaultStoreName, bidRequest, isOpen]);
 
   const handlePriceChange = (itemId: string, value: string) => {
     setPrices((prev) => ({ ...prev, [itemId]: value }));
@@ -148,7 +150,7 @@ export const AdminManualBidModal = ({
                 <Store className="h-5 w-5 text-primary" />
               </div>
               <div className="flex-1 space-y-1">
-                <h3 className="font-bold text-sm leading-tight">{selectedStore?.name || "Ingreso Manual"}</h3>
+                <h3 className="font-bold text-sm leading-tight">{selectedStore?.name || defaultStoreName || "Ingreso Manual"}</h3>
                 {address && (
                   <div className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
                     <MapPin className="h-3 w-3 mt-0.5 shrink-0" />

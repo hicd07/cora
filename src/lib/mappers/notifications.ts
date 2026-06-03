@@ -1,4 +1,4 @@
-import { AppNotification } from "../types";
+import { AppNotification } from "@/lib/types";
 
 export const mapNotificationRow = (row: any): AppNotification => ({
   id: row.id,
@@ -9,7 +9,7 @@ export const mapNotificationRow = (row: any): AppNotification => ({
   isRead: row.is_read,
   entityType: row.entity_type,
   entityId: row.entity_id,
-  metadata: row.metadata ?? {}, // Corrección del error TS2353
+  metadata: row.metadata,
   createdAt: row.created_at,
   readAt: row.read_at,
 });
