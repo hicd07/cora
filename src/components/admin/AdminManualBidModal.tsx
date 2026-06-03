@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useCreateManualBidMutation } from "@/hooks/useAdmin";
 import { BidRequest } from "@/lib/types";
 import { showError, showSuccess } from "@/utils/toast";
-import { Store, MapPin, Globe, Phone, Clock, Calculator } from "lucide-react";
+import { Store, MapPin, Globe, Phone, Clock, Calculator, ExternalLink } from "lucide-react";
 
 interface AdminManualBidModalProps {
   isOpen: boolean;
@@ -156,27 +156,47 @@ export const AdminManualBidModal = ({
               <div className="grid gap-2">
                 <Label htmlFor="phone" className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">Teléfono</Label>
                 <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <Input
                     id="phone"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="Sin teléfono"
-                    className="field-soft pl-10"
+                    className="field-soft pl-10 pr-10"
                   />
+                  {phone && (
+                    <a 
+                      href={`tel:${phone.replace(/\s+/g, '')}`}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-primary/10 rounded-lg text-primary hover:bg-primary hover:text-white transition-all shadow-sm"
+                      title="Llamar"
+                    >
+                      <Phone className="h-3.5 w-3.5" />
+                    </a>
+                  )}
                 </div>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="website" className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">Sitio Web</Label>
                 <div className="relative">
-                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <Input
                     id="website"
                     value={website}
                     onChange={(e) => setWebsite(e.target.value)}
                     placeholder="Sin sitio web"
-                    className="field-soft pl-10"
+                    className="field-soft pl-10 pr-10"
                   />
+                  {website && (
+                    <a 
+                      href={website.startsWith('http') ? website : `https://${website}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-primary/10 rounded-lg text-primary hover:bg-primary hover:text-white transition-all shadow-sm"
+                      title="Ver sitio"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  )}
                 </div>
               </div>
             </div>
