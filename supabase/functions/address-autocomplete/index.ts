@@ -1,11 +1,12 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const GOOGLE_MAPS_API_KEY = Deno.env.get('GOOGLE_MAPS_API_KEY');
+const GOOGLE_MAPS_API_KEY_ENV = Deno.env.get('GOOGLE_MAPS_API_KEY');
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -21,9 +22,36 @@ serve(async (req) => {
       })
     }
 
-    if (!GOOGLE_MAPS_API_KEY) {
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
+    // Intentar obtener la API Key de la tabla admin_settings si no está en ENV
+    let apiKey = GOOGLE_MAPS_API_KEY_ENV;
+    if (!apiKey) {
+      const { data: secretSetting } = await supabase
+        .from('admin_settings')
+        .select('value')
+        .eq('key', 'GOOGLE_MAPS_API_KEY')
+        .maybeSingle();
+      
+      if (secretSetting?.value) {
+        apiKey = secretSetting.value;
+      } else {
+        // Fallback para llave legacy si existe
+        const { data: legacySetting } = await supabase
+          .from('admin_settings')
+          .select('value')
+          .eq('key', 'GOOGLE_MAPS_SECRET_KEY')
+          .maybeSingle();
+        apiKey = legacySetting?.value;
+      }
+    }
+
+    if (!apiKey) {
       console.error("[address-autocomplete] GOOGLE_MAPS_API_KEY no configurada");
-      return new Response(JSON.stringify({ error: "Configuración incompleta" }), {
+      return new Response(JSON.stringify({ error: "Configuración incompleta: Falta API Key de Google Maps" }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
@@ -36,13 +64,11 @@ serve(async (req) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
+        'X-Goog-Api-Key': apiKey,
       },
       body: JSON.stringify({
         input,
         sessionToken,
-        // Opcional: restringir a República Dominicana si es necesario
-        // locationRestriction: { circle: { center: { latitude: 18.4861, longitude: -69.9312 }, radius: 200000 } }
       })
     });
 
@@ -52,7 +78,7 @@ serve(async (req) => {
       throw new Error(data.error.message || "Error en Google Autocomplete API");
     }
 
-    // Mapeamos al formato que espera el frontend (similar al viejo API para facilidad)
+    // Mapeamos al formato que espera el frontend
     const predictions = (data.suggestions || []).map((s: any) => ({
       place_id: s.placePrediction?.placeId,
       description: s.placePrediction?.text?.text,
@@ -66,7 +92,7 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("[address-autocomplete] Error:", error)
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: (error as Error).message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })

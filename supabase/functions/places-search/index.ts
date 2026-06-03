@@ -25,21 +25,22 @@ serve(async (req) => {
     // Intentar obtener la API Key de la tabla admin_settings si no está en ENV
     let apiKey = GOOGLE_MAPS_API_KEY_ENV;
     if (!apiKey) {
-      const { data: secretSetting } = await supabase
+      const { data: mainSetting } = await supabase
         .from('admin_settings')
         .select('value')
-        .eq('key', 'GOOGLE_MAPS_SECRET_KEY')
+        .eq('key', 'GOOGLE_MAPS_API_KEY')
         .maybeSingle();
       
-      if (secretSetting?.value) {
-        apiKey = secretSetting.value;
+      if (mainSetting?.value) {
+        apiKey = mainSetting.value;
       } else {
-        const { data: publicSetting } = await supabase
+        // Fallback para llave legacy si existe
+        const { data: legacySetting } = await supabase
           .from('admin_settings')
           .select('value')
-          .eq('key', 'GOOGLE_MAPS_API_KEY')
+          .eq('key', 'GOOGLE_MAPS_SECRET_KEY')
           .maybeSingle();
-        apiKey = publicSetting?.value;
+        apiKey = legacySetting?.value;
       }
     }
 

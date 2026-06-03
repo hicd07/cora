@@ -12,8 +12,7 @@ import { showError, showSuccess } from "@/utils/toast";
 
 // Configuración de llaves "plantilla" que siempre deben aparecer
 const DEFAULT_MAP_SETTINGS: Partial<AdminSetting>[] = [
-  { key: "GOOGLE_MAPS_API_KEY", description: "Llave pública de Google Maps (Navegador)", is_secret: false },
-  { key: "GOOGLE_MAPS_SECRET_KEY", description: "Llave privada de Google Maps (Backend)", is_secret: true },
+  { key: "GOOGLE_MAPS_API_KEY", description: "Google Maps API Key (Backend)", is_secret: true },
 ];
 
 const DEFAULT_AI_SETTINGS: Partial<AdminSetting>[] = [
@@ -129,13 +128,12 @@ export const AdminSettings = () => {
   const aiModels = mergedSettings.filter(s => ["OPENAI_MODEL", "GOOGLE_MODEL"].includes(s.key));
   
   const excludedKeys = [
-    "AI_PROVIDER", 
-    "OPENAI_API_KEY", 
-    "GOOGLE_API_KEY", 
-    "OPENAI_MODEL", 
-    "GOOGLE_MODEL", 
-    "GOOGLE_MAPS_API_KEY",
-    "GOOGLE_MAPS_SECRET_KEY"
+    "AI_PROVIDER",
+    "OPENAI_API_KEY",
+    "GOOGLE_API_KEY",
+    "OPENAI_MODEL",
+    "GOOGLE_MODEL",
+    "GOOGLE_MAPS_API_KEY"
   ];
   
   const otherSettings = mergedSettings.filter((s) => !excludedKeys.includes(s.key));
@@ -172,18 +170,12 @@ export const AdminSettings = () => {
                 {mapSettings.map(setting => (
                   <div key={setting.key} className="space-y-4">
                     <SettingField setting={setting} onSave={handleSave} saving={update.isPending} />
-                    <div className={`p-4 rounded-2xl border text-[11px] leading-relaxed ${
-                      setting.is_secret 
-                        ? "bg-amber-50/50 border-amber-100 dark:bg-amber-900/10 dark:border-amber-900/20 text-amber-700 dark:text-amber-300"
-                        : "bg-blue-50/50 border-blue-100 dark:bg-blue-900/10 dark:border-blue-900/20 text-blue-700 dark:text-blue-300"
-                    }`}>
+                    <div className="p-4 rounded-2xl border text-[11px] leading-relaxed bg-amber-50/50 border-amber-100 dark:bg-amber-900/10 dark:border-amber-900/20 text-amber-700 dark:text-amber-300">
                       <div className="flex gap-2 mb-2">
-                        {setting.is_secret ? <ShieldCheck className="h-3.5 w-3.5 shrink-0" /> : <Info className="h-3.5 w-3.5 shrink-0" />}
-                        <span className="font-bold uppercase">{setting.is_secret ? "Uso del Servidor" : "Uso del Navegador"}</span>
+                        <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+                        <span className="font-bold uppercase">Uso del Servidor</span>
                       </div>
-                      {setting.is_secret 
-                        ? "Usada por las Edge Functions para buscar ferreterías cercanas. Se recomienda restringirla por Dirección IP."
-                        : "Esta llave se usa para renderizar el mapa. Debe estar restringida por HTTP Referrer para evitar robos de crédito."}
+                      Esta llave se utiliza de forma segura desde el servidor para autocompletado de direcciones y búsqueda de ferreterías. No se expone al navegador.
                     </div>
                   </div>
                 ))}
