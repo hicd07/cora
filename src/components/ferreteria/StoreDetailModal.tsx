@@ -45,7 +45,7 @@ export function StoreDetailModal({ isOpen, onClose, store }: StoreDetailModalPro
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px] overflow-hidden p-0 gap-0 border-none shadow-2xl rounded-[2rem]">
+      <DialogContent className="sm:max-w-[425px] overflow-hidden p-0 gap-0 border-none shadow-2xl rounded-[2rem] w-[92vw] sm:w-full mx-auto">
         {/* Cabecera visual siempre presente */}
         <div className="h-40 w-full relative overflow-hidden bg-muted">
           {store.coverUrl ? (
@@ -79,10 +79,10 @@ export function StoreDetailModal({ isOpen, onClose, store }: StoreDetailModalPro
           </div>
         </div>
         
-        <div className="p-6">
+        <div className="p-6 overflow-hidden">
           <DialogHeader className="mb-4">
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col gap-1 min-w-0">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex flex-col gap-1 min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <DialogTitle className="font-display text-xl font-bold truncate">{store.name}</DialogTitle>
                 </div>
@@ -91,11 +91,11 @@ export function StoreDetailModal({ isOpen, onClose, store }: StoreDetailModalPro
                     href={googleMapsUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 text-sm text-primary hover:underline group"
+                    className="flex items-center gap-1.5 text-sm text-primary hover:underline group min-w-0 w-full"
                   >
                     <MapPin className="h-3.5 w-3.5 text-primary/70 shrink-0" />
-                    <span className="truncate">{storeLocationLabel}</span>
-                    <ExternalLink className="h-3 w-3 opacity-60 group-hover:opacity-100 transition-opacity" />
+                    <span className="truncate flex-1">{storeLocationLabel}</span>
+                    <ExternalLink className="h-3 w-3 opacity-60 group-hover:opacity-100 transition-opacity shrink-0" />
                   </a>
                 ) : (
                   <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -113,10 +113,10 @@ export function StoreDetailModal({ isOpen, onClose, store }: StoreDetailModalPro
 
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <Button onClick={handleCall} variant="outline" className="gap-2 h-11 rounded-xl">
+              <Button onClick={handleCall} variant="outline" className="gap-2 h-11 rounded-xl w-full">
                 <Phone className="h-4 w-4" /> Llamar
               </Button>
-              <Button onClick={handleWhatsApp} className="gap-2 h-11 rounded-xl bg-[#25D366] hover:bg-[#128C7E] text-white border-0">
+              <Button onClick={handleWhatsApp} className="gap-2 h-11 rounded-xl bg-[#25D366] hover:bg-[#128C7E] text-white border-0 w-full">
                 <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" className="h-4 w-4 invert brightness-0" alt="WhatsApp" />
                 WhatsApp
               </Button>
@@ -135,12 +135,14 @@ export function StoreDetailModal({ isOpen, onClose, store }: StoreDetailModalPro
               <div className="flex flex-wrap gap-2">
                 {store.deliveryCoverage && store.deliveryCoverage.length > 0 ? (
                   store.deliveryCoverage.map((area, idx) => (
-                    <Badge key={idx} variant="secondary" className="bg-primary/5 text-primary border-primary/10 rounded-lg">
-                      {area}
+                    <Badge key={idx} variant="secondary" className="bg-primary/5 text-primary border-primary/10 rounded-lg max-w-full">
+                      <span className="truncate">{area}</span>
                     </Badge>
                   ))
                 ) : (
-                  <span className="text-xs text-muted-foreground">Cobertura local en {store.sector || "su zona"}</span>
+                  <p className="text-xs text-muted-foreground leading-relaxed break-words w-full">
+                    Cobertura local en {store.sector || "su zona"}
+                  </p>
                 )}
               </div>
             </div>
