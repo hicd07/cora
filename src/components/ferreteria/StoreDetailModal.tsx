@@ -34,8 +34,9 @@ export function StoreDetailModal({ isOpen, onClose, store }: StoreDetailModalPro
     }
   };
 
-  const googleMapsUrl = store.address || store.sector 
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(store.address || store.sector || store.name)}`
+  const storeLocation = store.address || store.sector;
+  const googleMapsUrl = storeLocation 
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${store.name} ${storeLocation}`)}`
     : null;
 
   return (
@@ -62,17 +63,22 @@ export function StoreDetailModal({ isOpen, onClose, store }: StoreDetailModalPro
                     <ShieldCheck className="h-5 w-5 text-emerald-500" />
                   )}
                 </div>
-                {googleMapsUrl && (
+                {storeLocation ? (
                   <a 
-                    href={googleMapsUrl}
+                    href={googleMapsUrl || "#"}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1.5 text-sm text-primary hover:underline group"
                   >
                     <MapPin className="h-3.5 w-3.5 text-primary/70" />
-                    <span>{store.address || store.sector}</span>
+                    <span>{storeLocation}</span>
                     <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </a>
+                ) : (
+                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <MapPin className="h-3.5 w-3.5" />
+                    <span>Dirección no disponible</span>
+                  </div>
                 )}
               </div>
               <div className="flex items-center gap-1 bg-yellow-500/10 text-yellow-600 px-2 py-1 rounded-lg text-sm font-semibold">
