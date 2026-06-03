@@ -33,8 +33,21 @@ export const AdminManualBidModal = ({
   useEffect(() => {
     if (selectedStore?.name) {
       setStoreName(selectedStore.name);
-      setPhone(selectedStore.phone || "");
-      setWebsite(selectedStore.website || "");
+      
+      // Extracción robusta de datos de Google Maps (maneja múltiples formatos de respuesta)
+      const extractedPhone = 
+        selectedStore.phone || 
+        selectedStore.formatted_phone_number || 
+        selectedStore.international_phone_number || 
+        "";
+        
+      const extractedWebsite = 
+        selectedStore.website || 
+        selectedStore.url || 
+        "";
+
+      setPhone(extractedPhone);
+      setWebsite(extractedWebsite);
     } else {
       setStoreName("");
       setPhone("");
@@ -72,7 +85,7 @@ export const AdminManualBidModal = ({
         website,
         deliveryTime,
         items,
-        externalStoreId: selectedStore?.id || null,
+        externalStoreId: selectedStore?.id || selectedStore?.place_id || null,
       });
       showSuccess("Cotización registrada exitosamente");
       onClose();
@@ -83,8 +96,8 @@ export const AdminManualBidModal = ({
 
   const total = Object.values(prices).reduce((acc, curr) => acc + (parseFloat(curr) || 0), 0);
 
-  const googleMapsUrl = selectedStore?.address 
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedStore.address)}`
+  const googleMapsUrl = selectedStore?.address || selectedStore?.formatted_address
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedStore.address || selectedStore.formatted_address)}`
     : null;
 
   return (
@@ -105,7 +118,7 @@ export const AdminManualBidModal = ({
               </div>
               <div className="flex-1 space-y-1">
                 <h3 className="font-bold text-sm leading-tight">{selectedStore?.name || "Ingreso Manual"}</h3>
-                {selectedStore?.address && (
+                {(selectedStore?.address || selectedStore?.formatted_address) && (
                   <div className="flex items-start gap-1.5 text-[11px] text-muted-foreground">
                     <MapPin className="h-3 w-3 mt-0.5 shrink-0" />
                     {googleMapsUrl ? (
@@ -115,10 +128,10 @@ export const AdminManualBidModal = ({
                         rel="noreferrer" 
                         className="hover:text-primary hover:underline transition-colors leading-relaxed"
                       >
-                        {selectedStore.address}
+                        {selectedStore.address || selectedStore.formatted_address}
                       </a>
                     ) : (
-                      <span>{selectedStore.address}</span>
+                      <span>{selectedStore.address || selectedStore.formatted_address}</span>
                     )}
                   </div>
                 )}
@@ -148,7 +161,7 @@ export const AdminManualBidModal = ({
                     id="phone"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    placeholder="809-000-0000"
+                    placeholder="Sin teléfono"
                     className="field-soft pl-10"
                   />
                 </div>
@@ -161,7 +174,7 @@ export const AdminManualBidModal = ({
                     id="website"
                     value={website}
                     onChange={(e) => setWebsite(e.target.value)}
-                    placeholder="www.ejemplo.com"
+                    placeholder="Sin sitio web"
                     className="field-soft pl-10"
                   />
                 </div>
