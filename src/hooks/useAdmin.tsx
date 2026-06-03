@@ -71,9 +71,17 @@ export const useUpdateSetting = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ key, value }: { key: string; value: string }) => {
-      const isSecret = key.toLowerCase().includes("key") || key.toLowerCase().includes("secret");
-      
       const { data: { session } } = await supabase.auth.getSession();
+      
+      // Fetch existing to preserve is_secret if it already exists
+      const { data: existing } = await supabase
+        .from("admin_settings")
+        .select("is_secret")
+        .eq("key", key)
+        .single();
+
+      // Determine is_secret: use existing or fallback to keyword check
+      const isSecret = existing ? existing.is_secret : (key.toLowerCase().includes("key") || key.toLowerCase().includes("secret"));
       
       const { error } = await supabase
         .from("admin_settings")
@@ -226,7 +234,6 @@ export const useAdminActiveBids = () => {
 
       if (itemError) throw itemError;
 
-      // Usar mappers para normalizar los datos a CamelCase y tipos correctos
       return (requests || []).map(r => mapBidRequestRow(r, items || []));
     },
   });
@@ -243,21 +250,18 @@ export const useAdminNearbyStores = (
     queryFn: async () => {
       if (!lat || !lng) return [];
       
-      console.log("[useAdminNearbyStores] Buscando tiendas cercanas...", { lat, lng, radiusKm });
-      
       const { data, error } = await supabase.functions.invoke("places-search", {
         body: { lat, lng, radiusKm },
       });
 
       if (error) {
-        console.error("[useAdminNearbyStores] Error al buscar tiendas:", error);
         throw error;
       }
       
       return data.results || [];
     },
     enabled: enabled && !!lat && !!lng,
-    staleTime: 1000 * 60 * 30, // 30 minutos de cache en cliente
+    staleTime: 1000 * 60 * 30,
   });
 };
 
