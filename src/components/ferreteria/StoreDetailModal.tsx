@@ -34,7 +34,9 @@ export function StoreDetailModal({ isOpen, onClose, store }: StoreDetailModalPro
     }
   };
 
-  const storeLocationLabel = store.address || store.sector;
+  // Clean label logic: Priority for address, then sector. Filter out fallback strings.
+  const address = (store.address && store.address !== "Dirección no disponible") ? store.address : null;
+  const storeLocationLabel = address || store.sector;
   
   // Generar query de Google Maps priorizando coordenadas exactas
   const mapsQuery = store.lat && store.lng 

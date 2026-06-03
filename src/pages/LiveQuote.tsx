@@ -60,7 +60,7 @@ export default function LiveQuote() {
             id: bid.id,
             name: bid.storeName,
             sector: bid.profile?.sector || bid.address || null,
-            address: bid.address || bid.profile?.address || "Dirección no disponible",
+            address: (bid.address && bid.address !== "Dirección no disponible") ? bid.address : (bid.profile?.address || null),
             lat: bid.lat,
             lng: bid.lng,
             isVerified: !!bid.bidderUserId,
@@ -99,13 +99,13 @@ export default function LiveQuote() {
 
     const GoogleMapsLink = ({ bid }: { bid: any }) => {
         const address = bid.address || bid.profile?.address || bid.sector;
-        const label = address || "Ver ubicación";
+        const label = (address && address !== "Dirección no disponible") ? address : "Ver ubicación";
         
         // Priority for Coordinates, then Address, then Store Name
         let query = "";
         if (bid.lat && bid.lng) {
             query = `${bid.lat},${bid.lng}`;
-        } else if (address) {
+        } else if (address && address !== "Dirección no disponible") {
             query = encodeURIComponent(`${bid.storeName} ${address}`);
         } else {
             query = encodeURIComponent(bid.storeName);
