@@ -84,7 +84,11 @@ const Index = () => {
               ) : (
                 <div className="grid gap-4">
                   {requests.map((req) => (
-                    <div key={req.id} className="app-shell p-5 interactive-card">
+                    <div 
+                      key={req.id} 
+                      onClick={() => navigate(`/quote/${req.id}/live`)}
+                      className="app-shell p-5 interactive-card cursor-pointer hover:shadow-md transition-all duration-200 border border-border/50 hover:border-primary/30"
+                    >
                       <div className="flex justify-between items-start">
                         <div>
                           <span className="data-chip mb-2">{req.category}</span>
@@ -100,7 +104,10 @@ const Index = () => {
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          onClick={() => navigate(`/quote/${req.id}/live`)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/quote/${req.id}/live`);
+                          }}
                         >
                           Ver detalles
                         </Button>
