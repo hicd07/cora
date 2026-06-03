@@ -43,7 +43,9 @@ export default function LiveQuote() {
             id: bid.id,
             name: bid.storeName,
             sector: bid.profile?.sector || bid.address || null,
-            address: bid.address || bid.profile?.sector || "Dirección no disponible",
+            address: bid.address || bid.profile?.address || "Dirección no disponible",
+            lat: bid.lat,
+            lng: bid.lng,
             isVerified: !!bid.bidderUserId,
             rating: bid.rating,
             reviewsCount: 0,
@@ -73,17 +75,21 @@ export default function LiveQuote() {
         );
     }
 
-    const GoogleMapsLink = ({ address }: { address?: string }) => {
-        if (!address) return null;
+    const GoogleMapsLink = ({ bid }: { bid: any }) => {
+        const label = bid.address || bid.profile?.address || bid.sector || "Ver ubicación";
+        const query = bid.lat && bid.lng 
+          ? `${bid.lat},${bid.lng}` 
+          : encodeURIComponent(`${bid.storeName} ${label}`);
+        
         return (
             <a 
-                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`}
+                href={`https://www.google.com/maps/search/?api=1&query=${query}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1 text-xs text-primary hover:underline mt-0.5"
             >
                 <MapPin className="h-3 w-3" />
-                <span className="truncate max-w-[180px]">{address}</span>
+                <span className="truncate max-w-[180px]">{label}</span>
                 <ExternalLink className="h-2.5 w-2.5" />
             </a>
         );
@@ -177,7 +183,7 @@ export default function LiveQuote() {
                                                             </div>
                                                             <div className="min-w-0">
                                                                 <p className="font-medium text-sm truncate">{bid.storeName}</p>
-                                                                <GoogleMapsLink address={bid.address || bid.profile?.sector} />
+                                                                <GoogleMapsLink bid={bid} />
                                                             </div>
                                                         </div>
                                                         <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 shrink-0">Portal</Badge>
@@ -240,7 +246,7 @@ export default function LiveQuote() {
                                                             </div>
                                                             <div className="min-w-0">
                                                                 <p className="font-medium text-sm truncate">{bid.storeName}</p>
-                                                                <GoogleMapsLink address={bid.address} />
+                                                                <GoogleMapsLink bid={bid} />
                                                             </div>
                                                         </div>
                                                         <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 border-blue-500/20 shrink-0">Externo</Badge>

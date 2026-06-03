@@ -5,45 +5,39 @@ export interface QuoteItem {
   unit: string;
 }
 
-export interface BidOffer {
-  id: string;
-  bidId: string;
-  itemName: string;
-  unitPrice: number;
-  isAvailable: boolean;
-}
-
 export interface BidRequest {
   id: string;
   title: string;
   category: string;
-  deliveryAddress: string;
   sector: string;
+  deliveryAddress: string;
+  lat: number | null;
+  lng: number | null;
+  radiusKm: number;
   status: string;
   state: string;
   budgetLimit: number | null;
   createdAt: string;
   expiresAt: string;
-  bidsCount: number;
-  ownerUserId: string;
-  lat: number | null;
-  lng: number | null;
-  radiusKm: number;
   items: QuoteItem[];
+  itemsCount: number;
+  userBidId?: string | null;
 }
 
-export interface AppNotification {
+export interface HardwareStore {
   id: string;
-  userId: string;
-  type: string;
-  title: string;
-  message: string;
-  isRead: boolean;
-  entityType: string | null;
-  entityId: string | null;
-  metadata: any;
-  createdAt: string;
-  readAt: string | null;
+  name: string;
+  sector: string | null;
+  address: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  isVerified: boolean;
+  rating: number;
+  reviewsCount: number;
+  deliveryCoverage: string[];
+  phone?: string | null;
+  website?: string | null;
+  coverUrl?: string | null;
 }
 
 export interface AppProfile {
@@ -54,6 +48,9 @@ export interface AppProfile {
   onboarded: boolean;
   store_name: string | null;
   sector: string | null;
+  address?: string | null;
+  lat?: number | null;
+  lng?: number | null;
   delivery_coverage: string[];
   is_public: boolean;
   rating: number | null;
@@ -61,15 +58,15 @@ export interface AppProfile {
   cover_url: string | null;
 }
 
-export interface HardwareStore {
+export interface AppNotification {
   id: string;
-  name: string;
-  sector: string | null;
-  isVerified: boolean;
-  rating: number | null;
-  reviewsCount: number;
-  deliveryCoverage: string[];
-  phone?: string | null;
-  website?: string | null;
-  coverUrl?: string | null;
+  userId: string;
+  type: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  entityType?: string;
+  entityId?: string;
+  metadata: Record<string, any>;
+  createdAt: string;
 }

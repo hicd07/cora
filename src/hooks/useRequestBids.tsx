@@ -16,6 +16,9 @@ export const useRequestBids = (requestId?: string) => {
             cover_url,
             is_public,
             sector,
+            address,
+            lat,
+            lng,
             delivery_coverage
           )
         `)
@@ -33,9 +36,11 @@ export const useRequestBids = (requestId?: string) => {
         shippingCost: Number(bid.shipping_cost || 0),
         phone: bid.phone,
         website: bid.website,
+        address: bid.address || bid.profiles?.address,
+        lat: bid.lat || bid.profiles?.lat,
+        lng: bid.lng || bid.profiles?.lng,
         createdAt: bid.created_at,
         bidderUserId: bid.bidder_user_id,
-        // Profile data for verified stores
         profile: bid.profiles ? {
           coverUrl: bid.profiles.cover_url,
           isVerified: bid.profiles.is_public,
@@ -63,7 +68,7 @@ export const useCreateRequestBidMutation = () => {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("store_name")
+        .select("store_name, address, lat, lng")
         .eq("id", user.id)
         .single();
 
@@ -73,6 +78,9 @@ export const useCreateRequestBidMutation = () => {
           request_id: requestId,
           bidder_user_id: user.id,
           store_name: profile?.store_name || "Ferretería",
+          address: profile?.address,
+          lat: profile?.lat,
+          lng: profile?.lng,
           delivery_time: deliveryTime,
           shipping_cost: shippingCost
         })

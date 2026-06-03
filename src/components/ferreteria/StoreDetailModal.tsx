@@ -29,19 +29,23 @@ export function StoreDetailModal({ isOpen, onClose, store }: StoreDetailModalPro
 
   const handleWhatsApp = () => {
     if (store.phone) {
-      const message = encodeURIComponent(`Hola, vi tu oferta en Dyad para mi solicitud de materiales.`);
+      const message = encodeURIComponent(`Hola, vi tu oferta en CoRa para mi solicitud de materiales.`);
       window.open(`https://wa.me/${store.phone.replace(/\D/g, '')}?text=${message}`, "_blank");
     }
   };
 
-  const storeLocation = store.address || store.sector;
-  const googleMapsUrl = storeLocation 
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${store.name} ${storeLocation}`)}`
-    : null;
+  const storeLocationLabel = store.address || store.sector;
+  
+  // Generar query de Google Maps priorizando coordenadas exactas
+  const mapsQuery = store.lat && store.lng 
+    ? `${store.lat},${store.lng}` 
+    : encodeURIComponent(`${store.name} ${storeLocationLabel || ''}`);
+
+  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${mapsQuery}`;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px] overflow-hidden p-0 gap-0">
+      <DialogContent className="sm:max-w-[425px] overflow-hidden p-0 gap-0 border-none shadow-2xl rounded-[2rem]">
         {store.coverUrl && (
           <div className="h-32 w-full relative overflow-hidden">
             <img 
@@ -56,32 +60,32 @@ export function StoreDetailModal({ isOpen, onClose, store }: StoreDetailModalPro
         <div className="p-6">
           <DialogHeader className="mb-4">
             <div className="flex items-center justify-between">
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <DialogTitle className="font-display text-xl font-bold">{store.name}</DialogTitle>
+                  <DialogTitle className="font-display text-xl font-bold truncate">{store.name}</DialogTitle>
                   {store.isVerified && (
-                    <ShieldCheck className="h-5 w-5 text-emerald-500" />
+                    <ShieldCheck className="h-5 w-5 text-emerald-500 shrink-0" />
                   )}
                 </div>
-                {storeLocation ? (
+                {storeLocationLabel ? (
                   <a 
-                    href={googleMapsUrl || "#"}
+                    href={googleMapsUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1.5 text-sm text-primary hover:underline group"
                   >
-                    <MapPin className="h-3.5 w-3.5 text-primary/70" />
-                    <span>{storeLocation}</span>
-                    <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <MapPin className="h-3.5 w-3.5 text-primary/70 shrink-0" />
+                    <span className="truncate">{storeLocationLabel}</span>
+                    <ExternalLink className="h-3 w-3 opacity-60 group-hover:opacity-100 transition-opacity" />
                   </a>
                 ) : (
                   <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <MapPin className="h-3.5 w-3.5" />
+                    <MapPin className="h-3.5 w-3.5 shrink-0" />
                     <span>Dirección no disponible</span>
                   </div>
                 )}
               </div>
-              <div className="flex items-center gap-1 bg-yellow-500/10 text-yellow-600 px-2 py-1 rounded-lg text-sm font-semibold">
+              <div className="flex items-center gap-1 bg-yellow-500/10 text-yellow-600 px-2 py-1 rounded-lg text-sm font-semibold shrink-0">
                 <Star className="h-3.5 w-3.5 fill-yellow-500" />
                 {store.rating || "5.0"}
               </div>
@@ -100,7 +104,7 @@ export function StoreDetailModal({ isOpen, onClose, store }: StoreDetailModalPro
             </div>
 
             {store.website && (
-              <Button variant="ghost" className="w-full gap-2 text-muted-foreground hover:text-primary" asChild>
+              <Button variant="ghost" className="w-full gap-2 text-muted-foreground hover:text-primary h-10 rounded-xl" asChild>
                 <a href={store.website} target="_blank" rel="noopener noreferrer">
                   <Globe className="h-4 w-4" /> Visitar sitio web
                 </a>
@@ -108,19 +112,25 @@ export function StoreDetailModal({ isOpen, onClose, store }: StoreDetailModalPro
             )}
 
             <div className="pt-4 border-t">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Cobertura de Envío</h4>
+              <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">Cobertura de Envío</h4>
               <div className="flex flex-wrap gap-2">
                 {store.deliveryCoverage && store.deliveryCoverage.length > 0 ? (
                   store.deliveryCoverage.map((area, idx) => (
-                    <Badge key={idx} variant="secondary" className="bg-primary/5 text-primary border-primary/10">
+                    <Badge key={idx} variant="secondary" className="bg-primary/5 text-primary border-primary/10 rounded-lg">
                       {area}
                     </Badge>
                   ))
                 ) : (
-                  <span className="text-sm text-muted-foreground">Cobertura local en {store.sector || "su zona"}</span>
+                  <span className="text-xs text-muted-foreground">Cobertura local en {store.sector || "su zona"}</span>
                 )}
               </div>
             </div>
+
+            <Button variant="secondary" className="w-full h-11 rounded-xl gap-2 text-xs font-semibold" asChild>
+              <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer">
+                <MapPin className="h-4 w-4" /> Cómo llegar (Google Maps)
+              </a>
+            </Button>
           </div>
         </div>
       </DialogContent>

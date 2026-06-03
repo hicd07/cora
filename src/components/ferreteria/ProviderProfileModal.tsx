@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import { Check, Eye, EyeOff, MapPin, ShieldCheck, Store, X } from "lucide-react";
+import { Check, Eye, EyeOff, MapPin, ShieldCheck, Store, X, Map as MapIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CoverImagePicker } from "./CoverImagePicker";
 import { useSessionContext } from "@/components/auth/SessionContext";
 import { cn } from "@/lib/utils";
 import { showSuccess } from "@/utils/toast";
+import { MapPicker } from "@/components/ui/MapPicker";
 
 interface ProviderProfileModalProps {
   isOpen: boolean;
@@ -15,10 +16,15 @@ interface ProviderProfileModalProps {
 const SECTORS = ["Alma Rosa I", "Alma Rosa II", "Ensanche Ozama", "Lucerna", "San Isidro", "El Almirante", "Carretera Mella", "Av. España"];
 const fieldClassName = "field-soft appearance-none pr-10";
 
+const INITIAL_CENTER = { lat: 18.4861, lng: -69.9312 };
+
 export const ProviderProfileModal: React.FC<ProviderProfileModalProps> = ({ isOpen, onClose }) => {
   const { profile, updateProfile } = useSessionContext();
   const [storeName, setStoreName] = useState(profile?.store_name || profile?.full_name || "");
   const [sector, setSector] = useState(profile?.sector || "");
+  const [address, setAddress] = useState(profile?.address || "");
+  const [lat, setLat] = useState<number>(profile?.lat || INITIAL_CENTER.lat);
+  const [lng, setLng] = useState<number>(profile?.lng || INITIAL_CENTER.lng);
   const [deliveryCoverage, setDeliveryCoverage] = useState<string[]>(profile?.delivery_coverage || []);
   const [isPublic, setIsPublic] = useState<boolean>(profile?.is_public ?? false);
   const [coverUrl, setCoverUrl] = useState<string | null>(profile?.cover_url || null);
@@ -31,7 +37,6 @@ export const ProviderProfileModal: React.FC<ProviderProfileModalProps> = ({ isOp
       setDeliveryCoverage(deliveryCoverage.filter((sectorItem) => sectorItem !== selectedSector));
       return;
     }
-
     setDeliveryCoverage([...deliveryCoverage, selectedSector]);
   };
 
@@ -44,6 +49,9 @@ export const ProviderProfileModal: React.FC<ProviderProfileModalProps> = ({ isOp
       store_name: storeName.trim(),
       full_name: profile.full_name,
       sector: sector || null,
+      address: address || null,
+      lat,
+      lng,
       delivery_coverage: deliveryCoverage,
       is_public: isPublic,
       cover_url: coverUrl,
@@ -65,7 +73,7 @@ export const ProviderProfileModal: React.FC<ProviderProfileModalProps> = ({ isOp
             <div>
               <p className="section-label">Perfil comercial</p>
               <h3 className="font-display text-base font-semibold text-foreground">Mi perfil de empresa</h3>
-              <p className="mt-1 text-xs text-muted-foreground">Edita visibilidad, cobertura y presencia comercial.</p>
+              <p className="mt-1 text-xs text-muted-foreground">Edita visibilidad, ubicación y presencia comercial.</p>
             </div>
           </div>
           <Button variant="outline" size="icon" onClick={onClose} aria-label="Cerrar">
@@ -87,27 +95,51 @@ export const ProviderProfileModal: React.FC<ProviderProfileModalProps> = ({ isOp
             <Input type="text" required placeholder="Ej: Ferretería El Progreso SDE" value={storeName} onChange={(e) => setStoreName(e.target.value)} />
           </div>
 
-          <div className="space-y-1.5">
-            <label className="section-label flex items-center gap-1.5">
-              <MapPin className="h-3.5 w-3.5 text-primary" />Sector principal (SDE)
-            </label>
-            <select value={sector} onChange={(e) => setSector(e.target.value)} className={fieldClassName}>
-              <option value="">Selecciona un sector</option>
-              {SECTORS.map((sectorItem) => (
-                <option key={sectorItem} value={sectorItem}>
-                  {sectorItem}
-                </option>
-              ))}
-            </select>
+          <div className="panel-muted p-4 space-y-4">
+            <div>
+              <label className="section-label flex items-center gap-1.5 mb-2">
+                <MapIcon className="h-3.5 w-3.5 text-primary" /> Ubicación exacta
+              </label>
+              <MapPicker 
+                lat={lat} 
+                lng={lng} 
+                onPositionChange={({ lat, lng }) => {
+                  setLat(lat);
+                  setLng(lng);
+                }} 
+                height="200px"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="section-label block">Dirección completa</label>
+              <Input 
+                placeholder="Calle #, Edificio..." 
+                value={address} 
+                onChange={(e) => setAddress(e.target.value)} 
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="section-label flex items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5 text-primary" />Sector principal (SDE)
+              </label>
+              <select value={sector} onChange={(e) => setSector(e.target.value)} className={fieldClassName}>
+                <option value="">Selecciona un sector</option>
+                {SECTORS.map((sectorItem) => (
+                  <option key={sectorItem} value={sectorItem}>
+                    {sectorItem}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="space-y-2">
             <label className="section-label block">Cobertura de entrega</label>
-            <p className="text-xs text-muted-foreground">Selecciona todos los sectores donde realizas despachos directos.</p>
             <div className="grid grid-cols-2 gap-2">
               {SECTORS.map((sectorItem) => {
                 const isSelected = deliveryCoverage.includes(sectorItem);
-
                 return (
                   <button
                     key={sectorItem}
@@ -116,7 +148,7 @@ export const ProviderProfileModal: React.FC<ProviderProfileModalProps> = ({ isOp
                     className={cn(
                       "interactive-row flex items-center justify-between rounded-[1.15rem] border px-3 py-3 text-left text-xs",
                       isSelected
-                        ? "border-primary/25 bg-[hsl(var(--primary)/0.12)] text-foreground shadow-[0_12px_24px_-24px_hsl(var(--primary)/0.75)]"
+                        ? "border-primary/25 bg-[hsl(var(--primary)/0.12)] text-foreground shadow-sm"
                         : "border-border bg-card text-muted-foreground hover:bg-[hsl(var(--surface-2))] hover:text-foreground",
                     )}
                   >
@@ -131,30 +163,24 @@ export const ProviderProfileModal: React.FC<ProviderProfileModalProps> = ({ isOp
           <div className="panel-muted p-4">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-start gap-3">
-                <div className={cn("flex h-10 w-10 items-center justify-center rounded-[1rem]", isPublic ? "bg-[hsl(var(--success)/0.14)] text-[hsl(var(--success))]" : "bg-muted text-muted-foreground")}>
+                <div className={cn("flex h-10 w-10 items-center justify-center rounded-[1rem]", isPublic ? "bg-emerald-500/10 text-emerald-600" : "bg-muted text-muted-foreground")}>
                   {isPublic ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                 </div>
                 <div>
                   <h4 className="font-display text-sm font-semibold text-foreground">Visibilidad del perfil</h4>
-                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                    {isPublic ? "Visible para usuarios tipo cliente" : "Oculto para usuarios tipo cliente"}
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {isPublic ? "Visible para clientes" : "Oculto para clientes"}
                   </p>
                 </div>
               </div>
-
               <button
                 type="button"
                 onClick={() => setIsPublic(!isPublic)}
-                className={cn("toggle-track shrink-0", isPublic ? "border-primary/20 bg-[hsl(var(--primary)/0.16)]" : "border-border bg-muted")}
-                aria-label="Cambiar visibilidad"
+                className={cn("toggle-track shrink-0", isPublic ? "border-primary/20 bg-primary/20" : "border-border bg-muted")}
               >
                 <span className={cn("toggle-thumb", isPublic ? "translate-x-7" : "translate-x-0")} />
               </button>
             </div>
-
-            <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
-              Si tu perfil es <strong className="text-foreground">Público</strong>, aparecerás en Mercado con los datos reales que completes aquí.
-            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-3 pt-1">
