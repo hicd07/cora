@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Clock, MapPin, Store, Bot, ShieldCheck, Search, Truck, Phone } from "lucide-react";
+import { ArrowLeft, Clock, MapPin, Store, Bot, ShieldCheck, Search, Truck, Phone, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRequestBids } from "@/hooks/useRequestBids";
 import { mapBidRequestRow } from "@/lib/mappers/bidRequests";
@@ -42,7 +42,8 @@ export default function LiveQuote() {
         const storeData: HardwareStore = {
             id: bid.id,
             name: bid.storeName,
-            sector: bid.profile?.sector || null,
+            sector: bid.profile?.sector || bid.address || null,
+            address: bid.address || bid.profile?.sector || "Dirección no disponible",
             isVerified: !!bid.bidderUserId,
             rating: bid.rating,
             reviewsCount: 0,
@@ -71,6 +72,22 @@ export default function LiveQuote() {
             </div>
         );
     }
+
+    const GoogleMapsLink = ({ address }: { address?: string }) => {
+        if (!address) return null;
+        return (
+            <a 
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-xs text-primary hover:underline mt-0.5"
+            >
+                <MapPin className="h-3 w-3" />
+                <span className="truncate max-w-[180px]">{address}</span>
+                <ExternalLink className="h-2.5 w-2.5" />
+            </a>
+        );
+    };
 
     return (
         <div className="min-h-screen bg-background pb-20">
@@ -152,31 +169,34 @@ export default function LiveQuote() {
                                             const total = subtotal + shipping;
 
                                             return (
-                                                <div key={bid.id} className="panel-strong p-5 border-emerald-500/10 bg-emerald-500/[0.01] animate-in fade-in zoom-in-95 duration-300">
+                                                <div key={bid.id} className="panel-strong p-5 border-emerald-500/10 bg-emerald-500/[0.01] animate-in fade-in zoom-in-95 duration-300 flex flex-col">
                                                     <div className="flex justify-between items-start mb-3">
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="h-8 w-8 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                                                        <div className="flex items-center gap-2 min-w-0">
+                                                            <div className="h-8 w-8 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
                                                                 <Store className="h-4 w-4 text-emerald-600" />
                                                             </div>
-                                                            <div>
-                                                                <p className="font-medium text-sm">{bid.storeName}</p>
-                                                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                                                    <Clock className="h-3 w-3" /> {bid.deliveryTime}
-                                                                </div>
+                                                            <div className="min-w-0">
+                                                                <p className="font-medium text-sm truncate">{bid.storeName}</p>
+                                                                <GoogleMapsLink address={bid.address || bid.profile?.sector} />
                                                             </div>
                                                         </div>
-                                                        <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">Portal</Badge>
+                                                        <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 shrink-0">Portal</Badge>
                                                     </div>
-                                                    <div className="space-y-2 mt-4">
+                                                    <div className="space-y-2 mt-4 flex-grow">
                                                         {(bid.offers || []).slice(0, 3).map((offer: any, idx: number) => (
                                                             <div key={idx} className="flex justify-between text-sm">
                                                                 <span className="text-muted-foreground truncate mr-2">{offer.itemName}</span>
                                                                 <span className="font-medium">RD$ {(Number(offer.unitPrice) || 0).toLocaleString()}</span>
                                                             </div>
                                                         ))}
-                                                        <div className="flex justify-between text-xs text-muted-foreground pt-2 border-t mt-2">
-                                                            <span className="flex items-center gap-1"><Truck className="h-3 w-3" /> Envío</span>
-                                                            <span className="font-medium">RD$ {shipping.toLocaleString()}</span>
+                                                        <div className="flex flex-col pt-2 border-t mt-2">
+                                                            <div className="flex justify-between text-xs text-muted-foreground">
+                                                                <span className="flex items-center gap-1"><Truck className="h-3 w-3" /> Envío</span>
+                                                                <span className="font-medium">RD$ {shipping.toLocaleString()}</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mt-1 bg-muted/30 p-1 px-2 rounded-lg w-fit">
+                                                                <Clock className="h-2.5 w-2.5" /> Entrega: {bid.deliveryTime}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                     <div className="mt-4 pt-4 border-t flex justify-between items-center">
@@ -212,22 +232,20 @@ export default function LiveQuote() {
                                             const total = subtotal + shipping;
 
                                             return (
-                                                <div key={bid.id} className="panel-strong p-5 border-blue-500/10 bg-blue-500/[0.01] animate-in fade-in zoom-in-95 duration-300">
+                                                <div key={bid.id} className="panel-strong p-5 border-blue-500/10 bg-blue-500/[0.01] animate-in fade-in zoom-in-95 duration-300 flex flex-col">
                                                     <div className="flex justify-between items-start mb-3">
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="h-8 w-8 rounded-full bg-blue-500/10 flex items-center justify-center">
+                                                        <div className="flex items-center gap-2 min-w-0">
+                                                            <div className="h-8 w-8 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
                                                                 <Bot className="h-4 w-4 text-blue-600" />
                                                             </div>
-                                                            <div>
-                                                                <p className="font-medium text-sm">{bid.storeName}</p>
-                                                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                                                    <Clock className="h-3 w-3" /> {bid.deliveryTime}
-                                                                </div>
+                                                            <div className="min-w-0">
+                                                                <p className="font-medium text-sm truncate">{bid.storeName}</p>
+                                                                <GoogleMapsLink address={bid.address} />
                                                             </div>
                                                         </div>
-                                                        <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 border-blue-500/20">Externo</Badge>
+                                                        <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 border-blue-500/20 shrink-0">Externo</Badge>
                                                     </div>
-                                                    <div className="space-y-2 mt-4">
+                                                    <div className="space-y-2 mt-4 flex-grow">
                                                         {(bid.offers || []).slice(0, 3).map((offer: any, idx: number) => (
                                                             <div key={idx} className="flex justify-between text-sm">
                                                                 <span className="text-muted-foreground truncate mr-2">{offer.itemName}</span>
@@ -236,9 +254,14 @@ export default function LiveQuote() {
                                                                 </span>
                                                             </div>
                                                         ))}
-                                                        <div className="flex justify-between text-xs text-muted-foreground pt-2 border-t mt-2">
-                                                            <span className="flex items-center gap-1"><Truck className="h-3 w-3" /> Envío</span>
-                                                            <span className="font-medium">RD$ {shipping.toLocaleString()}</span>
+                                                        <div className="flex flex-col pt-2 border-t mt-2">
+                                                            <div className="flex justify-between text-xs text-muted-foreground">
+                                                                <span className="flex items-center gap-1"><Truck className="h-3 w-3" /> Envío</span>
+                                                                <span className="font-medium">RD$ {shipping.toLocaleString()}</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mt-1 bg-muted/30 p-1 px-2 rounded-lg w-fit">
+                                                                <Clock className="h-2.5 w-2.5" /> Entrega: {bid.deliveryTime}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                     <div className="mt-4 pt-4 border-t flex justify-between items-center">
