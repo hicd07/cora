@@ -144,10 +144,13 @@ export default function LiveQuote() {
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         {portalBids.map(bid => {
-                                            const total = bid.offers.reduce(
-                                                (acc, offer) => acc + offer.unitPrice * (request.items.find(i => i.name === offer.itemName)?.quantity || 1),
+                                            const subtotal = (bid.offers || []).reduce(
+                                                (acc: number, offer: any) => acc + (Number(offer.unitPrice) || 0) * (request.items.find(i => i.name === offer.itemName)?.quantity || 0),
                                                 0
                                             );
+                                            const shipping = Number(bid.shippingCost) || 0;
+                                            const total = subtotal + shipping;
+
                                             return (
                                                 <div key={bid.id} className="panel-strong p-5 border-emerald-500/10 bg-emerald-500/[0.01] animate-in fade-in zoom-in-95 duration-300">
                                                     <div className="flex justify-between items-start mb-3">
@@ -165,20 +168,20 @@ export default function LiveQuote() {
                                                         <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">Portal</Badge>
                                                     </div>
                                                     <div className="space-y-2 mt-4">
-                                                        {bid.offers.slice(0, 3).map((offer, idx) => (
+                                                        {(bid.offers || []).slice(0, 3).map((offer: any, idx: number) => (
                                                             <div key={idx} className="flex justify-between text-sm">
                                                                 <span className="text-muted-foreground truncate mr-2">{offer.itemName}</span>
-                                                                <span className="font-medium">RD$ {offer.unitPrice.toLocaleString()}</span>
+                                                                <span className="font-medium">RD$ {(Number(offer.unitPrice) || 0).toLocaleString()}</span>
                                                             </div>
                                                         ))}
                                                         <div className="flex justify-between text-xs text-muted-foreground pt-2 border-t mt-2">
                                                             <span className="flex items-center gap-1"><Truck className="h-3 w-3" /> Envío</span>
-                                                            <span className="font-medium">RD$ {bid.shippingCost.toLocaleString()}</span>
+                                                            <span className="font-medium">RD$ {shipping.toLocaleString()}</span>
                                                         </div>
                                                     </div>
                                                     <div className="mt-4 pt-4 border-t flex justify-between items-center">
                                                         <span className="text-xs text-muted-foreground uppercase font-semibold tracking-wider">Total</span>
-                                                        <span className="font-display font-semibold text-lg text-primary">RD$ {(total + bid.shippingCost).toLocaleString()}</span>
+                                                        <span className="font-display font-semibold text-lg text-primary">RD$ {total.toLocaleString()}</span>
                                                     </div>
                                                     <Button onClick={() => handleContactStore(bid)} variant="outline" className="w-full mt-4 h-9 rounded-xl text-xs font-semibold gap-2">
                                                         <Phone className="h-3.5 w-3.5" /> Contactar proveedor
@@ -201,10 +204,13 @@ export default function LiveQuote() {
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         {manualBids.map(bid => {
-                                            const total = bid.offers.reduce(
-                                                (acc, offer) => acc + offer.unitPrice * (request.items.find(i => i.name === offer.itemName)?.quantity || 1),
+                                            const subtotal = (bid.offers || []).reduce(
+                                                (acc: number, offer: any) => acc + (Number(offer.unitPrice) || 0) * (request.items.find(i => i.name === offer.itemName)?.quantity || 0),
                                                 0
                                             );
+                                            const shipping = Number(bid.shippingCost) || 0;
+                                            const total = subtotal + shipping;
+
                                             return (
                                                 <div key={bid.id} className="panel-strong p-5 border-blue-500/10 bg-blue-500/[0.01] animate-in fade-in zoom-in-95 duration-300">
                                                     <div className="flex justify-between items-start mb-3">
@@ -222,22 +228,22 @@ export default function LiveQuote() {
                                                         <Badge variant="secondary" className="bg-blue-500/10 text-blue-600 border-blue-500/20">Externo</Badge>
                                                     </div>
                                                     <div className="space-y-2 mt-4">
-                                                        {bid.offers.slice(0, 3).map((offer, idx) => (
+                                                        {(bid.offers || []).slice(0, 3).map((offer: any, idx: number) => (
                                                             <div key={idx} className="flex justify-between text-sm">
                                                                 <span className="text-muted-foreground truncate mr-2">{offer.itemName}</span>
                                                                 <span className="font-medium">
-                                                                    {offer.isAvailable ? `RD$ ${offer.unitPrice.toLocaleString()}` : "N/D"}
+                                                                    {offer.isAvailable ? `RD$ ${(Number(offer.unitPrice) || 0).toLocaleString()}` : "N/D"}
                                                                 </span>
                                                             </div>
                                                         ))}
                                                         <div className="flex justify-between text-xs text-muted-foreground pt-2 border-t mt-2">
                                                             <span className="flex items-center gap-1"><Truck className="h-3 w-3" /> Envío</span>
-                                                            <span className="font-medium">RD$ {bid.shippingCost.toLocaleString()}</span>
+                                                            <span className="font-medium">RD$ {shipping.toLocaleString()}</span>
                                                         </div>
                                                     </div>
                                                     <div className="mt-4 pt-4 border-t flex justify-between items-center">
                                                         <span className="text-xs text-muted-foreground uppercase font-semibold tracking-wider">Total</span>
-                                                        <span className="font-display font-semibold text-lg text-primary">RD$ {(total + bid.shippingCost).toLocaleString()}</span>
+                                                        <span className="font-display font-semibold text-lg text-primary">RD$ {total.toLocaleString()}</span>
                                                     </div>
                                                     <Button onClick={() => handleContactStore(bid)} variant="outline" className="w-full mt-4 h-9 rounded-xl text-xs font-semibold gap-2">
                                                         <Phone className="h-3.5 w-3.5" /> Contactar proveedor
