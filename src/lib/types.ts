@@ -1,10 +1,16 @@
-export type BidStatus = "active" | "completed" | "draft";
-
 export interface QuoteItem {
   id: string;
   name: string;
   quantity: number;
   unit: string;
+}
+
+export interface BidOffer {
+  id: string;
+  bidId: string;
+  itemName: string;
+  unitPrice: number;
+  isAvailable: boolean;
 }
 
 export interface BidRequest {
@@ -13,30 +19,31 @@ export interface BidRequest {
   category: string;
   deliveryAddress: string;
   sector: string;
-  status: BidStatus;
+  status: string;
   state: string;
   budgetLimit: number | null;
   createdAt: string;
   expiresAt: string;
   bidsCount: number;
-  itemsCount: number;
-  items: QuoteItem[];
+  ownerUserId: string;
   lat: number | null;
   lng: number | null;
   radiusKm: number;
+  items: QuoteItem[];
 }
 
-export interface HardwareStore {
+export interface AppNotification {
   id: string;
-  name: string;
-  sector: string | null;
-  rating: number | null;
-  reviewsCount: number;
-  isVerified: boolean;
-  deliveryCoverage: string[];
-  coverUrl: string | null;
-  phone?: string | null;
-  website?: string | null;
+  userId: string;
+  type: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  entityType: string | null;
+  entityId: string | null;
+  metadata: any;
+  createdAt: string;
+  readAt: string | null;
 }
 
 export interface AppProfile {
@@ -54,36 +61,15 @@ export interface AppProfile {
   cover_url: string | null;
 }
 
-export interface BidOffer {
-  itemName: string;
-  unitPrice: number;
-  isAvailable: boolean;
-}
-
-export interface HardwareBid {
+export interface HardwareStore {
   id: string;
-  requestId: string;
-  storeId: string;
-  storeName: string;
-  rating: number;
-  deliveryTime: string;
-  createdAt: string;
-  offers: BidOffer[];
-  bidderUserId?: string | null;
+  name: string;
+  sector: string | null;
+  isVerified: boolean;
+  rating: number | null;
+  reviewsCount: number;
+  deliveryCoverage: string[];
   phone?: string | null;
   website?: string | null;
-}
-
-export interface AppNotification {
-  id: string;
-  userId: string;
-  type: string;
-  title: string;
-  message: string;
-  isRead: boolean;
-  entityType: string | null;
-  entityId: string | null;
-  metadata: any;
-  createdAt: string;
-  readAt: string | null;
+  coverUrl?: string | null;
 }
