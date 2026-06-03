@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { AlertTriangle, Check, Clock, X } from "lucide-react";
+import { AlertTriangle, Check, Clock, X, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCreateRequestBidMutation } from "@/hooks/useRequestBids";
@@ -28,6 +28,7 @@ export const BidFormModal: React.FC<BidFormModalProps> = ({ isOpen, onClose, req
   const createBid = useCreateRequestBidMutation();
   const [items, setItems] = useState<ItemQuote[]>([]);
   const [deliveryTime, setDeliveryTime] = useState<string>(DELIVERY_OPTIONS[1]);
+  const [shippingCost, setShippingCost] = useState<string>("0");
 
   useEffect(() => {
     if (request) {
@@ -41,6 +42,7 @@ export const BidFormModal: React.FC<BidFormModalProps> = ({ isOpen, onClose, req
         })),
       );
       setDeliveryTime(DELIVERY_OPTIONS[1]);
+      setShippingCost("0");
     }
   }, [request]);
 
@@ -78,7 +80,8 @@ export const BidFormModal: React.FC<BidFormModalProps> = ({ isOpen, onClose, req
     return accumulator + item.unitPrice * item.quantity;
   }, 0);
   const itbis = subtotal * 0.18;
-  const total = subtotal + itbis;
+  const shipping = parseFloat(shippingCost) || 0;
+  const total = subtotal + itbis + shipping;
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -99,13 +102,14 @@ export const BidFormModal: React.FC<BidFormModalProps> = ({ isOpen, onClose, req
       await createBid.mutateAsync({
         requestId: request.id,
         deliveryTime,
+        shippingCost: shipping,
         offers: items.map((item) => ({
           itemName: item.name,
           unitPrice: item.unitPrice,
           isAvailable: item.isAvailable,
         })),
       });
-      showSuccess("Oferta enviada con datos reales.");
+      showSuccess("Oferta enviada con éxito.");
       onClose();
     } catch (error: any) {
       showError(error.message || "No se pudo enviar la cotización.");
@@ -160,7 +164,7 @@ export const BidFormModal: React.FC<BidFormModalProps> = ({ isOpen, onClose, req
                     <div className="mt-3 flex items-center gap-3">
                       <div className="relative flex-1">
                         <span className="mono-data pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">RD$</span>
-                        <Input
+                        <input
                           type="number"
                           required
                           min="0.01"
@@ -168,7 +172,7 @@ export const BidFormModal: React.FC<BidFormModalProps> = ({ isOpen, onClose, req
                           placeholder="Precio unitario"
                           value={item.unitPrice || ""}
                           onChange={(e) => handlePriceChange(index, e.target.value)}
-                          className="pl-12"
+                          className={cn(fieldClassName, "pl-12 pr-4")}
                         />
                       </div>
                       <div className="min-w-[88px] text-right">
@@ -181,7 +185,7 @@ export const BidFormModal: React.FC<BidFormModalProps> = ({ isOpen, onClose, req
                   ) : (
                     <div className="mt-3 flex items-center gap-2 text-xs text-destructive">
                       <AlertTriangle className="h-4 w-4" />
-                      <span>Este ítem no se incluirá en la oferta persistida.</span>
+                      <span>Este ítem no se incluirá en la oferta.</span>
                     </div>
                   )}
                 </div>
@@ -189,27 +193,49 @@ export const BidFormModal: React.FC<BidFormModalProps> = ({ isOpen, onClose, req
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="section-label flex items-center gap-1.5">
-              <Clock className="h-3.5 w-3.5 text-primary" />Tiempo de entrega estimado
-            </label>
-            <select value={deliveryTime} onChange={(e) => setDeliveryTime(e.target.value)} className={fieldClassName}>
-              {DELIVERY_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="section-label flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5 text-primary" />Entrega
+              </label>
+              <select value={deliveryTime} onChange={(e) => setDeliveryTime(e.target.value)} className={fieldClassName}>
+                {DELIVERY_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="section-label flex items-center gap-1.5">
+                <Truck className="h-3.5 w-3.5 text-primary" />Envío
+              </label>
+              <div className="relative">
+                <span className="mono-data pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">RD$</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={shippingCost}
+                  onChange={(e) => setShippingCost(e.target.value)}
+                  className={cn(fieldClassName, "pl-10 pr-4")}
+                />
+              </div>
+            </div>
           </div>
 
-          <div className="panel-strong rounded-[1.5rem] p-4">
-            <div className="flex justify-between text-sm text-muted-foreground">
+          <div className="panel-strong rounded-[1.5rem] p-4 space-y-2">
+            <div className="flex justify-between text-xs text-muted-foreground">
               <span>Subtotal neto</span>
               <span className="mono-data">RD$ {subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
             </div>
-            <div className="mt-2 flex justify-between text-sm text-muted-foreground">
+            <div className="flex justify-between text-xs text-muted-foreground">
               <span>ITBIS (18%)</span>
               <span className="mono-data">RD$ {itbis.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            </div>
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Costo de envío</span>
+              <span className="mono-data">RD$ {shipping.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
             </div>
             <div className="my-3 border-t border-border" />
             <div className="flex items-center justify-between">

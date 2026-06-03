@@ -15,7 +15,7 @@ import {
 import { useCreateManualBidMutation } from "@/hooks/useAdmin";
 import { BidRequest } from "@/lib/types";
 import { showError, showSuccess } from "@/utils/toast";
-import { Store, MapPin, Globe, Phone, Clock, Calculator, ExternalLink } from "lucide-react";
+import { Store, MapPin, Globe, Phone, Clock, Calculator, ExternalLink, Truck } from "lucide-react";
 import { DELIVERY_OPTIONS } from "@/lib/constants";
 
 interface AdminManualBidModalProps {
@@ -35,6 +35,7 @@ export const AdminManualBidModal = ({
   const [phone, setPhone] = useState("");
   const [website, setWebsite] = useState("");
   const [deliveryTime, setDeliveryTime] = useState<string>(DELIVERY_OPTIONS[2]); // Default: 24 horas
+  const [shippingCost, setShippingCost] = useState<string>("0");
   const [prices, setPrices] = useState<Record<string, string>>({});
   const createBid = useCreateManualBidMutation();
 
@@ -66,6 +67,7 @@ export const AdminManualBidModal = ({
       initialPrices[item.id] = "";
     });
     setPrices(initialPrices);
+    setShippingCost("0");
   }, [selectedStore, bidRequest, isOpen]);
 
   const handlePriceChange = (itemId: string, value: string) => {
@@ -91,6 +93,7 @@ export const AdminManualBidModal = ({
         phone,
         website,
         deliveryTime,
+        shippingCost: parseFloat(shippingCost) || 0,
         items,
         externalStoreId: selectedStore?.id || selectedStore?.place_id || null,
       });
@@ -101,7 +104,10 @@ export const AdminManualBidModal = ({
     }
   };
 
-  const total = Object.values(prices).reduce((acc, curr) => acc + (parseFloat(curr) || 0), 0);
+  const subtotal = Object.values(prices).reduce((acc, curr) => acc + (parseFloat(curr) || 0), 0);
+  const itbis = subtotal * 0.18;
+  const shipping = parseFloat(shippingCost) || 0;
+  const total = subtotal + itbis + shipping;
 
   const googleMapsUrl = selectedStore?.address || selectedStore?.formatted_address
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedStore.address || selectedStore.formatted_address)}`
@@ -208,21 +214,36 @@ export const AdminManualBidModal = ({
               </div>
             </div>
 
-            <div className="grid gap-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">Tiempo de Entrega</Label>
-              <Select value={deliveryTime} onValueChange={setDeliveryTime}>
-                <SelectTrigger className="field-soft pl-10 relative">
-                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <SelectValue placeholder="Seleccionar tiempo..." />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl shadow-xl">
-                  {DELIVERY_OPTIONS.map((option) => (
-                    <SelectItem key={option} value={option} className="rounded-lg">
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">Tiempo de Entrega</Label>
+                <Select value={deliveryTime} onValueChange={setDeliveryTime}>
+                  <SelectTrigger className="field-soft pl-10 relative h-11">
+                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <SelectValue placeholder="Seleccionar..." />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl shadow-xl">
+                    {DELIVERY_OPTIONS.map((option) => (
+                      <SelectItem key={option} value={option} className="rounded-lg">
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">Costo Envío</Label>
+                <div className="relative">
+                  <Truck className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    type="number"
+                    value={shippingCost}
+                    onChange={(e) => setShippingCost(e.target.value)}
+                    placeholder="0.00"
+                    className="field-soft pl-10 h-11"
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="space-y-3 pt-2">
@@ -250,9 +271,24 @@ export const AdminManualBidModal = ({
             </div>
           </div>
 
-          <div className="pt-4 border-t flex justify-between items-center">
-            <span className="text-sm font-bold text-muted-foreground">Total Estimado:</span>
-            <span className="text-lg font-black text-primary">${total.toLocaleString()}</span>
+          <div className="panel-strong rounded-[1.5rem] p-4 space-y-2.5">
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Subtotal productos</span>
+              <span className="mono-data">RD$ {subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            </div>
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>ITBIS (18%)</span>
+              <span className="mono-data">RD$ {itbis.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            </div>
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Costo de envío</span>
+              <span className="mono-data">RD$ {shipping.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            </div>
+            <div className="border-t border-border/60 my-1" />
+            <div className="flex items-center justify-between">
+              <span className="font-display text-sm font-bold text-primary">Total Estimado</span>
+              <span className="mono-data text-lg font-black text-foreground">RD$ {total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            </div>
           </div>
         </div>
 
