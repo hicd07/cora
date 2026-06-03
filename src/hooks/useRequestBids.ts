@@ -16,16 +16,18 @@ export const useRequestBids = (requestId?: string) => {
             cover_url,
             is_public,
             sector,
-            address,
-            lat,
-            lng,
-            delivery_coverage
+            delivery_coverage,
+            full_name,
+            store_name
           )
         `)
         .eq("request_id", requestId)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching bids:", error);
+        throw error;
+      }
 
       return (data || []).map((bid: any) => {
         // Handle potential array or object from Supabase join
@@ -40,17 +42,19 @@ export const useRequestBids = (requestId?: string) => {
           shippingCost: Number(bid.shipping_cost || 0),
           phone: bid.phone,
           website: bid.website,
-          // Prioritize bid-specific data, then profile data
-          address: bid.address || profileData?.address || null,
-          lat: bid.lat || profileData?.lat,
-          lng: bid.lng || profileData?.lng,
+          // Address, lat, lng come from hardware_bids directly
+          address: bid.address,
+          lat: bid.lat,
+          lng: bid.lng,
           createdAt: bid.created_at,
           bidderUserId: bid.bidder_user_id,
           profile: profileData ? {
             coverUrl: profileData.cover_url,
             isVerified: profileData.is_public,
             sector: profileData.sector,
-            deliveryCoverage: profileData.delivery_coverage || []
+            deliveryCoverage: profileData.delivery_coverage || [],
+            fullName: profileData.full_name,
+            storeName: profileData.store_name
           } : null,
           offers: (bid.offers || []).map((offer: any) => ({
             id: offer.id,
@@ -74,19 +78,19 @@ export const useCreateRequestBidMutation = () => {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("store_name, address, lat, lng, sector")
+        .select("store_name, sector")
         .eq("id", user.id)
         .single();
 
+      // For registered providers, we still use their profile data as initial values
+      // Note: address, lat, lng are stored in hardware_bids to allow per-bid flexibility
       const { data: bid, error: bidError } = await supabase
         .from("hardware_bids")
         .insert({
           request_id: requestId,
           bidder_user_id: user.id,
           store_name: profile?.store_name || "Ferretería",
-          address: profile?.address || profile?.sector,
-          lat: profile?.lat,
-          lng: profile?.lng,
+          address: profile?.sector || "SDE",
           delivery_time: deliveryTime,
           shipping_cost: shippingCost
         })
