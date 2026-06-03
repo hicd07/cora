@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MapPin, Clock, Store, Plus, ExternalLink, Search, Loader2 } from "lucide-react";
+import { MapPin, Clock, Store, Plus, ExternalLink, Search, Loader2, Gavel } from "lucide-react";
 import { AdminManualBidModal } from "@/components/admin/AdminManualBidModal";
 import { BidRequest } from "@/lib/types";
 
@@ -92,7 +92,13 @@ function BidCard({ bid, onAddBid }: { bid: BidRequest; onAddBid: (bid: BidReques
               {bid.sector} • {bid.radiusKm} km
             </a>
           </div>
-          <Badge className="rounded-full text-[10px]">{bid.state}</Badge>
+          <div className="flex flex-col items-end gap-1.5">
+            <Badge className="rounded-full text-[10px]">{bid.state}</Badge>
+            <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 flex items-center gap-1 py-0.5 px-2 text-[10px]">
+              <Gavel className="h-2.5 w-2.5" />
+              {bid.bidsCount || 0} Ofertas
+            </Badge>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="pt-5 space-y-4">

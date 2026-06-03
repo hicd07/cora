@@ -3,14 +3,17 @@
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Clock, MapPin, Store, Bot, ShieldCheck, Search, Truck, Phone, ExternalLink } from "lucide-react";
+import { ArrowLeft, Clock, MapPin, Store, Bot, ShieldCheck, Search, Truck, Phone, ExternalLink, Plus, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useRequestBids } from "@/hooks/useRequestBids";
+import { useAdminNearbyStores } from "@/hooks/useAdmin";
 import { mapBidRequestRow } from "@/lib/mappers/bidRequests";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { StoreDetailModal } from "@/components/ferreteria/StoreDetailModal";
+import { AdminManualBidModal } from "@/components/admin/AdminManualBidModal";
+import { useSessionContext } from "@/components/auth/SessionContext";
 import { HardwareStore } from "@/lib/types";
 
 const fetchBidRequest = async (id: string) => {
@@ -24,8 +27,15 @@ const fetchBidRequest = async (id: string) => {
 export default function LiveQuote() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const { isAdmin } = useSessionContext();
+    
     const [selectedStore, setSelectedStore] = useState<HardwareStore | null>(null);
     const [isStoreModalOpen, setIsStoreModalOpen] = useState(false);
+    
+    // Admin specific state
+    const [hasSearched, setHasSearched] = useState(false);
+    const [selectedAdminStore, setSelectedAdminStore] = useState<any>(null);
+    const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
 
     const { data: request, isLoading: isLoadingRequest } = useQuery({
         queryKey: ["bid-request", id],
@@ -34,6 +44,13 @@ export default function LiveQuote() {
     });
 
     const { data: bids = [], isLoading: isLoadingBids } = useRequestBids(id);
+
+    const { data: nearbyStores = [], isLoading: isLoadingNearby } = useAdminNearbyStores(
+        request?.lat || null,
+        request?.lng || null,
+        request?.radiusKm || 5,
+        hasSearched
+    );
 
     const portalBids = bids.filter(bid => bid.bidderUserId);
     const manualBids = bids.filter(bid => !bid.bidderUserId);
@@ -56,6 +73,11 @@ export default function LiveQuote() {
         };
         setSelectedStore(storeData);
         setIsStoreModalOpen(true);
+    };
+
+    const handleOpenAdminManualBid = (store: any = null) => {
+        setSelectedAdminStore(store);
+        setIsAdminModalOpen(true);
     };
 
     if (isLoadingRequest) {
@@ -115,12 +137,13 @@ export default function LiveQuote() {
                             </p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-3">
+                        <Badge variant="outline" className="flex items-center gap-1.5 py-1 px-2.5">
                             <span className="relative flex h-2 w-2">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                            </span>En vivo
+                            </span>
+                            <span className="font-bold text-primary">{bids.length} Ofertas</span>
                         </Badge>
                     </div>
                 </div>
@@ -129,16 +152,74 @@ export default function LiveQuote() {
             <main className="container mx-auto p-4 md:p-6 mt-4">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                     <div className="lg:col-span-4 space-y-4">
-                        <div className="panel-muted p-5 sticky top-24">
-                            <h2 className="font-semibold text-sm mb-4">Materiales Solicitados</h2>
-                            <div className="space-y-3">
-                                {request.items.map((item, idx) => (
-                                    <div key={idx} className="flex justify-between items-center text-sm border-b border-border/50 pb-2 last:border-0 last:pb-0">
-                                        <span>{item.name}</span>
-                                        <span className="font-medium">{item.quantity} {item.unit}</span>
-                                    </div>
-                                ))}
+                        <div className="panel-muted p-5 sticky top-24 space-y-6">
+                            <div>
+                                <h2 className="font-semibold text-sm mb-4">Materiales Solicitados</h2>
+                                <div className="space-y-3">
+                                    {request.items.map((item, idx) => (
+                                        <div key={idx} className="flex justify-between items-center text-sm border-b border-border/50 pb-2 last:border-0 last:pb-0">
+                                            <span>{item.name}</span>
+                                            <span className="font-medium">{item.quantity} {item.unit}</span>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
+
+                            {isAdmin && (
+                                <div className="pt-6 border-t space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <h2 className="font-bold text-[11px] uppercase tracking-widest text-muted-foreground">Herramientas Admin</h2>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            className="h-7 text-[10px] gap-1"
+                                            onClick={() => handleOpenAdminManualBid()}
+                                        >
+                                            <Plus className="h-3 w-3" /> Manual
+                                        </Button>
+                                    </div>
+                                    
+                                    {!hasSearched ? (
+                                        <Button 
+                                            variant="outline" 
+                                            className="w-full h-10 gap-2 text-xs border-primary/20 hover:bg-primary/5 text-primary"
+                                            onClick={() => setHasSearched(true)}
+                                            disabled={isLoadingNearby}
+                                        >
+                                            {isLoadingNearby ? <Loader2 className="h-3 w-3 animate-spin" /> : <Search className="h-3 w-3" />}
+                                            Buscar tiendas externas
+                                        </Button>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            <div className="flex items-center justify-between">
+                                                <p className="text-[10px] font-medium text-muted-foreground">Tiendas en la zona</p>
+                                                {isLoadingNearby && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
+                                            </div>
+                                            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                                                {nearbyStores.map((store: any) => (
+                                                    <div key={store.id || store.place_id} className="flex items-center justify-between p-2 rounded-xl bg-background border border-border/50 text-[10px]">
+                                                        <div className="flex items-center gap-2 overflow-hidden">
+                                                            <Store className="h-3 w-3 text-primary shrink-0" />
+                                                            <span className="truncate font-medium">{store.name}</span>
+                                                        </div>
+                                                        <Button 
+                                                            size="sm" 
+                                                            variant="ghost" 
+                                                            className="h-6 px-1.5 text-primary hover:bg-primary/10"
+                                                            onClick={() => handleOpenAdminManualBid(store)}
+                                                        >
+                                                            Cotizar
+                                                        </Button>
+                                                    </div>
+                                                ))}
+                                                {nearbyStores.length === 0 && !isLoadingNearby && (
+                                                    <p className="text-[10px] text-center text-muted-foreground italic py-2">No se encontraron tiendas.</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -293,6 +374,15 @@ export default function LiveQuote() {
                 onClose={() => setIsStoreModalOpen(false)} 
                 store={selectedStore} 
             />
+
+            {isAdmin && request && (
+                <AdminManualBidModal
+                    isOpen={isAdminModalOpen}
+                    onClose={() => setIsAdminModalOpen(false)}
+                    bidRequest={request}
+                    selectedStore={selectedAdminStore}
+                />
+            )}
         </div>
     );
 }
