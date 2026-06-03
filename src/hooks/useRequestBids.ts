@@ -27,34 +27,39 @@ export const useRequestBids = (requestId?: string) => {
 
       if (error) throw error;
 
-      return (data || []).map((bid: any) => ({
-        id: bid.id,
-        storeId: bid.bidder_user_id || bid.id,
-        storeName: bid.store_name,
-        rating: bid.rating,
-        deliveryTime: bid.delivery_time,
-        shippingCost: Number(bid.shipping_cost || 0),
-        phone: bid.phone,
-        website: bid.website,
-        // Logic: prioritize bid-specific address, then profile address, then fallback
-        address: bid.address || bid.profiles?.address || null,
-        lat: bid.lat || bid.profiles?.lat,
-        lng: bid.lng || bid.profiles?.lng,
-        createdAt: bid.created_at,
-        bidderUserId: bid.bidder_user_id,
-        profile: bid.profiles ? {
-          coverUrl: bid.profiles.cover_url,
-          isVerified: bid.profiles.is_public,
-          sector: bid.profiles.sector,
-          deliveryCoverage: bid.profiles.delivery_coverage || []
-        } : null,
-        offers: (bid.offers || []).map((offer: any) => ({
-          id: offer.id,
-          itemName: offer.item_name,
-          unitPrice: Number(offer.unit_price),
-          isAvailable: offer.is_available
-        }))
-      }));
+      return (data || []).map((bid: any) => {
+        // Handle potential array or object from Supabase join
+        const profileData = Array.isArray(bid.profiles) ? bid.profiles[0] : bid.profiles;
+        
+        return {
+          id: bid.id,
+          storeId: bid.bidder_user_id || bid.id,
+          storeName: bid.store_name,
+          rating: bid.rating,
+          deliveryTime: bid.delivery_time,
+          shippingCost: Number(bid.shipping_cost || 0),
+          phone: bid.phone,
+          website: bid.website,
+          // Prioritize bid-specific data, then profile data
+          address: bid.address || profileData?.address || null,
+          lat: bid.lat || profileData?.lat,
+          lng: bid.lng || profileData?.lng,
+          createdAt: bid.created_at,
+          bidderUserId: bid.bidder_user_id,
+          profile: profileData ? {
+            coverUrl: profileData.cover_url,
+            isVerified: profileData.is_public,
+            sector: profileData.sector,
+            deliveryCoverage: profileData.delivery_coverage || []
+          } : null,
+          offers: (bid.offers || []).map((offer: any) => ({
+            id: offer.id,
+            itemName: offer.item_name,
+            unitPrice: Number(offer.unit_price),
+            isAvailable: offer.is_available
+          }))
+        };
+      });
     },
     enabled: Boolean(requestId),
   });
