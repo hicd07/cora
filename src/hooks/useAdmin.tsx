@@ -234,14 +234,22 @@ export const useAdminActiveBids = () => {
 
       if (reqError) throw reqError;
 
-      const { data: items, error: itemError } = await supabase
+      const requestIds = (requests || []).map(r => r.id);
+      
+      if (requestIds.length === 0) return [];
+
+      const { data: allItems, error: itemError } = await supabase
         .from("bid_request_items")
         .select("*")
-        .in("request_id", (requests || []).map(r => r.id));
+        .in("request_id", requestIds);
 
       if (itemError) throw itemError;
 
-      return (requests || []).map(r => mapBidRequestRow(r, items || []));
+      return (requests || []).map(r => {
+        // Filtrar solo los materiales que pertenecen a esta solicitud específica
+        const requestItems = (allItems || []).filter(item => item.request_id === r.id);
+        return mapBidRequestRow(r, requestItems);
+      });
     },
   });
 };
