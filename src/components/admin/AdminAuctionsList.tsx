@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MapPin, Clock, Store, Plus, ExternalLink, Search } from "lucide-react";
+import { MapPin, Clock, Store, Plus, ExternalLink, Search, Loader2 } from "lucide-react";
 import { AdminManualBidModal } from "@/components/admin/AdminManualBidModal";
 import { BidRequest } from "@/lib/types";
 
@@ -114,16 +114,20 @@ function BidCard({ bid, onAddBid }: { bid: BidRequest; onAddBid: (bid: BidReques
           <div className="flex justify-between items-center">
             <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Ferreterías Cercanas</h4>
             <div className="flex gap-2">
-              {!hasSearched && (
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="h-7 text-[10px] gap-1 px-2 border-primary/30 text-primary hover:bg-primary/5" 
-                  onClick={() => setHasSearched(true)}
-                >
-                  <Search className="h-3 w-3" /> Buscar en zona
-                </Button>
-              )}
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="h-7 text-[10px] gap-1 px-2 border-primary/30 text-primary hover:bg-primary/5 transition-all" 
+                onClick={() => setHasSearched(true)}
+                disabled={isLoadingStores}
+              >
+                {isLoadingStores ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Search className="h-3 w-3" />
+                )}
+                {isLoadingStores ? "Buscando..." : "Buscar en zona"}
+              </Button>
               <Button size="sm" variant="ghost" className="h-7 text-[10px] gap-1 px-2" onClick={() => onAddBid(bid)}>
                 <Plus className="h-3 w-3" /> Manual
               </Button>
