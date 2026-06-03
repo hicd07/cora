@@ -5,6 +5,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 import { useCreateManualBidMutation } from "@/hooks/useAdmin";
 import { BidRequest } from "@/lib/types";
 import { showError, showSuccess } from "@/utils/toast";
@@ -16,6 +23,16 @@ interface AdminManualBidModalProps {
   bidRequest: BidRequest;
   selectedStore?: any;
 }
+
+const DELIVERY_OPTIONS = [
+  "Inmediata",
+  "2 a 4 horas",
+  "24 horas",
+  "48 horas",
+  "72 horas",
+  "4-5 días hábiles",
+  "1 semana",
+];
 
 export const AdminManualBidModal = ({
   isOpen,
@@ -34,7 +51,6 @@ export const AdminManualBidModal = ({
     if (selectedStore?.name) {
       setStoreName(selectedStore.name);
       
-      // Extracción robusta de datos de Google Maps (maneja múltiples formatos de respuesta)
       const extractedPhone = 
         selectedStore.phone || 
         selectedStore.formatted_phone_number || 
@@ -202,17 +218,20 @@ export const AdminManualBidModal = ({
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="delivery" className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">Tiempo de Entrega</Label>
-              <div className="relative">
-                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="delivery"
-                  value={deliveryTime}
-                  onChange={(e) => setDeliveryTime(e.target.value)}
-                  placeholder="Ej: 24 horas, Inmediata..."
-                  className="field-soft pl-10"
-                />
-              </div>
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">Tiempo de Entrega</Label>
+              <Select value={deliveryTime} onValueChange={setDeliveryTime}>
+                <SelectTrigger className="field-soft pl-10 relative">
+                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <SelectValue placeholder="Seleccionar tiempo..." />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl shadow-xl">
+                  {DELIVERY_OPTIONS.map((option) => (
+                    <SelectItem key={option} value={option} className="rounded-lg">
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-3 pt-2">
