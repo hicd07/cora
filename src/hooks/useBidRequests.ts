@@ -1,40 +1,57 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { BidRequest, QuoteItem } from "@/lib/types";
 import { mapBidRequestRow } from "@/lib/mappers/bidRequests";
 import { useSessionContext } from "@/components/auth/SessionContext";
+import { BidRequest } from "@/lib/types";
 
 export const useBidRequests = () => {
-  const { user } = useSessionContext();
+  const { user, profile } = useSessionContext();
   
   return useQuery({
-    queryKey: ["bid-requests", user?.id],
+    queryKey: ["bid-requests", user?.id, profile?.user_type],
     queryFn: async () => {
+      // 1. Obtener las licitaciones activas
       const { data: requests, error: reqError } = await supabase
         .from("bid_requests")
         .select("*")
+        .eq("status", "active")
         .order("created_at", { ascending: false });
 
       if (reqError) throw reqError;
+      if (!requests || requests.length === 0) return [];
 
+      const requestIds = requests.map(r => r.id);
+
+      // 2. Obtener SOLO los materiales de estas licitaciones
       const { data: items, error: itemError } = await supabase
         .from("bid_request_items")
-        .select("*");
+        .select("*")
+        .in("request_id", requestIds);
 
       if (itemError) throw itemError;
 
-      // Fetch user's bids to check status
-      const { data: userBids } = await supabase
-        .from("hardware_bids")
-        .select("request_id, id")
-        .eq("bidder_user_id", user?.id);
+      // 3. Si es ferretería, verificar si ya ha cotizado en estas licitaciones
+      let bidMap = new Map();
+      if (profile?.user_type === "hardware") {
+        const { data: userBids } = await supabase
+          .from("hardware_bids")
+          .select("id, request_id")
+          .eq("bidder_user_id", user?.id)
+          .in("request_id", requestIds);
+          
+        if (userBids) {
+          bidMap = new Map(userBids.map(b => [b.request_id, b.id]));
+        }
+      }
 
-      const bidMap = new Map(userBids?.map(b => [b.request_id, b.id]));
-
-      return (requests || []).map(r => ({
-        ...mapBidRequestRow(r, items || []),
-        userBidId: bidMap.get(r.id) || null
-      }));
+      // 4. Mapear filtrando los materiales por cada ID de solicitud (La corrección principal)
+      return requests.map(r => {
+        const requestItems = (items || []).filter(item => item.request_id === r.id);
+        return {
+          ...mapBidRequestRow(r, requestItems),
+          userBidId: bidMap.get(r.id) || null
+        };
+      });
     },
     enabled: !!user?.id
   });
@@ -45,29 +62,30 @@ export const useCreateBidRequestMutation = () => {
   const { user } = useSessionContext();
 
   return useMutation({
-    mutationFn: async (data: any) => {
-      const { items, ...requestData } = data;
+    mutationFn: async (payload: any) => {
+      const { items, ...requestData } = payload;
       
+      // Crear la solicitud
       const { data: request, error: reqError } = await supabase
         .from("bid_requests")
         .insert({
           ...requestData,
           owner_user_id: user?.id,
-          state: "DRAFT"
+          status: "active",
+          state: "BROADCASTING"
         })
         .select()
         .single();
 
       if (reqError) throw reqError;
 
+      // Crear los materiales vinculados
       const { error: itemsError } = await supabase
         .from("bid_request_items")
         .insert(
-          items.map((item: QuoteItem) => ({
-            request_id: request.id,
-            name: item.name,
-            quantity: item.quantity,
-            unit: item.unit
+          items.map((item: any) => ({
+            ...item,
+            request_id: request.id
           }))
         );
 
@@ -87,7 +105,7 @@ export const useCompleteBidRequestMutation = () => {
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from("bid_requests")
-        .update({ status: "completed" })
+        .update({ status: "completed", state: "CLOSED" })
         .eq("id", id);
       if (error) throw error;
     },
